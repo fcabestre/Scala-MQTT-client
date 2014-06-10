@@ -1,4 +1,4 @@
-name := """hello-akka"""
+name := """Scala-MQTT-client"""
 
 version := "1.0"
 
