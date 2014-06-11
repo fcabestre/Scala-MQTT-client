@@ -1,6 +1,17 @@
-/**
+/*
+ * Copyright 2014 Frédéric Cabestre
  *
- * @author Frédéric Cabestre
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 import org.specs2.mutable._
@@ -27,7 +38,13 @@ class CodecSpec extends Specification {
     }
 
     "Fail on certain input values" in {
-      pending
+
+      import codec.Codecs._
+      import SpecUtils._
+
+      remainingLengthCodec.encode(-1) should failWith(s"The value to encode must be in the range [0..268435455], -1 is not valid")
+      remainingLengthCodec.encode(268435455 + 1) should failWith(s"The value to encode must be in the range [0..268435455], 268435456 is not valid")
+
     }
 
     "Perform decodings" in {

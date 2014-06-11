@@ -1,19 +1,37 @@
+/*
+ * Copyright 2014 Frédéric Cabestre
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import org.specs2.matcher.{Expectable, Matcher}
 import scala.Predef._
 import scalaz.\/
 
-/**
- *
- * @author Frédéric Cabestre
- */
 object SpecUtils {
 
-  class DisjunctionMatcher[T](v : T, f : \/[_, _] => \/[_, _]) extends Matcher[\/[String, T]] {
+  class SuccessfulDisjunctionMatcher[T](v : T) extends Matcher[\/[String, T]] {
     def apply[S <: \/[String, T]](e: Expectable[S]) = {
-      result(f(e.value) exists { _ == v }, e.description + " equals to " + e, e.description + " does not equal to " + e, e)
+      result(e.value exists { _ == v }, s"${e.description} equals to $v", s"The result is ${e.description}, instead of the expected value '$v'", e)
     }
   }
 
-  def succeedWith[T](t: T) = new DisjunctionMatcher(t, identity)
-  def failWith(t: String) = new DisjunctionMatcher(t, _.swap)
+  class FailedDisjunctionMatcher[T](m : String) extends Matcher[\/[String, T]] {
+    def apply[S <: \/[String, T]](e: Expectable[S]) = {
+      result(~e.value exists { _ == m }, s"${e.description} equals to $m", s"The result is ${e.description} instead of the expected error message '$m'", e)
+    }
+  }
+
+  def succeedWith[T](t: T) = new SuccessfulDisjunctionMatcher[T](t)
+  def failWith[T](t: String) = new FailedDisjunctionMatcher[T](t)
 }
