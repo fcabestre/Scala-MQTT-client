@@ -20,7 +20,7 @@ import scodec.Codec
 class CodecSpec extends Specification {
 
   "A remaining length codec" should {
-    "Perform encodings" in {
+    "Perform encoding of valid inputs" in {
 
       import codec.Codecs._
       import scodec.bits._
@@ -37,7 +37,7 @@ class CodecSpec extends Specification {
 
     }
 
-    "Fail on certain input values" in {
+    "Fail to encode certain input values" in {
 
       import codec.Codecs._
       import SpecUtils._
@@ -47,7 +47,7 @@ class CodecSpec extends Specification {
 
     }
 
-    "Perform decodings" in {
+    "Perform decoding of valid inputs" in {
 
       import codec.Codecs._
       import scodec.bits._
@@ -63,10 +63,19 @@ class CodecSpec extends Specification {
       remainingLengthCodec.decode(hex"ffffff7f".bits) should succeedWith((BitVector.empty, 268435455))
 
     }
+
+    "Fail to decode certain input values" in {
+
+      import codec.Codecs._
+      import scodec.bits._
+      import SpecUtils._
+
+      remainingLengthCodec.decode(hex"808080807f".bits) should failWith("The remaining length should be 4 bytes long at most")
+    }
   }
 
   "A header encoding" should {
-    "Perform encodings" in {
+    "Perform encoding of valid input" in {
 
       import messages.Header
       import codec.Codecs._
@@ -77,7 +86,7 @@ class CodecSpec extends Specification {
       Codec.encode(header) should succeedWith(bin"0010001100000101")
     }
 
-    "Perform decodings" in {
+    "Perform decoding of valid inputs" in {
 
       import messages.Header
       import codec.Codecs._

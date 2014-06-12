@@ -30,15 +30,16 @@ final class RemainingLengthCodec extends Codec[Int] {
 
   def decode(bits: BitVector): String \/ (BitVector, Int) = {
     @annotation.tailrec
-    def decodeAux(step: \/[String, (BitVector, Int)], factor: Int, value: Int): \/[String, (BitVector, Int)] =
-      step match {
+    def decodeAux(step: \/[String, (BitVector, Int)], factor: Int, depth: Int, value: Int): \/[String, (BitVector, Int)] =
+      if (depth == 4) \/.left("The remaining length should be 4 bytes long at most")
+      else step match {
         case e @ -\/(_) => e
         case \/-((b, d)) =>
           if ((d & 128) == 0) \/.right((b, value + (d & 127) * factor))
-          else decodeAux(uint8.decode(b), factor * 128, value + (d & 127) * factor)
+          else decodeAux(uint8.decode(b), factor * 128, depth + 1, value + (d & 127) * factor)
 
       }
-    decodeAux(uint8.decode(bits), 1, 0)
+    decodeAux(uint8.decode(bits), 1, 0, 0)
   }
 
   def encode(value: Int) = {
@@ -52,6 +53,7 @@ final class RemainingLengthCodec extends Codec[Int] {
 }
 
 object Codecs {
+
   import messages.Header
 
   val remainingLengthCodec = new RemainingLengthCodec
