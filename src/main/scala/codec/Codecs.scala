@@ -16,10 +16,13 @@
 
 package codec
 
+import messages.MessageTypes
 import scodec._
 import codecs._
 import scalaz.{\/-, -\/, \/}
 import scodec.bits.{ByteVector, BitVector}
+
+
 
 final class RemainingLengthCodec extends Codec[Int] {
 
@@ -50,6 +53,13 @@ final class RemainingLengthCodec extends Codec[Int] {
     if (value < MinValue || value > MaxValue) \/.left(s"The value to encode must be in the range [$MinValue..$MaxValue], $value is not valid")
     else \/.right(BitVector(encodeAux(value / 128, value % 128, ByteVector.empty)))
   }
+}
+
+final class MessageTypesCodec extends Codec[MessageTypes] {
+
+  override def decode(bits: BitVector): \/[String, (BitVector, MessageTypes)] = ???
+
+  override def encode(value: MessageTypes): \/[String, BitVector] = uint4.encode(value.enum)
 }
 
 object Codecs {
