@@ -22,9 +22,9 @@ class CodecSpec extends Specification {
   "A remaining length codec" should {
     "Perform encoding of valid inputs" in {
 
+      import SpecUtils._
       import codec.Codecs._
       import scodec.bits._
-      import SpecUtils._
 
       remainingLengthCodec.encode(0) should succeedWith(hex"00".bits)
       remainingLengthCodec.encode(127) should succeedWith(hex"7f".bits)
@@ -39,19 +39,19 @@ class CodecSpec extends Specification {
 
     "Fail to encode certain input values" in {
 
-      import codec.Codecs._
       import SpecUtils._
+      import codec.Codecs._
 
-      remainingLengthCodec.encode(-1) should failWith(s"The value to encode must be in the range [0..268435455], -1 is not valid")
-      remainingLengthCodec.encode(268435455 + 1) should failWith(s"The value to encode must be in the range [0..268435455], 268435456 is not valid")
+      remainingLengthCodec.encode(-1) should failWith(s"The remaining length must be in the range [0..268435455], -1 is not valid")
+      remainingLengthCodec.encode(268435455 + 1) should failWith(s"The remaining length must be in the range [0..268435455], 268435456 is not valid")
 
     }
 
     "Perform decoding of valid inputs" in {
 
+      import SpecUtils._
       import codec.Codecs._
       import scodec.bits._
-      import SpecUtils._
 
       remainingLengthCodec.decode(hex"00".bits) should succeedWith((BitVector.empty, 0))
       remainingLengthCodec.decode(hex"7f".bits) should succeedWith((BitVector.empty, 127))
@@ -66,9 +66,9 @@ class CodecSpec extends Specification {
 
     "Fail to decode certain input values" in {
 
+      import SpecUtils._
       import codec.Codecs._
       import scodec.bits._
-      import SpecUtils._
 
       remainingLengthCodec.decode(hex"808080807f".bits) should failWith("The remaining length should be 4 bytes long at most")
     }
@@ -77,23 +77,23 @@ class CodecSpec extends Specification {
   "A header encoding" should {
     "Perform encoding of valid input" in {
 
-      import messages.Header
       import codec.Codecs._
-      import scodec.bits._
       import SpecUtils._
+      import messages.{AtLeastOnce, CONNACK, Header}
+      import scodec.bits._
 
-      val header = Header(2, dup = false, 1, retain = true, 5)
+      val header = Header(CONNACK, dup = false, AtLeastOnce, retain = true, 5)
       Codec.encode(header) should succeedWith(bin"0010001100000101")
     }
 
     "Perform decoding of valid inputs" in {
 
-      import messages.Header
       import codec.Codecs._
-      import scodec.bits._
       import SpecUtils._
+      import messages.{ExactlyOnce, Header, PUBREL}
+      import scodec.bits._
 
-      val header = Header(6, dup = true, 2, retain = false, 128)
+      val header = Header(PUBREL, dup = true, ExactlyOnce, retain = false, 128)
       Codec[Header].decode(bin"011011001000000000000001110011") should succeedWith((bin"110011", header))
     }
   }

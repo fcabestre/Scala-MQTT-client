@@ -16,10 +16,17 @@
 
 package messages
 
-import shapeless.Iso
+sealed trait QualityOfService { def enum : Int }
 
-case class Header(messageType : MessageTypes, dup : Boolean, qos : QualityOfService, retain : Boolean, remainingLength : Int)
+object AtMostOnce extends QualityOfService { val enum = 0 }
+object AtLeastOnce extends QualityOfService { val enum = 1 }
+object ExactlyOnce extends QualityOfService { val enum = 2 }
 
-object Header {
-  implicit val hlistIso = Iso.hlist(Header.apply _, Header.unapply _)
+object QualityOfService {
+
+  private val qosArray = Array(AtMostOnce, AtLeastOnce, ExactlyOnce)
+
+  def qualityOfService(enum : Int) =
+    if(enum < 0 || enum > 2) None
+    else Some(qosArray(enum))
 }

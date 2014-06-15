@@ -15,7 +15,6 @@
  */
 
 import org.specs2.matcher.{Expectable, Matcher}
-import scala.Predef._
 import scalaz.\/
 
 object SpecUtils {

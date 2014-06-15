@@ -34,5 +34,10 @@ case object PINGRESP extends MessageTypes { val enum = 13 }
 case object DISCONNECT extends MessageTypes { val enum = 14 }
 
 object MessageTypes {
-  def messageType(enum : Int) = ???
+
+  private val typeArray = Array(CONNECT, CONNACK, PUBLISH, PUBACK, PUBREC, PUBREL, PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK, PINGREQ, PINGRESP, DISCONNECT)
+
+  def messageType(enum : Int) =
+    if(enum < 1 || enum > 14) None
+    else Some(typeArray(enum - 1))
 }

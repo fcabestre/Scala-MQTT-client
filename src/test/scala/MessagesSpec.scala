@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import messages.{DISCONNECT, SUBACK, CONNECT}
+import messages._
+import messages.MessageTypes._
+import messages.QualityOfService._
 import org.specs2.mutable._
-import scodec.Codec
 
 class MessagesSpec extends Specification {
 
@@ -25,6 +26,30 @@ class MessagesSpec extends Specification {
       CONNECT.enum should be_==(1)
       SUBACK.enum should be_==(9)
       DISCONNECT.enum should be_==(14)
+    }
+
+    "Be constructable from their corresponding «enum» value" in {
+      messageType(0) should be_==(None)
+      messageType(2) should be_==(Some(CONNACK))
+      messageType(7) should be_==(Some(PUBCOMP))
+      messageType(11) should be_==(Some(UNSUBACK))
+      messageType(15) should be_==(None)
+    }
+  }
+
+  "Quality of service" should {
+    "Provide their «enum» value" in {
+      AtMostOnce.enum should be_==(0)
+      AtLeastOnce.enum should be_==(1)
+      ExactlyOnce.enum should be_==(2)
+    }
+
+    "Be constructable from their corresponding «enum» value" in {
+      qualityOfService(-1) should be_==(None)
+      qualityOfService(0) should be_==(Some(AtMostOnce))
+      qualityOfService(1) should be_==(Some(AtLeastOnce))
+      qualityOfService(2) should be_==(Some(ExactlyOnce))
+      qualityOfService(3) should be_==(None)
     }
   }
 }

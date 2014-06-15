@@ -16,12 +16,11 @@
 
 package codec
 
-import messages.MessageTypes
+import messages.{QualityOfService, MessageTypes}
 import scodec._
 import codecs._
 import scalaz.{\/-, -\/, \/}
 import scodec.bits.{ByteVector, BitVector}
-
 
 
 final class RemainingLengthCodec extends Codec[Int] {
@@ -50,22 +49,47 @@ final class RemainingLengthCodec extends Codec[Int] {
     def encodeAux(value: Int, digit: Int, bytes: ByteVector): ByteVector =
       if (value == 0) bytes :+ digit.asInstanceOf[Byte]
       else encodeAux(value / 128, value % 128, bytes :+ (digit | 0x80).asInstanceOf[Byte])
-    if (value < MinValue || value > MaxValue) \/.left(s"The value to encode must be in the range [$MinValue..$MaxValue], $value is not valid")
+    if (value < MinValue || value > MaxValue) \/.left(s"The remaining length must be in the range [$MinValue..$MaxValue], $value is not valid")
     else \/.right(BitVector(encodeAux(value / 128, value % 128, ByteVector.empty)))
   }
 }
 
 final class MessageTypesCodec extends Codec[MessageTypes] {
 
-  override def decode(bits: BitVector): \/[String, (BitVector, MessageTypes)] = ???
+  import messages.MessageTypes._
+
+  override def decode(bits: BitVector): \/[String, (BitVector, MessageTypes)] =
+    uint4.decode(bits) flatMap  {
+      (b : BitVector, i : Int) => messageType(i) match {
+        case None => \/.left("")
+        case Some(m) => \/.right((b,m))
+      }
+    }
 
   override def encode(value: MessageTypes): \/[String, BitVector] = uint4.encode(value.enum)
+}
+
+final class QualityOfServiceCodec extends Codec[QualityOfService] {
+
+  import messages.QualityOfService._
+
+  override def decode(bits: BitVector): \/[String, (BitVector, QualityOfService)] =
+    uint2.decode(bits) flatMap  {
+      (b : BitVector, i : Int) => qualityOfService(i) match {
+        case None => \/.left("")
+        case Some(m) => \/.right((b,m))
+      }
+    }
+
+  override def encode(value: QualityOfService): \/[String, BitVector] = uint2.encode(value.enum)
 }
 
 object Codecs {
 
   import messages.Header
 
+  val messageTypeCodec = new MessageTypesCodec
+  val qualityOfServiceCodec = new QualityOfServiceCodec
   val remainingLengthCodec = new RemainingLengthCodec
-  implicit val headerCodec = (uint4 :: bool :: uint2 :: bool :: remainingLengthCodec).as[Header]
+  implicit val headerCodec = (messageTypeCodec :: bool :: qualityOfServiceCodec :: bool :: remainingLengthCodec).as[Header]
 }
