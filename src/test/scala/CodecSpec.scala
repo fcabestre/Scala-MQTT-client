@@ -70,7 +70,7 @@ class CodecSpec extends Specification {
       import codec.Codecs._
       import scodec.bits._
 
-      remainingLengthCodec.decode(hex"808080807f".bits) should failWith("The remaining length should be 4 bytes long at most")
+      remainingLengthCodec.decode(hex"808080807f".bits) should failWith("The remaining length must be 4 bytes long at most")
     }
   }
 

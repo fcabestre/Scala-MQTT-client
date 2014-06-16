@@ -15,8 +15,6 @@
  */
 
 import messages._
-import messages.MessageTypes._
-import messages.QualityOfService._
 import org.specs2.mutable._
 
 class MessagesSpec extends Specification {
@@ -29,11 +27,13 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      messageType(0) should be_==(None)
-      messageType(2) should be_==(Some(CONNACK))
-      messageType(7) should be_==(Some(PUBCOMP))
-      messageType(11) should be_==(Some(UNSUBACK))
-      messageType(15) should be_==(None)
+      import messages.MessageTypes._
+
+      fromEnum(0) should be_==(None)
+      fromEnum(2) should be_==(Some(CONNACK))
+      fromEnum(7) should be_==(Some(PUBCOMP))
+      fromEnum(11) should be_==(Some(UNSUBACK))
+      fromEnum(15) should be_==(None)
     }
   }
 
@@ -45,11 +45,13 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      qualityOfService(-1) should be_==(None)
-      qualityOfService(0) should be_==(Some(AtMostOnce))
-      qualityOfService(1) should be_==(Some(AtLeastOnce))
-      qualityOfService(2) should be_==(Some(ExactlyOnce))
-      qualityOfService(3) should be_==(None)
+      import messages.QualityOfService._
+
+      fromEnum(-1) should be_==(None)
+      fromEnum(0) should be_==(Some(AtMostOnce))
+      fromEnum(1) should be_==(Some(AtLeastOnce))
+      fromEnum(2) should be_==(Some(ExactlyOnce))
+      fromEnum(3) should be_==(None)
     }
   }
 }

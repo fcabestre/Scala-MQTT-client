@@ -16,17 +16,4 @@
 
 package messages
 
-sealed trait QualityOfService extends CaseEnum
-
-object AtMostOnce extends QualityOfService { val enum = 0 }
-object AtLeastOnce extends QualityOfService { val enum = 1 }
-object ExactlyOnce extends QualityOfService { val enum = 2 }
-
-object QualityOfService {
-
-  private val qosArray = Array(AtMostOnce, AtLeastOnce, ExactlyOnce)
-
-  def fromEnum(enum : Int) =
-    if(enum < 0 || enum > 2) None
-    else Some(qosArray(enum))
-}
+trait CaseEnum { def enum : Int }

@@ -16,7 +16,7 @@
 
 package messages
 
-sealed trait MessageTypes { def enum : Int }
+sealed trait MessageTypes extends CaseEnum
 
 case object CONNECT extends MessageTypes { val enum = 1 }
 case object CONNACK extends MessageTypes { val enum = 2 }
@@ -37,7 +37,7 @@ object MessageTypes {
 
   private val typeArray = Array(CONNECT, CONNACK, PUBLISH, PUBACK, PUBREC, PUBREL, PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK, PINGREQ, PINGRESP, DISCONNECT)
 
-  def messageType(enum : Int) =
+  def fromEnum(enum : Int) =
     if(enum < 1 || enum > 14) None
     else Some(typeArray(enum - 1))
 }

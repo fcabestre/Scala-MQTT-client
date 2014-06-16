@@ -16,7 +16,7 @@
 
 package codec
 
-import messages.{QualityOfService, MessageTypes}
+import messages.{CaseEnum, QualityOfService, MessageTypes}
 import scodec._
 import codecs._
 import scalaz.{\/-, -\/, \/}
@@ -33,7 +33,7 @@ final class RemainingLengthCodec extends Codec[Int] {
   def decode(bits: BitVector): String \/ (BitVector, Int) = {
     @annotation.tailrec
     def decodeAux(step: \/[String, (BitVector, Int)], factor: Int, depth: Int, value: Int): \/[String, (BitVector, Int)] =
-      if (depth == 4) \/.left("The remaining length should be 4 bytes long at most")
+      if (depth == 4) \/.left("The remaining length must be 4 bytes long at most")
       else step match {
         case e @ -\/(_) => e
         case \/-((b, d)) =>
@@ -54,34 +54,33 @@ final class RemainingLengthCodec extends Codec[Int] {
   }
 }
 
-final class MessageTypesCodec extends Codec[MessageTypes] {
+trait CaseClassCodec[T <: CaseEnum] extends Codec[T] {
 
-  import messages.MessageTypes._
+  def codec: Codec[Int]
+  def fromEnum: Function[Int, Option[T]]
 
-  override def decode(bits: BitVector): \/[String, (BitVector, MessageTypes)] =
-    uint4.decode(bits) flatMap  {
-      (b : BitVector, i : Int) => messageType(i) match {
+  override def decode(bits: BitVector): \/[String, (BitVector, T)] =
+    codec.decode(bits) flatMap {
+      (b: BitVector, i: Int) => fromEnum(i) match {
         case None => \/.left("")
-        case Some(m) => \/.right((b,m))
+        case Some(m) => \/.right((b, m))
       }
     }
 
-  override def encode(value: MessageTypes): \/[String, BitVector] = uint4.encode(value.enum)
+  override def encode(value: T): \/[String, BitVector] = codec.encode(value.enum)
+
 }
 
-final class QualityOfServiceCodec extends Codec[QualityOfService] {
+final class MessageTypesCodec extends CaseClassCodec[MessageTypes] {
 
-  import messages.QualityOfService._
+  val codec = uint4
+  val fromEnum = messages.MessageTypes.fromEnum _
+}
 
-  override def decode(bits: BitVector): \/[String, (BitVector, QualityOfService)] =
-    uint2.decode(bits) flatMap  {
-      (b : BitVector, i : Int) => qualityOfService(i) match {
-        case None => \/.left("")
-        case Some(m) => \/.right((b,m))
-      }
-    }
+final class QualityOfServiceCodec extends CaseClassCodec[QualityOfService] {
 
-  override def encode(value: QualityOfService): \/[String, BitVector] = uint2.encode(value.enum)
+  val codec = uint2
+  val fromEnum = messages.QualityOfService.fromEnum _
 }
 
 object Codecs {
