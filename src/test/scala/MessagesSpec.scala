@@ -28,12 +28,13 @@ class MessagesSpec extends Specification {
 
     "Be constructable from their corresponding «enum» value" in {
       import messages.MessageTypes._
+      import SpecUtils._
 
-      fromEnum(0) should be_==(None)
-      fromEnum(2) should be_==(Some(CONNACK))
-      fromEnum(7) should be_==(Some(PUBCOMP))
-      fromEnum(11) should be_==(Some(UNSUBACK))
-      fromEnum(15) should be_==(None)
+      fromEnum(0) should failWith("Message type encoded value should be in the range [1..14]")
+      fromEnum(2) should succeedWith(CONNACK)
+      fromEnum(7) should succeedWith(PUBCOMP)
+      fromEnum(11) should succeedWith(UNSUBACK)
+      fromEnum(15) should failWith("Message type encoded value should be in the range [1..14]")
     }
   }
 
@@ -46,12 +47,13 @@ class MessagesSpec extends Specification {
 
     "Be constructable from their corresponding «enum» value" in {
       import messages.QualityOfService._
+      import SpecUtils._
 
-      fromEnum(-1) should be_==(None)
-      fromEnum(0) should be_==(Some(AtMostOnce))
-      fromEnum(1) should be_==(Some(AtLeastOnce))
-      fromEnum(2) should be_==(Some(ExactlyOnce))
-      fromEnum(3) should be_==(None)
+      fromEnum(-1) should failWith("Quality of service encoded value should be in the range [0..2]")
+      fromEnum(0) should succeedWith(AtMostOnce)
+      fromEnum(1) should succeedWith(AtLeastOnce)
+      fromEnum(2) should succeedWith(ExactlyOnce)
+      fromEnum(3) should failWith("Quality of service encoded value should be in the range [0..2]")
     }
   }
 }

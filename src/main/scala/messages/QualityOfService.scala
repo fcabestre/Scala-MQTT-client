@@ -16,6 +16,9 @@
 
 package messages
 
+import scala.annotation.switch
+import scalaz.\/
+
 sealed trait QualityOfService extends CaseEnum
 
 object AtMostOnce extends QualityOfService { val enum = 0 }
@@ -24,9 +27,11 @@ object ExactlyOnce extends QualityOfService { val enum = 2 }
 
 object QualityOfService {
 
-  private val qosArray = Array(AtMostOnce, AtLeastOnce, ExactlyOnce)
-
   def fromEnum(enum : Int) =
-    if(enum < 0 || enum > 2) None
-    else Some(qosArray(enum))
+    (enum: @switch) match {
+      case 0 => \/.right(AtMostOnce)
+      case 1 => \/.right(AtLeastOnce)
+      case 2 => \/.right(ExactlyOnce)
+      case _ => \/.left("Quality of service encoded value should be in the range [0..2]")
+    }
 }

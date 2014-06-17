@@ -16,6 +16,9 @@
 
 package messages
 
+import scala.annotation.switch
+import scalaz.\/
+
 sealed trait MessageTypes extends CaseEnum
 
 case object CONNECT extends MessageTypes { val enum = 1 }
@@ -34,10 +37,22 @@ case object PINGRESP extends MessageTypes { val enum = 13 }
 case object DISCONNECT extends MessageTypes { val enum = 14 }
 
 object MessageTypes {
-
-  private val typeArray = Array(CONNECT, CONNACK, PUBLISH, PUBACK, PUBREC, PUBREL, PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK, PINGREQ, PINGRESP, DISCONNECT)
-
-  def fromEnum(enum : Int) =
-    if(enum < 1 || enum > 14) None
-    else Some(typeArray(enum - 1))
+  def fromEnum(enum: Int) =
+    (enum: @switch) match {
+      case 1 => \/.right(CONNECT)
+      case 2 => \/.right(CONNACK)
+      case 3 => \/.right(PUBLISH)
+      case 4 => \/.right(PUBACK)
+      case 5 => \/.right(PUBREC)
+      case 6 => \/.right(PUBREL)
+      case 7 => \/.right(PUBCOMP)
+      case 8 => \/.right(SUBSCRIBE)
+      case 9 => \/.right(SUBACK)
+      case 10 => \/.right(UNSUBSCRIBE)
+      case 11 => \/.right(UNSUBACK)
+      case 12 => \/.right(PINGREQ)
+      case 13 => \/.right(PINGRESP)
+      case 14 => \/.right(DISCONNECT)
+      case _ => \/.left("Message type encoded value should be in the range [1..14]")
+    }
 }
