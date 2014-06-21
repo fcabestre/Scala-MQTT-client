@@ -37,7 +37,10 @@ case object PINGRESP extends MessageTypes { val enum = 13 }
 case object DISCONNECT extends MessageTypes { val enum = 14 }
 
 object MessageTypes {
-  def fromEnum(enum: Int) =
+
+  import scala.language.implicitConversions
+
+  implicit def fromEnum(enum: Int) =
     (enum: @switch) match {
       case 1 => \/.right(CONNECT)
       case 2 => \/.right(CONNACK)

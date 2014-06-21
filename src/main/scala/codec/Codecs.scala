@@ -54,10 +54,7 @@ final class RemainingLengthCodec extends Codec[Int] {
   }
 }
 
-trait CaseEnumCodec[T <: CaseEnum] extends Codec[T] {
-
-  def codec: Codec[Int]
-  def fromEnum: Function[Int, \/[String, T]]
+class CaseEnumCodec[T <: CaseEnum](codec : Codec[Int])(implicit fromEnum : Function[Int, \/[String, T]]) extends Codec[T] {
 
   override def decode(bits: BitVector): \/[String, (BitVector, T)] =
     codec.decode(bits) flatMap {
@@ -67,27 +64,14 @@ trait CaseEnumCodec[T <: CaseEnum] extends Codec[T] {
     }
 
   override def encode(value: T): \/[String, BitVector] = codec.encode(value.enum)
-
-}
-
-final class MessageTypesCodec extends CaseEnumCodec[MessageTypes] {
-
-  val codec = uint4
-  val fromEnum = messages.MessageTypes.fromEnum _
-}
-
-final class QualityOfServiceCodec extends CaseEnumCodec[QualityOfService] {
-
-  val codec = uint2
-  val fromEnum = messages.QualityOfService.fromEnum _
 }
 
 object Codecs {
 
   import messages.Header
 
-  val messageTypeCodec = new MessageTypesCodec
-  val qualityOfServiceCodec = new QualityOfServiceCodec
+  val messageTypeCodec = new CaseEnumCodec[MessageTypes](uint4)
+  val qualityOfServiceCodec = new CaseEnumCodec[QualityOfService](uint2)
   val remainingLengthCodec = new RemainingLengthCodec
   implicit val headerCodec = (messageTypeCodec :: bool :: qualityOfServiceCodec :: bool :: remainingLengthCodec).as[Header]
 }

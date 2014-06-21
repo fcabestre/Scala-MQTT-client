@@ -27,7 +27,9 @@ object ExactlyOnce extends QualityOfService { val enum = 2 }
 
 object QualityOfService {
 
-  def fromEnum(enum : Int) =
+  import scala.language.implicitConversions
+
+  implicit def fromEnum(enum : Int) =
     (enum: @switch) match {
       case 0 => \/.right(AtMostOnce)
       case 1 => \/.right(AtLeastOnce)
