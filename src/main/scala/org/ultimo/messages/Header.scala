@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
-package messages
+package org.ultimo.messages
 
-trait CaseEnum { def enum : Int }
+import shapeless.Iso
+
+case class Header(messageType : MessageTypes, dup : Boolean, qos : QualityOfService, retain : Boolean, remainingLength : Int)
+
+object Header {
+  implicit val hlistIso = Iso.hlist(Header.apply _, Header.unapply _)
+}

@@ -1,3 +1,5 @@
+package org.ultimo
+
 /*
  * Copyright 2014 Frédéric Cabestre
  *
@@ -19,11 +21,11 @@ import scodec.Codec
 
 class CodecSpec extends Specification {
 
-  "A remaining length codec" should {
+  "A remaining length org.ultimo.codec" should {
     "Perform encoding of valid inputs" in {
 
-      import SpecUtils._
-      import codec.Codecs._
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
       import scodec.bits._
 
       remainingLengthCodec.encode(0) should succeedWith(hex"00".bits)
@@ -39,8 +41,8 @@ class CodecSpec extends Specification {
 
     "Fail to encode certain input values" in {
 
-      import SpecUtils._
-      import codec.Codecs._
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
 
       remainingLengthCodec.encode(-1) should failWith(s"The remaining length must be in the range [0..268435455], -1 is not valid")
       remainingLengthCodec.encode(268435455 + 1) should failWith(s"The remaining length must be in the range [0..268435455], 268435456 is not valid")
@@ -49,8 +51,8 @@ class CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
 
-      import SpecUtils._
-      import codec.Codecs._
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
       import scodec.bits._
 
       remainingLengthCodec.decode(hex"00".bits) should succeedWith((BitVector.empty, 0))
@@ -66,8 +68,8 @@ class CodecSpec extends Specification {
 
     "Fail to decode certain input values" in {
 
-      import SpecUtils._
-      import codec.Codecs._
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
       import scodec.bits._
 
       remainingLengthCodec.decode(hex"808080807f".bits) should failWith("The remaining length must be 4 bytes long at most")
@@ -77,9 +79,9 @@ class CodecSpec extends Specification {
   "A header encoding" should {
     "Perform encoding of valid input" in {
 
-      import codec.Codecs._
-      import SpecUtils._
-      import messages.{AtLeastOnce, CONNACK, Header}
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{AtLeastOnce, CONNACK, Header}
       import scodec.bits._
 
       val header = Header(CONNACK, dup = false, AtLeastOnce, retain = true, 5)
@@ -88,9 +90,9 @@ class CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
 
-      import codec.Codecs._
-      import SpecUtils._
-      import messages.{ExactlyOnce, Header, PUBREL}
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{ExactlyOnce, Header, PUBREL}
       import scodec.bits._
 
       val header = Header(PUBREL, dup = true, ExactlyOnce, retain = false, 128)

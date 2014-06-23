@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package codec
+package org.ultimo.codec
 
-import messages.{CaseEnum, QualityOfService, MessageTypes}
+import org.ultimo.messages.{CaseEnum, QualityOfService, MessageTypes}
 import scodec._
 import codecs._
 import scalaz.{\/-, -\/, \/}
@@ -68,7 +68,7 @@ class CaseEnumCodec[T <: CaseEnum](codec : Codec[Int])(implicit fromEnum : Funct
 
 object Codecs {
 
-  import messages.Header
+  import org.ultimo.messages.Header
 
   val messageTypeCodec = new CaseEnumCodec[MessageTypes](uint4)
   val qualityOfServiceCodec = new CaseEnumCodec[QualityOfService](uint2)

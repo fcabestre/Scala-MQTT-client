@@ -1,3 +1,5 @@
+package org.ultimo
+
 /*
  * Copyright 2014 Frédéric Cabestre
  *
@@ -15,6 +17,7 @@
  */
 
 import org.specs2.matcher.{Expectable, Matcher}
+
 import scalaz.\/
 
 object SpecUtils {

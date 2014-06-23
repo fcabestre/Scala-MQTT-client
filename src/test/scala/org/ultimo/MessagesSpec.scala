@@ -1,3 +1,5 @@
+package org.ultimo
+
 /*
  * Copyright 2014 Frédéric Cabestre
  *
@@ -14,10 +16,11 @@
  * limitations under the License.
  */
 
-import messages._
 import org.specs2.mutable._
 
 class MessagesSpec extends Specification {
+
+  import org.ultimo.messages._
 
   "Message types" should {
     "Provide their «enum» value" in {
@@ -27,7 +30,8 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import messages.MessageTypes._
+      import org.ultimo.SpecUtils._
+      import org.ultimo.messages.MessageTypes._
       import SpecUtils._
 
       fromEnum(0) should failWith("Message type encoded value should be in the range [1..14]")
@@ -46,7 +50,8 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import messages.QualityOfService._
+      import org.ultimo.SpecUtils._
+      import org.ultimo.messages.QualityOfService._
       import SpecUtils._
 
       fromEnum(-1) should failWith("Quality of service encoded value should be in the range [0..2]")

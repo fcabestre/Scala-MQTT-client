@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package messages
+package org.ultimo.messages
 
 import scala.annotation.switch
 import scalaz.\/

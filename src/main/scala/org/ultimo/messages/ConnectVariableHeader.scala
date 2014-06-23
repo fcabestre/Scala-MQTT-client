@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package messages
+package org.ultimo.messages
 
-import shapeless.Iso
-
-case class Header(messageType : MessageTypes, dup : Boolean, qos : QualityOfService, retain : Boolean, remainingLength : Int)
-
-object Header {
-  implicit val hlistIso = Iso.hlist(Header.apply _, Header.unapply _)
+case class ConnectVariableHeader(cleanSession : Boolean,
+                                 willFlag : Boolean,
+                                 willQoS : QualityOfService,
+                                 willRetain : Boolean,
+                                 passwordFlag : Boolean,
+                                 userNameFlag : Boolean,
+                                 keepAliveTimer : Int) {
+  val protocolName = "MQIsdp"
+  val protocolVersion = 0x03
 }
