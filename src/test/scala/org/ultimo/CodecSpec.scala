@@ -21,7 +21,7 @@ import scodec.Codec
 
 class CodecSpec extends Specification {
 
-  "A remaining length org.ultimo.codec" should {
+  "A remaining length codec" should {
     "Perform encoding of valid inputs" in {
 
       import org.ultimo.SpecUtils._
@@ -76,7 +76,7 @@ class CodecSpec extends Specification {
     }
   }
 
-  "A header encoding" should {
+  "A header codec" should {
     "Perform encoding of valid input" in {
 
       import org.ultimo.SpecUtils._
@@ -97,6 +97,19 @@ class CodecSpec extends Specification {
 
       val header = Header(PUBREL, dup = true, ExactlyOnce, retain = false, 128)
       Codec[Header].decode(bin"011011001000000000000001110011") should succeedWith((bin"110011", header))
+    }
+  }
+
+  "A connect variable header codec" should {
+    "Perform encoding of valid input" in {
+
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{AtMostOnce, ConnectVariableHeader}
+      import scodec.bits._
+
+      val connectVariableHeader = ConnectVariableHeader(cleanSession = true, willFlag = true, AtMostOnce, willRetain = false, passwordFlag = true, userNameFlag = true, 1024)
+      Codec.encode(connectVariableHeader) should succeedWith(bin"110001100000010000000000")
     }
   }
 }

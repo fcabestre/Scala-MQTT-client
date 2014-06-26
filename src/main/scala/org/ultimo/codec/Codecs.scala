@@ -19,6 +19,7 @@ package org.ultimo.codec
 import org.ultimo.messages.{CaseEnum, QualityOfService, MessageTypes}
 import scodec._
 import codecs._
+import shapeless.HNil
 import scalaz.{\/-, -\/, \/}
 import scodec.bits.{ByteVector, BitVector}
 
@@ -68,10 +69,18 @@ class CaseEnumCodec[T <: CaseEnum](codec : Codec[Int])(implicit fromEnum : Funct
 
 object Codecs {
 
+  import scodec.bits._
   import org.ultimo.messages.Header
+  import org.ultimo.messages.ConnectVariableHeader
+  import scalaz.std.anyVal.unitInstance
 
   val messageTypeCodec = new CaseEnumCodec[MessageTypes](uint4)
   val qualityOfServiceCodec = new CaseEnumCodec[QualityOfService](uint2)
   val remainingLengthCodec = new RemainingLengthCodec
+  val stringCodec = variableSizeBytes(uint16, utf8)
+
   implicit val headerCodec = (messageTypeCodec :: bool :: qualityOfServiceCodec :: bool :: remainingLengthCodec).as[Header]
+  implicit val connectVariableHeaderCodec =
+    (constant(BitVector(hex"00064D514973647003")) :~>:
+      bool :: bool :: qualityOfServiceCodec :: bool :: bool :: bool :: uint16).as[ConnectVariableHeader]
 }

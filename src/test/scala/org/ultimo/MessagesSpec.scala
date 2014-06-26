@@ -61,4 +61,18 @@ class MessagesSpec extends Specification {
       fromEnum(3) should failWith("Quality of service encoded value should be in the range [0..2]")
     }
   }
+
+  "Message headers" should {
+    "Have a valid remaining length" in {
+      Header(CONNECT, dup = false, AtLeastOnce, retain = false, -1) should throwA[IllegalArgumentException]
+      Header(CONNECT, dup = false, AtLeastOnce, retain = false, 268435456) should throwA[IllegalArgumentException]
+    }
+  }
+
+  "Connect variable header" should {
+    "Have a valid keep alive timer" in {
+      ConnectVariableHeader(cleanSession = true, willFlag = true, AtMostOnce, willRetain = false, passwordFlag = false, userNameFlag = true, -1)  should throwA[IllegalArgumentException]
+      ConnectVariableHeader(cleanSession = true, willFlag = true, AtMostOnce, willRetain = false, passwordFlag = false, userNameFlag = true, 65536)  should throwA[IllegalArgumentException]
+    }
+  }
 }

@@ -16,6 +16,8 @@
 
 package org.ultimo.messages
 
+import shapeless.Iso
+
 case class ConnectVariableHeader(cleanSession : Boolean,
                                  willFlag : Boolean,
                                  willQoS : QualityOfService,
@@ -23,6 +25,13 @@ case class ConnectVariableHeader(cleanSession : Boolean,
                                  passwordFlag : Boolean,
                                  userNameFlag : Boolean,
                                  keepAliveTimer : Int) {
+
+  require(keepAliveTimer >= 0 && keepAliveTimer <= 65535)
+
   val protocolName = "MQIsdp"
   val protocolVersion = 0x03
+}
+
+object ConnectVariableHeader {
+  implicit val hlistIso1 = Iso.hlist(ConnectVariableHeader.apply _, ConnectVariableHeader.unapply _)
 }

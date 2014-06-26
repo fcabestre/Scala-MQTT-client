@@ -18,7 +18,10 @@ package org.ultimo.messages
 
 import shapeless.Iso
 
-case class Header(messageType : MessageTypes, dup : Boolean, qos : QualityOfService, retain : Boolean, remainingLength : Int)
+case class Header(messageType : MessageTypes, dup : Boolean, qos : QualityOfService, retain : Boolean, remainingLength : Int) {
+  require(remainingLength >= 0 && remainingLength <= 268435455)
+}
+
 
 object Header {
   implicit val hlistIso = Iso.hlist(Header.apply _, Header.unapply _)
