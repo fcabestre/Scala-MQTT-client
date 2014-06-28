@@ -19,10 +19,8 @@ package org.ultimo.codec
 import org.ultimo.messages.{CaseEnum, QualityOfService, MessageTypes}
 import scodec._
 import codecs._
-import shapeless.HNil
 import scalaz.{\/-, -\/, \/}
 import scodec.bits.{ByteVector, BitVector}
-
 
 final class RemainingLengthCodec extends Codec[Int] {
 
@@ -36,7 +34,7 @@ final class RemainingLengthCodec extends Codec[Int] {
     def decodeAux(step: \/[String, (BitVector, Int)], factor: Int, depth: Int, value: Int): \/[String, (BitVector, Int)] =
       if (depth == 4) \/.left("The remaining length must be 4 bytes long at most")
       else step match {
-        case e @ -\/(_) => e
+        case e @ -\/ (_) => e
         case \/-((b, d)) =>
           if ((d & 128) == 0) \/.right((b, value + (d & 127) * factor))
           else decodeAux(uint8.decode(b), factor * 128, depth + 1, value + (d & 127) * factor)
@@ -55,7 +53,7 @@ final class RemainingLengthCodec extends Codec[Int] {
   }
 }
 
-class CaseEnumCodec[T <: CaseEnum](codec : Codec[Int])(implicit fromEnum : Function[Int, \/[String, T]]) extends Codec[T] {
+class CaseEnumCodec[T <: CaseEnum](codec: Codec[Int])(implicit fromEnum: Function[Int, \/[String, T]]) extends Codec[T] {
 
   override def decode(bits: BitVector): \/[String, (BitVector, T)] =
     codec.decode(bits) flatMap {
@@ -79,8 +77,25 @@ object Codecs {
   val remainingLengthCodec = new RemainingLengthCodec
   val stringCodec = variableSizeBytes(uint16, utf8)
 
-  implicit val headerCodec = (messageTypeCodec :: bool :: qualityOfServiceCodec :: bool :: remainingLengthCodec).as[Header]
-  implicit val connectVariableHeaderCodec =
-    (constant(BitVector(hex"00064D514973647003")) :~>:
-      bool :: bool :: qualityOfServiceCodec :: bool :: bool :: bool :: uint16).as[ConnectVariableHeader]
+  implicit val headerCodec = (
+    messageTypeCodec ::
+      bool ::
+      qualityOfServiceCodec ::
+      bool ::
+      remainingLengthCodec
+    ).as[Header]
+
+  val connectVariableHeaderFixedBytes: BitVector = BitVector(hex"00064D514973647003")
+  
+  implicit val connectVariableHeaderCodec = (
+      constant(connectVariableHeaderFixedBytes) :~>:
+      bool ::
+      bool ::
+      qualityOfServiceCodec ::
+      bool ::
+      bool ::
+      bool ::
+      ignore(1) :~>:
+      uint16.hlist
+  ).as[ConnectVariableHeader]
 }

@@ -101,7 +101,7 @@ class CodecSpec extends Specification {
   }
 
   "A connect variable header codec" should {
-    "Perform encoding of valid input" in {
+    "Perform encoding of valid inputs" in {
 
       import org.ultimo.SpecUtils._
       import org.ultimo.codec.Codecs._
@@ -109,7 +109,19 @@ class CodecSpec extends Specification {
       import scodec.bits._
 
       val connectVariableHeader = ConnectVariableHeader(cleanSession = true, willFlag = true, AtMostOnce, willRetain = false, passwordFlag = true, userNameFlag = true, 1024)
-      Codec.encode(connectVariableHeader) should succeedWith(bin"110001100000010000000000")
+      val res = connectVariableHeaderFixedBytes ++ bin"110001100000010000000000"
+      Codec.encode(connectVariableHeader) should succeedWith(res)
+    }
+
+    "Perform decoding of valid inputs" in {
+
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{AtLeastOnce, ConnectVariableHeader}
+      import scodec.bits._
+
+      val res = ConnectVariableHeader(cleanSession = false, willFlag = false, AtLeastOnce, willRetain = true, passwordFlag = false, userNameFlag = false, 12683)
+      Codec[ConnectVariableHeader].decode(connectVariableHeaderFixedBytes ++ bin"000110000011000110001011101010") should succeedWith((bin"101010",res))
     }
   }
 }

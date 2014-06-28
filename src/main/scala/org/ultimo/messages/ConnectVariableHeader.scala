@@ -33,5 +33,5 @@ case class ConnectVariableHeader(cleanSession : Boolean,
 }
 
 object ConnectVariableHeader {
-  implicit val hlistIso1 = Iso.hlist(ConnectVariableHeader.apply _, ConnectVariableHeader.unapply _)
+  implicit val hlistIso = Iso.hlist(ConnectVariableHeader.apply _, ConnectVariableHeader.unapply _)
 }
