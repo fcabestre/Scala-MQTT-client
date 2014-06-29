@@ -62,17 +62,13 @@ class MessagesSpec extends Specification {
     }
   }
 
-  "Message headers" should {
-    "Have a valid remaining length" in {
-      Header(CONNECT, dup = false, AtLeastOnce, retain = false, -1) should throwA[IllegalArgumentException]
-      Header(CONNECT, dup = false, AtLeastOnce, retain = false, 268435456) should throwA[IllegalArgumentException]
-    }
-  }
-
   "Connect variable header" should {
     "Have a valid keep alive timer" in {
-      ConnectVariableHeader(cleanSession = true, willFlag = true, AtMostOnce, willRetain = false, passwordFlag = false, userNameFlag = true, -1)  should throwA[IllegalArgumentException]
-      ConnectVariableHeader(cleanSession = true, willFlag = true, AtMostOnce, willRetain = false, passwordFlag = false, userNameFlag = true, 65536)  should throwA[IllegalArgumentException]
+      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce, willRetain = false, passwordFlag = false, userNameFlag = true, keepAliveTimer = -1)  should throwA[IllegalArgumentException]
+      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce, willRetain = false, passwordFlag = false, userNameFlag = true, keepAliveTimer = 65536)  should throwA[IllegalArgumentException]
+    }
+    "Have a valid combination of username and password flags" in {
+      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce, willRetain = false, passwordFlag = true, userNameFlag = false, keepAliveTimer = 0)  should throwA[IllegalArgumentException]
     }
   }
 }

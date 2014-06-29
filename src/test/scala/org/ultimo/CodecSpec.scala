@@ -84,8 +84,8 @@ class CodecSpec extends Specification {
       import org.ultimo.messages.{AtLeastOnce, CONNACK, Header}
       import scodec.bits._
 
-      val header = Header(CONNACK, dup = false, AtLeastOnce, retain = true, 5)
-      Codec.encode(header) should succeedWith(bin"0010001100000101")
+      val header = Header(CONNACK, dup = false, AtLeastOnce, retain = true)
+      Codec.encode(header) should succeedWith(bin"00100011")
     }
 
     "Perform decoding of valid inputs" in {
@@ -95,8 +95,8 @@ class CodecSpec extends Specification {
       import org.ultimo.messages.{ExactlyOnce, Header, PUBREL}
       import scodec.bits._
 
-      val header = Header(PUBREL, dup = true, ExactlyOnce, retain = false, 128)
-      Codec[Header].decode(bin"011011001000000000000001110011") should succeedWith((bin"110011", header))
+      val header = Header(PUBREL, dup = true, ExactlyOnce, retain = false)
+      Codec[Header].decode(bin"01101100110011") should succeedWith((bin"110011", header))
     }
   }
 
@@ -108,7 +108,7 @@ class CodecSpec extends Specification {
       import org.ultimo.messages.{AtMostOnce, ConnectVariableHeader}
       import scodec.bits._
 
-      val connectVariableHeader = ConnectVariableHeader(cleanSession = true, willFlag = true, AtMostOnce, willRetain = false, passwordFlag = true, userNameFlag = true, 1024)
+      val connectVariableHeader = ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce, willRetain = false, passwordFlag = true, userNameFlag = true, keepAliveTimer = 1024)
       val res = connectVariableHeaderFixedBytes ++ bin"110001100000010000000000"
       Codec.encode(connectVariableHeader) should succeedWith(res)
     }
@@ -120,8 +120,49 @@ class CodecSpec extends Specification {
       import org.ultimo.messages.{AtLeastOnce, ConnectVariableHeader}
       import scodec.bits._
 
-      val res = ConnectVariableHeader(cleanSession = false, willFlag = false, AtLeastOnce, willRetain = true, passwordFlag = false, userNameFlag = false, 12683)
-      Codec[ConnectVariableHeader].decode(connectVariableHeaderFixedBytes ++ bin"000110000011000110001011101010") should succeedWith((bin"101010",res))
+      val res = ConnectVariableHeader(cleanSession = false, willFlag = false, willQoS = AtLeastOnce, willRetain = true, passwordFlag = false, userNameFlag = false, keepAliveTimer = 12683)
+      Codec[ConnectVariableHeader].decode(connectVariableHeaderFixedBytes ++ bin"001010000011000110001011101010") should succeedWith((bin"101010",res))
+    }
+  }
+
+  "A connect message codec should" should {
+    "[0] Perform round trip encoding/decoding of a valid input" in {
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectMessage, AtLeastOnce}
+      import scodec.bits._
+
+      val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
+      val connectVariableHeader = ConnectVariableHeader(userNameFlag = true, passwordFlag = true, willRetain = true, AtLeastOnce, willFlag = true, cleanSession = true, 15)
+      val connectMessage = ConnectMessage(header, connectVariableHeader, "clientId", Some("Topic"), Some("Message"), Some("User"), Some("Password"))
+
+      Codec[ConnectMessage].decode(Codec.encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
+    }
+
+    "[1] Perform round trip encoding/decoding of a valid input" in {
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectMessage, AtLeastOnce}
+      import scodec.bits._
+
+      val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
+      val connectVariableHeader = ConnectVariableHeader(userNameFlag = true, passwordFlag = false, willRetain = true, AtLeastOnce, willFlag = false, cleanSession = true, 15)
+      val connectMessage = ConnectMessage(header, connectVariableHeader, "clientId", None, None, Some("User"), None)
+
+      Codec[ConnectMessage].decode(Codec.encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
+    }
+
+    "[2] Perform round trip encoding/decoding of a valid input" in {
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectMessage, ExactlyOnce}
+      import scodec.bits._
+
+      val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
+      val connectVariableHeader = ConnectVariableHeader(userNameFlag = false, passwordFlag = false, willRetain = true, ExactlyOnce, willFlag = false, cleanSession = false, 128)
+      val connectMessage = ConnectMessage(header, connectVariableHeader, "clientId", None, None, None, None)
+
+      Codec[ConnectMessage].decode(Codec.encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
     }
   }
 }

@@ -18,15 +18,15 @@ package org.ultimo.messages
 
 import shapeless.Iso
 
-case class ConnectVariableHeader(cleanSession : Boolean,
-                                 willFlag : Boolean,
-                                 willQoS : QualityOfService,
-                                 willRetain : Boolean,
+case class ConnectVariableHeader(userNameFlag : Boolean,
                                  passwordFlag : Boolean,
-                                 userNameFlag : Boolean,
+                                 willRetain : Boolean,
+                                 willQoS : QualityOfService,
+                                 willFlag : Boolean,
+                                 cleanSession : Boolean,
                                  keepAliveTimer : Int) {
 
-  require(keepAliveTimer >= 0 && keepAliveTimer <= 65535)
+  require((userNameFlag || !passwordFlag) && keepAliveTimer >= 0 && keepAliveTimer <= 65535)
 
   val protocolName = "MQIsdp"
   val protocolVersion = 0x03

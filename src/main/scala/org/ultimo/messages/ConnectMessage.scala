@@ -18,8 +18,14 @@ package org.ultimo.messages
 
 import shapeless.Iso
 
-case class Header(messageType : MessageTypes, dup : Boolean, qos : QualityOfService, retain : Boolean)
+case class ConnectMessage(header : Header,
+                          variableHeader : ConnectVariableHeader,
+                          clientId : String,
+                          topic : Option[String],
+                          message : Option[String],
+                          user : Option[String],
+                          password : Option[String])
 
-object Header {
-  implicit val hlistIso = Iso.hlist(Header.apply _, Header.unapply _)
+object ConnectMessage {
+  implicit val hlistIso = Iso.hlist(ConnectMessage.apply _, ConnectMessage.unapply _)
 }

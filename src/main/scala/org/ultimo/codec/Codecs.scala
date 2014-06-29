@@ -68,8 +68,7 @@ class CaseEnumCodec[T <: CaseEnum](codec: Codec[Int])(implicit fromEnum: Functio
 object Codecs {
 
   import scodec.bits._
-  import org.ultimo.messages.Header
-  import org.ultimo.messages.ConnectVariableHeader
+  import org.ultimo.messages.{Header, ConnectVariableHeader, ConnectMessage}
   import scalaz.std.anyVal.unitInstance
 
   val messageTypeCodec = new CaseEnumCodec[MessageTypes](uint4)
@@ -78,11 +77,10 @@ object Codecs {
   val stringCodec = variableSizeBytes(uint16, utf8)
 
   implicit val headerCodec = (
-    messageTypeCodec ::
+      messageTypeCodec ::
       bool ::
       qualityOfServiceCodec ::
-      bool ::
-      remainingLengthCodec
+      bool
     ).as[Header]
 
   val connectVariableHeaderFixedBytes: BitVector = BitVector(hex"00064D514973647003")
@@ -91,11 +89,23 @@ object Codecs {
       constant(connectVariableHeaderFixedBytes) :~>:
       bool ::
       bool ::
-      qualityOfServiceCodec ::
       bool ::
+      qualityOfServiceCodec ::
       bool ::
       bool ::
       ignore(1) :~>:
       uint16.hlist
   ).as[ConnectVariableHeader]
+
+  implicit val connectMessageCodec = (
+      headerCodec ::
+      variableSizeBytes(remainingLengthCodec,
+        connectVariableHeaderCodec >>:~ { (hdr : ConnectVariableHeader) =>
+        stringCodec ::
+        conditional(hdr.willFlag, stringCodec) ::
+        conditional(hdr.willFlag, stringCodec) ::
+        conditional(hdr.userNameFlag, stringCodec) ::
+        conditional(hdr.passwordFlag, stringCodec)
+      })
+    ).as[ConnectMessage]
 }
