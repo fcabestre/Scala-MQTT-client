@@ -17,6 +17,7 @@ package org.ultimo
  */
 
 import org.specs2.mutable._
+import org.ultimo.messages.ConnectionAccepted
 import scodec.Codec
 
 class CodecSpec extends Specification {
@@ -121,7 +122,7 @@ class CodecSpec extends Specification {
       import scodec.bits._
 
       val res = ConnectVariableHeader(cleanSession = false, willFlag = false, willQoS = AtLeastOnce, willRetain = true, passwordFlag = false, userNameFlag = false, keepAliveTimer = 12683)
-      Codec[ConnectVariableHeader].decode(connectVariableHeaderFixedBytes ++ bin"001010000011000110001011101010") should succeedWith((bin"101010",res))
+      Codec[ConnectVariableHeader].decode(connectVariableHeaderFixedBytes ++ bin"001010000011000110001011101010") should succeedWith((bin"101010", res))
     }
   }
 
@@ -165,5 +166,43 @@ class CodecSpec extends Specification {
       Codec[ConnectMessage].decode(Codec.encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
     }
   }
-}
 
+  "A connack variable header codec" should {
+    "Perform encoding of valid inputs" in {
+
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{ConnackVariableHeader, ConnectionRefused2}
+      import scodec.bits._
+
+      val connackVariableHeader = ConnackVariableHeader(ConnectionRefused2)
+      Codec.encode(connackVariableHeader) should succeedWith(BitVector(hex"0002"))
+    }
+
+    "Perform decoding of valid inputs" in {
+
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{ConnackVariableHeader, ConnectionRefused5}
+      import scodec.bits._
+
+      val res = ConnackVariableHeader(ConnectionRefused5)
+      Codec[ConnackVariableHeader].decode(BitVector(hex"000503")) should succeedWith((bin"00000011", res))
+    }
+  }
+
+  "A connack message codec should" should {
+    "Perform round trip encoding/decoding of a valid input" in {
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{AtMostOnce, CONNACK, Header, ConnackVariableHeader, ConnectionAccepted, ConnackMessage}
+      import scodec.bits._
+
+      val header = Header(CONNACK, dup = false, AtMostOnce, retain = false)
+      val connackVariableHeader = ConnackVariableHeader(ConnectionAccepted)
+      val connectMessage = ConnackMessage(header, connackVariableHeader)
+
+      Codec[ConnackMessage].decode(Codec.encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
+    }
+  }
+}

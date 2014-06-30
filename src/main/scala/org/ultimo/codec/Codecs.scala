@@ -16,7 +16,7 @@
 
 package org.ultimo.codec
 
-import org.ultimo.messages.{CaseEnum, QualityOfService, MessageTypes}
+import org.ultimo.messages.CaseEnum
 import scodec._
 import codecs._
 import scalaz.{\/-, -\/, \/}
@@ -68,7 +68,7 @@ class CaseEnumCodec[T <: CaseEnum](codec: Codec[Int])(implicit fromEnum: Functio
 object Codecs {
 
   import scodec.bits._
-  import org.ultimo.messages.{Header, ConnectVariableHeader, ConnectMessage}
+  import org.ultimo.messages.{ConnackVariableHeader, ConnackMessage, ConnectReturnCode, Header, ConnectVariableHeader, ConnectMessage, QualityOfService, MessageTypes}
   import scalaz.std.anyVal.unitInstance
 
   val messageTypeCodec = new CaseEnumCodec[MessageTypes](uint4)
@@ -108,4 +108,16 @@ object Codecs {
         conditional(hdr.passwordFlag, stringCodec)
       })
     ).as[ConnectMessage]
+
+  val connackReturnCodeCodec = new CaseEnumCodec[ConnectReturnCode](uint8)
+
+  implicit val connackVariableHeaderCodec = (
+      ignore(8) :~>:
+      connackReturnCodeCodec.hlist
+  ).as[ConnackVariableHeader]
+
+  implicit val connackMessageCodec = (
+      headerCodec ::
+      connackVariableHeaderCodec
+  ).as[ConnackMessage]
 }

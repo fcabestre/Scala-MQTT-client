@@ -71,4 +71,25 @@ class MessagesSpec extends Specification {
       ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce, willRetain = false, passwordFlag = true, userNameFlag = false, keepAliveTimer = 0)  should throwA[IllegalArgumentException]
     }
   }
+
+  "Connack return code" should {
+    "Provide their «enum» value" in {
+      ConnectionAccepted.enum should be_==(0)
+      ConnectionRefused2.enum should be_==(2)
+      ConnectionRefused5.enum should be_==(5)
+    }
+
+    "Be constructable from their corresponding «enum» value" in {
+      import org.ultimo.SpecUtils._
+      import org.ultimo.messages.ConnectReturnCode._
+      import SpecUtils._
+
+      fromEnum(-1) should failWith("Connect return code encoded value should be in the range [0..5]")
+      fromEnum(0) should succeedWith(ConnectionAccepted)
+      fromEnum(1) should succeedWith(ConnectionRefused1)
+      fromEnum(3) should succeedWith(ConnectionRefused3)
+      fromEnum(5) should succeedWith(ConnectionRefused5)
+      fromEnum(6) should failWith("Connect return code encoded value should be in the range [0..5]")
+    }
+  }
 }
