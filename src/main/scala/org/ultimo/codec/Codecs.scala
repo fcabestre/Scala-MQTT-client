@@ -68,7 +68,7 @@ class CaseEnumCodec[T <: CaseEnum](codec: Codec[Int])(implicit fromEnum: Functio
 object Codecs {
 
   import scodec.bits._
-  import org.ultimo.messages.{ConnackVariableHeader, ConnackMessage, ConnectReturnCode, Header, ConnectVariableHeader, ConnectMessage, QualityOfService, MessageTypes}
+  import org.ultimo.messages.{DisconnectMessage, ConnackVariableHeader, ConnackMessage, ConnectReturnCode, Header, ConnectVariableHeader, ConnectMessage, QualityOfService, MessageTypes}
   import scalaz.std.anyVal.unitInstance
 
   val messageTypeCodec = new CaseEnumCodec[MessageTypes](uint4)
@@ -120,4 +120,6 @@ object Codecs {
       headerCodec ::
       connackVariableHeaderCodec
   ).as[ConnackMessage]
+
+  implicit val disconnectMessageCodec = headerCodec.hlist.as[DisconnectMessage]
 }

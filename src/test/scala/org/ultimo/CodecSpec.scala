@@ -205,4 +205,18 @@ class CodecSpec extends Specification {
       Codec[ConnackMessage].decode(Codec.encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
     }
   }
+
+  "A disconnect message codec should" should {
+    "Perform round trip encoding/decoding of a valid input" in {
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{DISCONNECT, Header, AtMostOnce, DisconnectMessage}
+      import scodec.bits._
+
+      val header = Header(DISCONNECT, dup = false, AtMostOnce, retain = false)
+      val disconnectMessage = DisconnectMessage(header)
+
+      Codec[DisconnectMessage].decode(Codec.encodeValid(disconnectMessage)) should succeedWith((bin"", disconnectMessage))
+    }
+  }
 }
