@@ -38,17 +38,16 @@ class MQTTClient(remote: InetSocketAddress) extends Actor with ActorLogging {
       log.debug("Connection failed")
       context stop self
 
-    case c @ Connected(remote, local) ⇒
+    case c @ Connected(_, local) ⇒
       log.info("Connected to broker")
       sender ! Register(self)
       context become connected(sender)
   }
 
   def connected(connection : ActorRef) : Receive = {
-    case data: ByteString ⇒ {
+    case data: ByteString ⇒
       log.info(s"sending ${data.toString()}")
       connection ! Write(data)
-    }
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
     case Received(data) ⇒ log.info(data.toString())
     case "close" ⇒ connection ! Close

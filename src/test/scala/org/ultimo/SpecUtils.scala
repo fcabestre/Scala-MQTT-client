@@ -16,7 +16,9 @@ package org.ultimo
  * limitations under the License.
  */
 
-import org.specs2.matcher.{Expectable, Matcher}
+import akka.actor.ActorSystem
+import akka.testkit.TestKit
+import org.specs2.matcher.{Matchers, Expectable, Matcher}
 
 import scalaz.\/
 

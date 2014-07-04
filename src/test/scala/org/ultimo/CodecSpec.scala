@@ -17,7 +17,6 @@ package org.ultimo
  */
 
 import org.specs2.mutable._
-import org.ultimo.messages.ConnectionAccepted
 import scodec.Codec
 
 class CodecSpec extends Specification {
