@@ -18,24 +18,49 @@ package org.ultimo
 
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
-import org.specs2.matcher.{Matchers, Expectable, Matcher}
+import com.typesafe.config.ConfigFactory
+import org.specs2.matcher.{Expectable, Matcher}
+import org.specs2.specification.{AfterExample, Scope}
 
 import scalaz.\/
 
 object SpecUtils {
 
-  class SuccessfulDisjunctionMatcher[T](v : T) extends Matcher[\/[String, T]] {
+  class SuccessfulDisjunctionMatcher[T](v: T) extends Matcher[\/[String, T]] {
     def apply[S <: \/[String, T]](e: Expectable[S]) = {
-      result(e.value exists { _ == v }, s"${e.description} equals to $v", s"The result is ${e.description}, instead of the expected value '$v'", e)
+      result(e.value exists {
+        _ == v
+      }, s"${e.description} equals to $v", s"The result is ${e.description}, instead of the expected value '$v'", e)
     }
   }
 
-  class FailedDisjunctionMatcher[T](m : String) extends Matcher[\/[String, T]] {
+  class FailedDisjunctionMatcher[T](m: String) extends Matcher[\/[String, T]] {
     def apply[S <: \/[String, T]](e: Expectable[S]) = {
-      result(~e.value exists { _ == m }, s"${e.description} equals to $m", s"The result is ${e.description} instead of the expected error message '$m'", e)
+      result(~e.value exists {
+        _ == m
+      }, s"${e.description} equals to $m", s"The result is ${e.description} instead of the expected error message '$m'", e)
     }
   }
 
   def succeedWith[T](t: T) = new SuccessfulDisjunctionMatcher[T](t)
+
   def failWith[T](t: String) = new FailedDisjunctionMatcher[T](t)
+
+  val config =
+    """akka {
+         loglevel = DEBUG
+         actor {
+            debug {
+              receive = on
+              autoreceive = off
+              lifecycle = off
+            }
+         }
+       }
+    """
+
+  class SpecsTestKit extends TestKit(ActorSystem("MQTTClient-system", ConfigFactory.parseString(config))) with Scope with AfterExample {
+    def after = system.shutdown()
+  }
+
 }

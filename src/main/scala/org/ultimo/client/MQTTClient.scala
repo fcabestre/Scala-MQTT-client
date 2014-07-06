@@ -22,11 +22,11 @@ import akka.util.ByteString
 import java.net.InetSocketAddress
 
 object MQTTClient {
-  def props(remote: InetSocketAddress) =
-    Props(classOf[MQTTClient], remote)
+  def props(source : ActorRef, remote: InetSocketAddress) =
+    Props(classOf[MQTTClient], source, remote)
 }
 
-class MQTTClient(remote: InetSocketAddress) extends Actor with ActorLogging {
+class MQTTClient(source : ActorRef, remote: InetSocketAddress) extends Actor with ActorLogging {
 
   import Tcp._
   import context.system
@@ -41,16 +41,22 @@ class MQTTClient(remote: InetSocketAddress) extends Actor with ActorLogging {
     case c @ Connected(_, local) ⇒
       log.info("Connected to broker")
       sender ! Register(self)
-      context become connected(sender)
+      context become connected(source, sender)
+      source ! "connected"
   }
 
-  def connected(connection : ActorRef) : Receive = {
+  def connected(source : ActorRef, connection : ActorRef) : Receive = {
     case data: ByteString ⇒
       log.info(s"sending ${data.toString()}")
       connection ! Write(data)
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
-    case Received(data) ⇒ log.info(data.toString())
-    case "close" ⇒ connection ! Close
+    case Received(data) ⇒
+      log.info(s"receiving ${data.toString()}")
+      log.info(s"forwarding data to $source")
+      source ! data
+    case "close" ⇒
+      connection ! Close
+      log.info("closing")
     case _: ConnectionClosed ⇒ context stop self
   }
 }
