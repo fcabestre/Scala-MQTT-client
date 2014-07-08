@@ -44,19 +44,24 @@ class ActorSpec extends Specification with NoTimeConversions {
 
       val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
       val variableHeader = ConnectVariableHeader(userNameFlag = false, passwordFlag = false, willRetain = false, AtLeastOnce, willFlag = false, cleanSession = true, 30)
-      val message = ConnectMessage(header, variableHeader, "client", None, None, None, None)
-      val encodedMessage = Codec.encodeValid(message)
+      val connectMessage = ConnectMessage(header, variableHeader, "client", None, None, None, None)
+      val encodedConnectMessage = Codec.encodeValid(connectMessage)
 
-      val bytes = ByteString(encodedMessage.toByteBuffer)
-      client ! bytes
+      client ! ByteString(encodedConnectMessage.toByteBuffer)
 
       val expectedResponse = ConnackMessage(Header(CONNACK, dup = false, AtMostOnce, retain = false), ConnackVariableHeader(ConnectionAccepted))
       val encodedResponse = receiveOne(1 seconds).asInstanceOf[ByteString]
 
-      val byteBuffer = encodedResponse.toByteBuffer
-      val response = Codec[ConnackMessage].decodeValidValue(BitVector(byteBuffer))
+      val actualResponse = Codec[ConnackMessage].decodeValidValue(BitVector(encodedResponse.toByteBuffer))
 
-      response should be_==(expectedResponse)
+      actualResponse should be_==(expectedResponse)
+
+      val disconnectMessage = DisconnectMessage(Header(DISCONNECT, dup = false, AtMostOnce, retain = false))
+      val encodedDisconnectMessage = Codec.encodeValid(disconnectMessage)
+
+      client ! ByteString(encodedDisconnectMessage.toByteBuffer)
+
+      expectMsg(1 second, "closed")
     }
   }
 }

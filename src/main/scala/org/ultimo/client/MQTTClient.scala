@@ -57,7 +57,9 @@ class MQTTClient(source : ActorRef, remote: InetSocketAddress) extends Actor wit
     case "close" ⇒
       connection ! Close
       log.info("closing")
-    case _: ConnectionClosed ⇒ context stop self
+    case _: ConnectionClosed ⇒
+      source ! "closed"
+      context stop self
   }
 }
 

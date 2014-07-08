@@ -121,5 +121,5 @@ object Codecs {
       connackVariableHeaderCodec
   ).as[ConnackMessage]
 
-  implicit val disconnectMessageCodec = headerCodec.hlist.as[DisconnectMessage]
+  implicit val disconnectMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[DisconnectMessage]
 }
