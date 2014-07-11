@@ -20,10 +20,8 @@ import java.net.InetSocketAddress
 
 import org.specs2.mutable._
 import org.specs2.time.NoTimeConversions
-import scodec.bits.BitVector
 import org.ultimo.SpecUtils._
 import scala.concurrent.duration._
-
 
 class ActorSpec extends Specification with NoTimeConversions {
 
@@ -31,37 +29,18 @@ class ActorSpec extends Specification with NoTimeConversions {
 
     "Allow to connect to a broker" in new SpecsTestKit {
 
-      import akka.util.ByteString
-      import org.ultimo.client.MQTTClient
-      import org.ultimo.messages._
-      import org.ultimo.codec.Codecs._
-      import scodec.Codec
+      import org.ultimo.client.{MQTTClient, MQTTDisconnect, MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress("localhost", 1883)
       val client = system.actorOf(MQTTClient.props(testActor, endpoint), "MQTTClient-service")
 
-      expectMsg(1 second, "connected")
+      expectMsg(1 second, MQTTReady)
 
-      val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
-      val variableHeader = ConnectVariableHeader(userNameFlag = false, passwordFlag = false, willRetain = false, AtLeastOnce, willFlag = false, cleanSession = true, 30)
-      val connectMessage = ConnectMessage(header, variableHeader, "client", None, None, None, None)
-      val encodedConnectMessage = Codec.encodeValid(connectMessage)
+      client ! MQTTConnect("Test")
 
-      client ! ByteString(encodedConnectMessage.toByteBuffer)
+      receiveOne(1 seconds) should be_==(MQTTConnected)
 
-      val expectedResponse = ConnackMessage(Header(CONNACK, dup = false, AtMostOnce, retain = false), ConnackVariableHeader(ConnectionAccepted))
-      val encodedResponse = receiveOne(1 seconds).asInstanceOf[ByteString]
-
-      val actualResponse = Codec[ConnackMessage].decodeValidValue(BitVector(encodedResponse.toByteBuffer))
-
-      actualResponse should be_==(expectedResponse)
-
-      val disconnectMessage = DisconnectMessage(Header(DISCONNECT, dup = false, AtMostOnce, retain = false))
-      val encodedDisconnectMessage = Codec.encodeValid(disconnectMessage)
-
-      client ! ByteString(encodedDisconnectMessage.toByteBuffer)
-
-      expectMsg(1 second, "closed")
+      client ! MQTTDisconnect
     }
   }
 }

@@ -21,45 +21,85 @@ import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import java.net.InetSocketAddress
 
+import org.ultimo.messages._
+import org.ultimo.codec.Codecs._
+import org.ultimo.messages.{DisconnectMessage, ConnectMessage, ConnackMessage}
+import scodec.bits.BitVector
+import scodec.{Encoder, Codec}
+
+import scala.annotation.switch
+
 object MQTTClient {
-  def props(source : ActorRef, remote: InetSocketAddress) =
+  def props(source: ActorRef, remote: InetSocketAddress) =
     Props(classOf[MQTTClient], source, remote)
 }
 
-class MQTTClient(source : ActorRef, remote: InetSocketAddress) extends Actor with ActorLogging {
+class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with ActorLogging {
 
   import Tcp._
   import context.system
 
   IO(Tcp) ! Connect(remote)
 
-  def receive = {
+  def receive = start
+
+  def start: Receive = {
     case CommandFailed(_: Connect) ⇒
-      log.debug("Connection failed")
+      source ! MQTTNotReady
       context stop self
 
-    case c @ Connected(_, local) ⇒
-      log.info("Connected to broker")
+    case c@Connected(_, _) ⇒
       sender ! Register(self)
-      context become connected(source, sender)
-      source ! "connected"
+      source ! MQTTReady
+      context become ready(sender)
   }
 
-  def connected(source : ActorRef, connection : ActorRef) : Receive = {
-    case data: ByteString ⇒
-      log.info(s"sending ${data.toString()}")
-      connection ! Write(data)
+  def ready(connection: ActorRef): Receive = {
+    case MQTTConnect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
+      val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
+      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce, willFlag = false, cleanSession, keepAlive)
+      val connectMessage = ConnectMessage(header, variableHeader, clientId, topic, message, user, password)
+      encodeAndSend(connection, connectMessage)
+
+    case Received(encodedResponse) ⇒
+      val response = Codec[ConnackMessage].decodeValidValue(BitVector.view(encodedResponse.toArray))
+      response.connackVariableHeader.returnCode match {
+        case ConnectionAccepted =>
+          source ! MQTTConnected
+          context become connected(sender)
+        case code: ConnectReturnCode =>
+          source ! MQTTConnectionFailure(code2Reason(code))
+      }
+
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
-    case Received(data) ⇒
-      log.info(s"receiving ${data.toString()}")
-      log.info(s"forwarding data to $source")
-      source ! data
-    case "close" ⇒
-      connection ! Close
-      log.info("closing")
     case _: ConnectionClosed ⇒
-      source ! "closed"
       context stop self
+  }
+
+  def connected(connection: ActorRef): Receive = {
+    case MQTTDisconnect =>
+      val disconnectMessage = DisconnectMessage(Header(DISCONNECT, dup = false, AtMostOnce, retain = false))
+      encodeAndSend(connection, disconnectMessage)
+      context become ready(sender)
+
+    case CommandFailed(w: Write) ⇒ // O/S buffer was full
+    case _: ConnectionClosed ⇒
+      context stop self
+  }
+
+  def code2Reason(code : ConnectReturnCode) = code match {
+    case ConnectionRefused1 => BadProtocolVersion
+    case ConnectionRefused2 => IdentifierRejected
+    case ConnectionRefused3 => ServerUnavailable
+    case ConnectionRefused4 => BadUserNameOrPassword
+    case ConnectionRefused5 => NotAuthorized
+    case _ => NotAuthorized // impossible
+  }
+
+
+  def encodeAndSend[A: Encoder](connection: ActorRef, message: A) = {
+    val encodedConnectMessage = Codec.encodeValid(message)
+    connection ! Write(ByteString(encodedConnectMessage.toByteArray))
   }
 }
 

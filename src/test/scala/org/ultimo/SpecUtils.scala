@@ -46,12 +46,25 @@ object SpecUtils {
 
   def failWith[T](t: String) = new FailedDisjunctionMatcher[T](t)
 
-  val config =
+  val configDebug =
     """akka {
          loglevel = DEBUG
          actor {
             debug {
               receive = on
+              autoreceive = off
+              lifecycle = off
+            }
+         }
+       }
+    """
+
+  val config =
+    """akka {
+         loglevel = INFO
+         actor {
+            debug {
+              receive = off
               autoreceive = off
               lifecycle = off
             }
