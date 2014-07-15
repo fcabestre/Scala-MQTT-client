@@ -16,7 +16,7 @@
 
 package org.ultimo.codec
 
-import org.ultimo.messages.CaseEnum
+import org.ultimo.messages.{PingRespMessage, PingReqMessage, CaseEnum}
 import scodec._
 import codecs._
 import scalaz.{\/-, -\/, \/}
@@ -122,4 +122,8 @@ object Codecs {
   ).as[ConnackMessage]
 
   implicit val disconnectMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[DisconnectMessage]
+
+  implicit val pingReqMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[PingReqMessage]
+
+  implicit val pingRespMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[PingRespMessage]
 }

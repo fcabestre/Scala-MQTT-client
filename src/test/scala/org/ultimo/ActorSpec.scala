@@ -27,9 +27,9 @@ class ActorSpec extends Specification with NoTimeConversions {
 
   "The MQTTClient API" should {
 
-    "Allow to connect to a broker" in new SpecsTestKit {
+    "Allow to connect to a broker and then disconnect" in new SpecsTestKit {
 
-      import org.ultimo.client.{MQTTClient, MQTTDisconnect, MQTTConnect, MQTTConnected, MQTTReady}
+      import org.ultimo.client.{MQTTClient, MQTTDisconnect, MQTTDisconnected, MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress("localhost", 1883)
       val client = system.actorOf(MQTTClient.props(testActor, endpoint), "MQTTClient-service")
@@ -41,6 +41,24 @@ class ActorSpec extends Specification with NoTimeConversions {
       receiveOne(1 seconds) should be_==(MQTTConnected)
 
       client ! MQTTDisconnect
+
+      receiveOne(1 seconds) should be_==(MQTTDisconnected)
+    }
+
+    "Allow to connect to a broker and be disconnected" in new SpecsTestKit {
+
+      import org.ultimo.client.{MQTTClient, MQTTDisconnected, MQTTConnect, MQTTConnected, MQTTReady}
+
+      val endpoint = new InetSocketAddress("localhost", 1883)
+      val client = system.actorOf(MQTTClient.props(testActor, endpoint), "MQTTClient-service")
+
+      expectMsg(1 second, MQTTReady)
+
+      client ! MQTTConnect("Test", keepAlive = 1)
+
+      receiveOne(1 seconds) should be_==(MQTTConnected)
+
+      receiveOne(2 seconds) should be_==(MQTTDisconnected)
     }
   }
 }

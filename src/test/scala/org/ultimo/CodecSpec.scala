@@ -218,4 +218,32 @@ class CodecSpec extends Specification {
       Codec[DisconnectMessage].decode(Codec.encodeValid(disconnectMessage)) should succeedWith((bin"", disconnectMessage))
     }
   }
+
+  "A ping request message codec should" should {
+    "Perform round trip encoding/decoding of a valid input" in {
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{PINGREQ, Header, AtMostOnce, PingReqMessage}
+      import scodec.bits._
+
+      val header = Header(PINGREQ, dup = false, AtMostOnce, retain = false)
+      val pingReqMessage = PingReqMessage(header)
+
+      Codec[PingReqMessage].decode(Codec.encodeValid(pingReqMessage)) should succeedWith((bin"", pingReqMessage))
+    }
+  }
+
+  "A ping response message codec should" should {
+    "Perform round trip encoding/decoding of a valid input" in {
+      import org.ultimo.SpecUtils._
+      import org.ultimo.codec.Codecs._
+      import org.ultimo.messages.{PINGRESP, Header, AtMostOnce, PingRespMessage}
+      import scodec.bits._
+
+      val header = Header(PINGRESP, dup = false, AtMostOnce, retain = false)
+      val pingRespMessage = PingRespMessage(header)
+
+      Codec[PingRespMessage].decode(Codec.encodeValid(pingRespMessage)) should succeedWith((bin"", pingRespMessage))
+    }
+  }
 }

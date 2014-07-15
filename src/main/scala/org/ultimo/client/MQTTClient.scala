@@ -28,6 +28,7 @@ import scodec.bits.BitVector
 import scodec.{Encoder, Codec}
 
 import scala.annotation.switch
+import scala.concurrent.duration.FiniteDuration
 
 object MQTTClient {
   def props(source: ActorRef, remote: InetSocketAddress) =
@@ -73,6 +74,7 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
 
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
     case _: ConnectionClosed ⇒
+      source ! MQTTDisconnected
       context stop self
   }
 
@@ -84,6 +86,7 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
 
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
     case _: ConnectionClosed ⇒
+      source ! MQTTDisconnected
       context stop self
   }
 
@@ -101,5 +104,11 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
     val encodedConnectMessage = Codec.encodeValid(message)
     connection ! Write(ByteString(encodedConnectMessage.toByteArray))
   }
+
+  def timeout(delay: FiniteDuration, message: Any) = {
+    import context.dispatcher
+    context.system.scheduler.scheduleOnce(delay, self, message)
+  }
+
 }
 
