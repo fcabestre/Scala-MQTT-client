@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
-package org.ultimo.messages
+package net.sigusr.messages
 
-trait CaseEnum { def enum : Int }
+import shapeless.Iso
+
+case class PingReqMessage(header : Header)
+
+object PingReqMessage {
+  implicit val hlistIso = Iso.hlist(PingReqMessage.apply _, PingReqMessage.unapply _)
+}

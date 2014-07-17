@@ -1,4 +1,4 @@
-package org.ultimo
+package net.sigusr
 
 /*
  * Copyright 2014 Frédéric Cabestre
@@ -20,7 +20,7 @@ import org.specs2.mutable._
 
 class MessagesSpec extends Specification {
 
-  import org.ultimo.messages._
+  import net.sigusr.messages._
 
   "Message types" should {
     "Provide their «enum» value" in {
@@ -30,8 +30,8 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import org.ultimo.SpecUtils._
-      import org.ultimo.messages.MessageTypes._
+      import net.sigusr.SpecUtils._
+      import net.sigusr.messages.MessageTypes._
       import SpecUtils._
 
       fromEnum(0) should failWith("Message type encoded value should be in the range [1..14]")
@@ -50,8 +50,8 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import org.ultimo.SpecUtils._
-      import org.ultimo.messages.QualityOfService._
+      import net.sigusr.SpecUtils._
+      import net.sigusr.messages.QualityOfService._
       import SpecUtils._
 
       fromEnum(-1) should failWith("Quality of service encoded value should be in the range [0..2]")
@@ -80,8 +80,8 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import org.ultimo.SpecUtils._
-      import org.ultimo.messages.ConnectReturnCode._
+      import net.sigusr.SpecUtils._
+      import net.sigusr.messages.ConnectReturnCode._
       import SpecUtils._
 
       fromEnum(-1) should failWith("Connect return code encoded value should be in the range [0..5]")

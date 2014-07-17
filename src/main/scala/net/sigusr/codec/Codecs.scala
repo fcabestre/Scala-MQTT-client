@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.ultimo.codec
+package net.sigusr.codec
 
-import org.ultimo.messages.{PingRespMessage, PingReqMessage, CaseEnum}
+import net.sigusr.messages.{PingRespMessage, PingReqMessage, CaseEnum}
 import scodec._
 import codecs._
 import scalaz.{\/-, -\/, \/}
@@ -68,7 +68,7 @@ class CaseEnumCodec[T <: CaseEnum](codec: Codec[Int])(implicit fromEnum: Functio
 object Codecs {
 
   import scodec.bits._
-  import org.ultimo.messages.{DisconnectMessage, ConnackVariableHeader, ConnackMessage, ConnectReturnCode, Header, ConnectVariableHeader, ConnectMessage, QualityOfService, MessageTypes}
+  import net.sigusr.messages.{DisconnectMessage, ConnackVariableHeader, ConnackMessage, ConnectReturnCode, Header, ConnectVariableHeader, ConnectMessage, QualityOfService, MessageTypes}
   import scalaz.std.anyVal.unitInstance
 
   val messageTypeCodec = new CaseEnumCodec[MessageTypes](uint4)

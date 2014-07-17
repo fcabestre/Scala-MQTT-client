@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package org.ultimo.messages
+package net.sigusr.messages
 
 import shapeless.Iso
 
-case class PingReqMessage(header : Header)
+case class PingRespMessage(header : Header)
 
-object PingReqMessage {
-  implicit val hlistIso = Iso.hlist(PingReqMessage.apply _, PingReqMessage.unapply _)
+object PingRespMessage {
+  implicit val hlistIso = Iso.hlist(PingRespMessage.apply _, PingRespMessage.unapply _)
 }

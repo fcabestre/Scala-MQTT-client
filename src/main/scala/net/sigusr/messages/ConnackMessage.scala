@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package org.ultimo.messages
+package net.sigusr.messages
 
 import shapeless.Iso
 
-case class PingRespMessage(header : Header)
+case class ConnackMessage(header : Header, connackVariableHeader : ConnackVariableHeader)
 
-object PingRespMessage {
-  implicit val hlistIso = Iso.hlist(PingRespMessage.apply _, PingRespMessage.unapply _)
+object ConnackMessage {
+  implicit val hlistIso = Iso.hlist(ConnackMessage.apply _, ConnackMessage.unapply _)
 }

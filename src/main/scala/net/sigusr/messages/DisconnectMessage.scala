@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package org.ultimo.messages
+package net.sigusr.messages
 
 import shapeless.Iso
 
-case class Header(messageType : MessageTypes, dup : Boolean, qos : QualityOfService, retain : Boolean)
+case class DisconnectMessage(header : Header)
 
-object Header {
-  implicit val hlistIso = Iso.hlist(Header.apply _, Header.unapply _)
+object DisconnectMessage {
+  implicit val hlistIso = Iso.hlist(DisconnectMessage.apply _, DisconnectMessage.unapply _)
 }

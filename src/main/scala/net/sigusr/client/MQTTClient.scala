@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-package org.ultimo.client
+package net.sigusr.client
 
 import akka.actor.{ActorRef, ActorLogging, Actor, Props}
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import java.net.InetSocketAddress
 
-import org.ultimo.messages._
-import org.ultimo.codec.Codecs._
-import org.ultimo.messages.{DisconnectMessage, ConnectMessage, ConnackMessage}
+import net.sigusr.messages._
+import net.sigusr.codec.Codecs._
+import net.sigusr.messages.{DisconnectMessage, ConnectMessage, ConnackMessage}
 import scodec.bits.BitVector
 import scodec.{Encoder, Codec}
 
-import scala.annotation.switch
 import scala.concurrent.duration.FiniteDuration
 
 object MQTTClient {

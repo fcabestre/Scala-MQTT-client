@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package org.ultimo.messages
+package net.sigusr.messages
 
 import shapeless.Iso
 
-case class ConnackVariableHeader(returnCode : ConnectReturnCode)
+case class Header(messageType : MessageTypes, dup : Boolean, qos : QualityOfService, retain : Boolean)
 
-object ConnackVariableHeader {
-  implicit val hlistIso = Iso.hlist(ConnackVariableHeader.apply _, ConnackVariableHeader.unapply _)
+object Header {
+  implicit val hlistIso = Iso.hlist(Header.apply _, Header.unapply _)
 }

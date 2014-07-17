@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ultimo.client
+package net.sigusr.client
 
 sealed trait MQTTAPIMessage
 

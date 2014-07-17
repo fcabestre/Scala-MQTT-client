@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package org.ultimo
+package net.sigusr
 
 import java.net.InetSocketAddress
 
 import org.specs2.mutable._
 import org.specs2.time.NoTimeConversions
-import org.ultimo.SpecUtils._
+import net.sigusr.SpecUtils._
 import scala.concurrent.duration._
 
 class ActorSpec extends Specification with NoTimeConversions {
@@ -29,7 +29,7 @@ class ActorSpec extends Specification with NoTimeConversions {
 
     "Allow to connect to a broker and then disconnect" in new SpecsTestKit {
 
-      import org.ultimo.client.{MQTTClient, MQTTDisconnect, MQTTDisconnected, MQTTConnect, MQTTConnected, MQTTReady}
+      import net.sigusr.client.{MQTTClient, MQTTDisconnect, MQTTDisconnected, MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress("localhost", 1883)
       val client = system.actorOf(MQTTClient.props(testActor, endpoint), "MQTTClient-service")
@@ -47,7 +47,7 @@ class ActorSpec extends Specification with NoTimeConversions {
 
     "Allow to connect to a broker and be disconnected" in new SpecsTestKit {
 
-      import org.ultimo.client.{MQTTClient, MQTTDisconnected, MQTTConnect, MQTTConnected, MQTTReady}
+      import net.sigusr.client.{MQTTClient, MQTTDisconnected, MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress("localhost", 1883)
       val client = system.actorOf(MQTTClient.props(testActor, endpoint), "MQTTClient-service")

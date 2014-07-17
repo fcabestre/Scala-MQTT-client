@@ -1,4 +1,4 @@
-package org.ultimo
+package net.sigusr
 
 /*
  * Copyright 2014 Frédéric Cabestre
@@ -24,8 +24,8 @@ class CodecSpec extends Specification {
   "A remaining length codec" should {
     "Perform encoding of valid inputs" in {
 
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
       import scodec.bits._
 
       remainingLengthCodec.encode(0) should succeedWith(hex"00".bits)
@@ -41,8 +41,8 @@ class CodecSpec extends Specification {
 
     "Fail to encode certain input values" in {
 
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
 
       remainingLengthCodec.encode(-1) should failWith(s"The remaining length must be in the range [0..268435455], -1 is not valid")
       remainingLengthCodec.encode(268435455 + 1) should failWith(s"The remaining length must be in the range [0..268435455], 268435456 is not valid")
@@ -51,8 +51,8 @@ class CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
 
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
       import scodec.bits._
 
       remainingLengthCodec.decode(hex"00".bits) should succeedWith((BitVector.empty, 0))
@@ -68,8 +68,8 @@ class CodecSpec extends Specification {
 
     "Fail to decode certain input values" in {
 
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
       import scodec.bits._
 
       remainingLengthCodec.decode(hex"808080807f".bits) should failWith("The remaining length must be 4 bytes long at most")
@@ -79,9 +79,9 @@ class CodecSpec extends Specification {
   "A header codec" should {
     "Perform encoding of valid input" in {
 
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{AtLeastOnce, CONNACK, Header}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{AtLeastOnce, CONNACK, Header}
       import scodec.bits._
 
       val header = Header(CONNACK, dup = false, AtLeastOnce, retain = true)
@@ -90,9 +90,9 @@ class CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
 
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{ExactlyOnce, Header, PUBREL}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{ExactlyOnce, Header, PUBREL}
       import scodec.bits._
 
       val header = Header(PUBREL, dup = true, ExactlyOnce, retain = false)
@@ -103,9 +103,9 @@ class CodecSpec extends Specification {
   "A connect variable header codec" should {
     "Perform encoding of valid inputs" in {
 
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{AtMostOnce, ConnectVariableHeader}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{AtMostOnce, ConnectVariableHeader}
       import scodec.bits._
 
       val connectVariableHeader = ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce, willRetain = false, passwordFlag = true, userNameFlag = true, keepAliveTimer = 1024)
@@ -115,9 +115,9 @@ class CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
 
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{AtLeastOnce, ConnectVariableHeader}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{AtLeastOnce, ConnectVariableHeader}
       import scodec.bits._
 
       val res = ConnectVariableHeader(cleanSession = false, willFlag = false, willQoS = AtLeastOnce, willRetain = true, passwordFlag = false, userNameFlag = false, keepAliveTimer = 12683)
@@ -127,9 +127,9 @@ class CodecSpec extends Specification {
 
   "A connect message codec should" should {
     "[0] Perform round trip encoding/decoding of a valid input" in {
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectMessage, AtLeastOnce}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectMessage, AtLeastOnce}
       import scodec.bits._
 
       val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
@@ -140,9 +140,9 @@ class CodecSpec extends Specification {
     }
 
     "[1] Perform round trip encoding/decoding of a valid input" in {
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectMessage, AtLeastOnce}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectMessage, AtLeastOnce}
       import scodec.bits._
 
       val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
@@ -153,9 +153,9 @@ class CodecSpec extends Specification {
     }
 
     "[2] Perform round trip encoding/decoding of a valid input" in {
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectMessage, ExactlyOnce}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectMessage, ExactlyOnce}
       import scodec.bits._
 
       val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
@@ -169,9 +169,9 @@ class CodecSpec extends Specification {
   "A connack variable header codec" should {
     "Perform encoding of valid inputs" in {
 
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{ConnackVariableHeader, ConnectionRefused2}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{ConnackVariableHeader, ConnectionRefused2}
       import scodec.bits._
 
       val connackVariableHeader = ConnackVariableHeader(ConnectionRefused2)
@@ -180,9 +180,9 @@ class CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
 
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{ConnackVariableHeader, ConnectionRefused5}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{ConnackVariableHeader, ConnectionRefused5}
       import scodec.bits._
 
       val res = ConnackVariableHeader(ConnectionRefused5)
@@ -192,9 +192,9 @@ class CodecSpec extends Specification {
 
   "A connack message codec should" should {
     "Perform round trip encoding/decoding of a valid input" in {
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{AtMostOnce, CONNACK, Header, ConnackVariableHeader, ConnectionAccepted, ConnackMessage}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{AtMostOnce, CONNACK, Header, ConnackVariableHeader, ConnectionAccepted, ConnackMessage}
       import scodec.bits._
 
       val header = Header(CONNACK, dup = false, AtMostOnce, retain = false)
@@ -207,9 +207,9 @@ class CodecSpec extends Specification {
 
   "A disconnect message codec should" should {
     "Perform round trip encoding/decoding of a valid input" in {
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{DISCONNECT, Header, AtMostOnce, DisconnectMessage}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{DISCONNECT, Header, AtMostOnce, DisconnectMessage}
       import scodec.bits._
 
       val header = Header(DISCONNECT, dup = false, AtMostOnce, retain = false)
@@ -221,9 +221,9 @@ class CodecSpec extends Specification {
 
   "A ping request message codec should" should {
     "Perform round trip encoding/decoding of a valid input" in {
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{PINGREQ, Header, AtMostOnce, PingReqMessage}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{PINGREQ, Header, AtMostOnce, PingReqMessage}
       import scodec.bits._
 
       val header = Header(PINGREQ, dup = false, AtMostOnce, retain = false)
@@ -235,9 +235,9 @@ class CodecSpec extends Specification {
 
   "A ping response message codec should" should {
     "Perform round trip encoding/decoding of a valid input" in {
-      import org.ultimo.SpecUtils._
-      import org.ultimo.codec.Codecs._
-      import org.ultimo.messages.{PINGRESP, Header, AtMostOnce, PingRespMessage}
+      import net.sigusr.SpecUtils._
+      import net.sigusr.codec.Codecs._
+      import net.sigusr.messages.{PINGRESP, Header, AtMostOnce, PingRespMessage}
       import scodec.bits._
 
       val header = Header(PINGRESP, dup = false, AtMostOnce, retain = false)

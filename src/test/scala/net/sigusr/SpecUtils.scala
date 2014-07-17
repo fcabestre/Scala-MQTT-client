@@ -1,4 +1,4 @@
-package org.ultimo
+package net.sigusr
 
 /*
  * Copyright 2014 Frédéric Cabestre

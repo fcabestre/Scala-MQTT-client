@@ -14,12 +14,6 @@
  * limitations under the License.
  */
 
-package org.ultimo.messages
+package net.sigusr.messages
 
-import shapeless.Iso
-
-case class ConnackMessage(header : Header, connackVariableHeader : ConnackVariableHeader)
-
-object ConnackMessage {
-  implicit val hlistIso = Iso.hlist(ConnackMessage.apply _, ConnackMessage.unapply _)
-}
+trait CaseEnum { def enum : Int }
