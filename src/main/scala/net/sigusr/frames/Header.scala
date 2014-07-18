@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
-package net.sigusr.messages
+package net.sigusr.frames
 
-trait CaseEnum { def enum : Int }
+import shapeless.Iso
+
+case class Header(messageType : MessageTypes, dup : Boolean, qos : QualityOfService, retain : Boolean)
+
+object Header {
+  implicit val hlistIso = Iso.hlist(Header.apply _, Header.unapply _)
+}

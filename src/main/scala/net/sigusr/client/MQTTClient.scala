@@ -21,9 +21,9 @@ import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import java.net.InetSocketAddress
 
-import net.sigusr.messages._
+import net.sigusr.frames._
 import net.sigusr.codec.Codecs._
-import net.sigusr.messages.{DisconnectMessage, ConnectMessage, ConnackMessage}
+import net.sigusr.frames.{DisconnectFrame, ConnectFrame, ConnackFrame}
 import scodec.bits.BitVector
 import scodec.{Encoder, Codec}
 
@@ -58,11 +58,11 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
     case MQTTConnect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
       val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce, willFlag = false, cleanSession, keepAlive)
-      val connectMessage = ConnectMessage(header, variableHeader, clientId, topic, message, user, password)
+      val connectMessage = ConnectFrame(header, variableHeader, clientId, topic, message, user, password)
       encodeAndSend(connection, connectMessage)
 
     case Received(encodedResponse) ⇒
-      val response = Codec[ConnackMessage].decodeValidValue(BitVector.view(encodedResponse.toArray))
+      val response = Codec[ConnackFrame].decodeValidValue(BitVector.view(encodedResponse.toArray))
       response.connackVariableHeader.returnCode match {
         case ConnectionAccepted =>
           source ! MQTTConnected
@@ -79,7 +79,7 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
 
   def connected(connection: ActorRef): Receive = {
     case MQTTDisconnect =>
-      val disconnectMessage = DisconnectMessage(Header(DISCONNECT, dup = false, AtMostOnce, retain = false))
+      val disconnectMessage = DisconnectFrame(Header(DISCONNECT, dup = false, AtMostOnce, retain = false))
       encodeAndSend(connection, disconnectMessage)
       context become ready(sender)
 

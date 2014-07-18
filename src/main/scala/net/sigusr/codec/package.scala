@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-package net.sigusr.messages
+package net.sigusr
 
 import shapeless.Iso
+import net.sigusr.frames._
 
-case class PingRespMessage(header : Header)
-
-object PingRespMessage {
-  implicit val hlistIso = Iso.hlist(PingRespMessage.apply _, PingRespMessage.unapply _)
+package object codec {
+  implicit val hlistIso0 = Iso.hlist(ConnackFrame.apply _, ConnackFrame.unapply _)
+  implicit val hlistIso1 = Iso.hlist(ConnectFrame.apply _, ConnectFrame.unapply _)
+  implicit val hlistIso2 = Iso.hlist(DisconnectFrame.apply _, DisconnectFrame.unapply _)
+  implicit val hlistIso3 = Iso.hlist(PingReqFrame.apply _, PingReqFrame.unapply _)
+  implicit val hlistIso4 = Iso.hlist(PingRespFrame.apply _, PingRespFrame.unapply _)
 }

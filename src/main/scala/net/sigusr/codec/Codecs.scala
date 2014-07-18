@@ -16,11 +16,12 @@
 
 package net.sigusr.codec
 
-import net.sigusr.messages.{PingRespMessage, PingReqMessage, CaseEnum}
+import net.sigusr.frames.CaseEnum
 import scodec._
-import codecs._
-import scalaz.{\/-, -\/, \/}
-import scodec.bits.{ByteVector, BitVector}
+import scodec.bits.{BitVector, ByteVector}
+import scodec.codecs._
+
+import scalaz.{-\/, \/, \/-}
 
 final class RemainingLengthCodec extends Codec[Int] {
 
@@ -68,8 +69,9 @@ class CaseEnumCodec[T <: CaseEnum](codec: Codec[Int])(implicit fromEnum: Functio
 object Codecs {
 
   import scodec.bits._
-  import net.sigusr.messages.{DisconnectMessage, ConnackVariableHeader, ConnackMessage, ConnectReturnCode, Header, ConnectVariableHeader, ConnectMessage, QualityOfService, MessageTypes}
   import scalaz.std.anyVal.unitInstance
+
+  import net.sigusr.frames._
 
   val messageTypeCodec = new CaseEnumCodec[MessageTypes](uint4)
   val qualityOfServiceCodec = new CaseEnumCodec[QualityOfService](uint2)
@@ -107,7 +109,7 @@ object Codecs {
         conditional(hdr.userNameFlag, stringCodec) ::
         conditional(hdr.passwordFlag, stringCodec)
       })
-    ).as[ConnectMessage]
+    ).as[ConnectFrame]
 
   val connackReturnCodeCodec = new CaseEnumCodec[ConnectReturnCode](uint8)
 
@@ -119,11 +121,11 @@ object Codecs {
   implicit val connackMessageCodec = (
       headerCodec ::
       connackVariableHeaderCodec
-  ).as[ConnackMessage]
+  ).as[ConnackFrame]
 
-  implicit val disconnectMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[DisconnectMessage]
+  implicit val disconnectMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[DisconnectFrame]
 
-  implicit val pingReqMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[PingReqMessage]
+  implicit val pingReqMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[PingReqFrame]
 
-  implicit val pingRespMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[PingRespMessage]
+  implicit val pingRespMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[PingRespFrame]
 }

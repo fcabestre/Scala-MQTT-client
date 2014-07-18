@@ -20,7 +20,7 @@ import org.specs2.mutable._
 
 class MessagesSpec extends Specification {
 
-  import net.sigusr.messages._
+  import net.sigusr.frames._
 
   "Message types" should {
     "Provide their «enum» value" in {
@@ -31,7 +31,7 @@ class MessagesSpec extends Specification {
 
     "Be constructable from their corresponding «enum» value" in {
       import net.sigusr.SpecUtils._
-      import net.sigusr.messages.MessageTypes._
+      import net.sigusr.frames.MessageTypes._
       import SpecUtils._
 
       fromEnum(0) should failWith("Message type encoded value should be in the range [1..14]")
@@ -51,7 +51,7 @@ class MessagesSpec extends Specification {
 
     "Be constructable from their corresponding «enum» value" in {
       import net.sigusr.SpecUtils._
-      import net.sigusr.messages.QualityOfService._
+      import net.sigusr.frames.QualityOfService._
       import SpecUtils._
 
       fromEnum(-1) should failWith("Quality of service encoded value should be in the range [0..2]")
@@ -81,7 +81,7 @@ class MessagesSpec extends Specification {
 
     "Be constructable from their corresponding «enum» value" in {
       import net.sigusr.SpecUtils._
-      import net.sigusr.messages.ConnectReturnCode._
+      import net.sigusr.frames.ConnectReturnCode._
       import SpecUtils._
 
       fromEnum(-1) should failWith("Connect return code encoded value should be in the range [0..5]")

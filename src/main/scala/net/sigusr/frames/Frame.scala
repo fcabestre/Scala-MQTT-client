@@ -14,18 +14,24 @@
  * limitations under the License.
  */
 
-package net.sigusr.messages
+package net.sigusr.frames
 
-import shapeless.Iso
+sealed trait Frame {
+  def header : Header
+}
 
-case class ConnectMessage(header : Header,
+case class ConnackFrame(header : Header, connackVariableHeader : ConnackVariableHeader) extends Frame
+
+case class ConnectFrame(header : Header,
                           variableHeader : ConnectVariableHeader,
                           clientId : String,
                           topic : Option[String],
                           message : Option[String],
                           user : Option[String],
-                          password : Option[String])
+                          password : Option[String]) extends Frame
 
-object ConnectMessage {
-  implicit val hlistIso = Iso.hlist(ConnectMessage.apply _, ConnectMessage.unapply _)
-}
+case class DisconnectFrame(header : Header) extends Frame
+
+case class PingReqFrame(header : Header) extends Frame
+
+case class PingRespFrame(header : Header) extends Frame

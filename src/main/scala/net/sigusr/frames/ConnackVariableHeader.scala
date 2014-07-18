@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.sigusr.messages
+package net.sigusr.frames
 
 import shapeless.Iso
 
