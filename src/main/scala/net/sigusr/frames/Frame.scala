@@ -16,22 +16,19 @@
 
 package net.sigusr.frames
 
-sealed trait Frame {
-  def header : Header
-}
+sealed trait Frame
 
-case class ConnackFrame(header : Header, connackVariableHeader : ConnackVariableHeader) extends Frame
+case class ConnackFrame(connackVariableHeader: ConnackVariableHeader) extends Frame
 
-case class ConnectFrame(header : Header,
-                          variableHeader : ConnectVariableHeader,
-                          clientId : String,
-                          topic : Option[String],
-                          message : Option[String],
-                          user : Option[String],
-                          password : Option[String]) extends Frame
+case class ConnectFrame(variableHeader: ConnectVariableHeader,
+                        clientId: String,
+                        topic: Option[String],
+                        message: Option[String],
+                        user: Option[String],
+                        password: Option[String]) extends Frame
 
-case class DisconnectFrame(header : Header) extends Frame
+case object DisconnectFrame extends Frame
 
-case class PingReqFrame(header : Header) extends Frame
+case object PingReqFrame extends Frame
 
-case class PingRespFrame(header : Header) extends Frame
+case object PingRespFrame extends Frame

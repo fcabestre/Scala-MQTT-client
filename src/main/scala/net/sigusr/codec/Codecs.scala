@@ -35,7 +35,7 @@ final class RemainingLengthCodec extends Codec[Int] {
     def decodeAux(step: \/[String, (BitVector, Int)], factor: Int, depth: Int, value: Int): \/[String, (BitVector, Int)] =
       if (depth == 4) \/.left("The remaining length must be 4 bytes long at most")
       else step match {
-        case e @ -\/ (_) => e
+        case e @ -\/(_) => e
         case \/-((b, d)) =>
           if ((d & 128) == 0) \/.right((b, value + (d & 127) * factor))
           else decodeAux(uint8.decode(b), factor * 128, depth + 1, value + (d & 127) * factor)
@@ -79,16 +79,16 @@ object Codecs {
   val stringCodec = variableSizeBytes(uint16, utf8)
 
   implicit val headerCodec = (
-      messageTypeCodec ::
+    messageTypeCodec ::
       bool ::
       qualityOfServiceCodec ::
       bool
     ).as[Header]
 
   val connectVariableHeaderFixedBytes: BitVector = BitVector(hex"00064D514973647003")
-  
+
   implicit val connectVariableHeaderCodec = (
-      constant(connectVariableHeaderFixedBytes) :~>:
+    constant(connectVariableHeaderFixedBytes) :~>:
       bool ::
       bool ::
       bool ::
@@ -97,35 +97,31 @@ object Codecs {
       bool ::
       ignore(1) :~>:
       uint16.hlist
-  ).as[ConnectVariableHeader]
+    ).as[ConnectVariableHeader]
 
-  implicit val connectMessageCodec = (
-      headerCodec ::
-      variableSizeBytes(remainingLengthCodec,
-        connectVariableHeaderCodec >>:~ { (hdr : ConnectVariableHeader) =>
-        stringCodec ::
+  implicit val connectMessageCodec = variableSizeBytes(remainingLengthCodec,
+      connectVariableHeaderCodec >>:~ { (hdr: ConnectVariableHeader) =>
+      stringCodec ::
         conditional(hdr.willFlag, stringCodec) ::
         conditional(hdr.willFlag, stringCodec) ::
         conditional(hdr.userNameFlag, stringCodec) ::
         conditional(hdr.passwordFlag, stringCodec)
-      })
-    ).as[ConnectFrame]
+    }).as[ConnectFrame]
 
   val connackReturnCodeCodec = new CaseEnumCodec[ConnectReturnCode](uint8)
 
+  val zeroLength = bin"00000000"
+
   implicit val connackVariableHeaderCodec = (
-      ignore(8) :~>:
+      constant(zeroLength) :~>:
       connackReturnCodeCodec.hlist
-  ).as[ConnackVariableHeader]
+    ).as[ConnackVariableHeader]
 
-  implicit val connackMessageCodec = (
-      headerCodec ::
-      connackVariableHeaderCodec
-  ).as[ConnackFrame]
+  implicit val connackMessageCodec = connackVariableHeaderCodec.hlist.as[ConnackFrame]
 
-  implicit val disconnectMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[DisconnectFrame]
+  implicit val disconnectMessageCodec = constant(zeroLength) ~> provide(DisconnectFrame)
 
-  implicit val pingReqMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[PingReqFrame]
+  implicit val pingReqMessageCodec = constant(zeroLength) ~> provide(PingReqFrame)
 
-  implicit val pingRespMessageCodec = fixedSizeBytes(2, headerCodec).hlist.as[PingRespFrame]
+  implicit val pingRespMessageCodec = constant(zeroLength) ~> provide(PingRespFrame)
 }
