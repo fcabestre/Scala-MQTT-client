@@ -16,7 +16,6 @@
 
 package net.sigusr.frames
 
-import shapeless.Iso
 
 case class ConnectVariableHeader(userNameFlag : Boolean,
                                  passwordFlag : Boolean,
@@ -33,5 +32,5 @@ case class ConnectVariableHeader(userNameFlag : Boolean,
 }
 
 object ConnectVariableHeader {
-  implicit val hlistIso = Iso.hlist(ConnectVariableHeader.apply _, ConnectVariableHeader.unapply _)
+//  implicit val hlistIso = Iso.hlist(ConnectVariableHeader.apply _, ConnectVariableHeader.unapply _)
 }

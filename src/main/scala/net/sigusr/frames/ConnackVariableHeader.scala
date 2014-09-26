@@ -16,10 +16,9 @@
 
 package net.sigusr.frames
 
-import shapeless.Iso
 
 case class ConnackVariableHeader(returnCode : ConnectReturnCode)
 
 object ConnackVariableHeader {
-  implicit val hlistIso = Iso.hlist(ConnackVariableHeader.apply _, ConnackVariableHeader.unapply _)
+//  implicit val hlistIso = Iso.hlist(ConnackVariableHeader.apply _, ConnackVariableHeader.unapply _)
 }

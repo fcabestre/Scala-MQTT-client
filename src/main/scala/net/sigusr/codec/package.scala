@@ -16,10 +16,9 @@
 
 package net.sigusr
 
-import shapeless.Iso
 import net.sigusr.frames._
 
 package object codec {
-  implicit val hlistIso0 = Iso.hlist(ConnackFrame.apply _, ConnackFrame.unapply _)
-  implicit val hlistIso1 = Iso.hlist(ConnectFrame.apply _, ConnectFrame.unapply _)
+//  implicit val hlistIso0 = Iso.hlist(ConnackFrame.apply _, ConnackFrame.unapply _)
+//  implicit val hlistIso1 = Iso.hlist(ConnectFrame.apply _, ConnectFrame.unapply _)
 }

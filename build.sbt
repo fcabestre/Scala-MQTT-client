@@ -2,15 +2,19 @@ name := """Scala-MQTT-client"""
 
 version := "1.0"
 
-scalaVersion := "2.11.1"
+scalaVersion := "2.11.2"
+
+resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
 libraryDependencies ++= Seq(
+  "org.specs2" %% "specs2" % "2.4.4" % "test",
   "com.typesafe.akka" %% "akka-actor" % "2.3.3",
   "com.typesafe.akka" %% "akka-testkit" % "2.3.3",
-  "org.typelevel" %% "scodec-core" % "1.0.0",
-  "org.specs2" %% "specs2" % "2.3.12" % "test"
+  "org.typelevel" %% "scodec-core" % "1.3.0"
 )
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
 scalacOptions ++= Seq("-feature", "-deprecation")
+
+net.virtualvoid.sbt.graph.Plugin.graphSettings

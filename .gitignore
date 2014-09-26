@@ -1,18 +1,20 @@
-*#
-*.iml
-*.ipr
-*.iws
-*.pyc
-*.tm.epoch
-*.vim
-*-shim.sbt
 .idea/
-/project/plugins/project
-project/boot
+# Created by .gitignore support plugin (hsz.mobi)
+### Scala template
+*.class
+*.log
+
+# sbt specific
+.cache/
+.history/
+.lib/
+dist/*
 target/
-/logs
-.cache
-.classpath
-.project
-.settings
-*~
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet
