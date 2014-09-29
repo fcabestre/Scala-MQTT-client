@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/fcabestre/Scala-MQTT-client.svg?branch=master)](https://travis-ci.org/fcabestre/Scala-MQTT-client)
 # A Scala MQTT client library
 
 ## Introduction
