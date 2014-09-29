@@ -25,6 +25,8 @@ import scala.concurrent.duration._
 
 class ActorSpec extends Specification with NoTimeConversions {
 
+  args(skipAll = true)
+
   "The MQTTClient API" should {
 
     "Allow to connect to a broker and then disconnect" in new SpecsTestKit {

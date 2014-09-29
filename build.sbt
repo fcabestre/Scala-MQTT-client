@@ -8,8 +8,8 @@ resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
 libraryDependencies ++= Seq(
   "org.specs2" %% "specs2" % "2.4.4" % "test",
-  "com.typesafe.akka" %% "akka-actor" % "2.3.3",
-  "com.typesafe.akka" %% "akka-testkit" % "2.3.3",
+  "com.typesafe.akka" %% "akka-actor" % "2.3.6",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.6",
   "org.typelevel" %% "scodec-core" % "1.3.0"
 )
 
