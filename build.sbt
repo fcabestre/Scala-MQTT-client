@@ -1,3 +1,6 @@
+import scoverage.ScoverageSbtPlugin.instrumentSettings
+import org.scoverage.coveralls.CoverallsPlugin.coverallsSettings
+
 name := """Scala-MQTT-client"""
 
 version := "1.0"

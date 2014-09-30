@@ -1,4 +1,4 @@
-.idea/
+.idea*/
 # Created by .gitignore support plugin (hsz.mobi)
 ### Scala template
 *.class
