@@ -1,6 +1,3 @@
-import scoverage.ScoverageSbtPlugin.instrumentSettings
-import org.scoverage.coveralls.CoverallsPlugin.coverallsSettings
-
 name := """Scala-MQTT-client"""
 
 version := "1.0"
@@ -21,3 +18,9 @@ scalacOptions in Test ++= Seq("-Yrangepos")
 scalacOptions ++= Seq("-feature", "-deprecation")
 
 net.virtualvoid.sbt.graph.Plugin.graphSettings
+
+scoverage.ScoverageSbtPlugin.instrumentSettings
+
+org.scoverage.coveralls.CoverallsPlugin.coverallsSettings
+
+org.scoverage.coveralls.CoverallsPlugin.CoverallsKeys.coverallsToken := Some("4c62CwXnosg5iwouVOrCa46frQwqtBlzk")
