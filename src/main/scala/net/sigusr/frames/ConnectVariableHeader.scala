@@ -16,21 +16,16 @@
 
 package net.sigusr.frames
 
-
-case class ConnectVariableHeader(userNameFlag : Boolean,
-                                 passwordFlag : Boolean,
-                                 willRetain : Boolean,
-                                 willQoS : QualityOfService,
-                                 willFlag : Boolean,
-                                 cleanSession : Boolean,
-                                 keepAliveTimer : Int) {
+case class ConnectVariableHeader(userNameFlag: Boolean,
+                                 passwordFlag: Boolean,
+                                 willRetain: Boolean,
+                                 willQoS: QualityOfService,
+                                 willFlag: Boolean,
+                                 cleanSession: Boolean,
+                                 keepAliveTimer: Int) {
 
   require((userNameFlag || !passwordFlag) && keepAliveTimer >= 0 && keepAliveTimer <= 65535)
 
   val protocolName = "MQIsdp"
   val protocolVersion = 0x03
-}
-
-object ConnectVariableHeader {
-//  implicit val hlistIso = Iso.hlist(ConnectVariableHeader.apply _, ConnectVariableHeader.unapply _)
 }

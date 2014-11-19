@@ -69,9 +69,9 @@ class CaseEnumCodec[T <: CaseEnum](codec: Codec[Int])(implicit fromEnum: Functio
 object Codecs {
 
   import scodec.bits._
-  import scalaz.std.anyVal.unitInstance
-
   import net.sigusr.frames._
+  import shapeless._
+  import shapeless.syntax.singleton._
 
   val messageTypeCodec = new CaseEnumCodec[MessageTypes](uint4)
   val qualityOfServiceCodec = new CaseEnumCodec[QualityOfService](uint2)
@@ -79,7 +79,6 @@ object Codecs {
   val stringCodec = variableSizeBytes(uint16, utf8)
 
   implicit val headerCodec = (
-    messageTypeCodec ::
       bool ::
       qualityOfServiceCodec ::
       bool
@@ -96,32 +95,36 @@ object Codecs {
       bool ::
       bool ::
       ignore(1) :~>:
-      uint16.hlist
+      uint16
     ).as[ConnectVariableHeader]
 
-  implicit val connectMessageCodec = variableSizeBytes(remainingLengthCodec,
-      connectVariableHeaderCodec >>:~ { (hdr: ConnectVariableHeader) =>
+  implicit val connectMessageCodec = (headerCodec :: variableSizeBytes(remainingLengthCodec,
+    connectVariableHeaderCodec >>:~ { (hdr: ConnectVariableHeader) =>
       stringCodec ::
         conditional(hdr.willFlag, stringCodec) ::
         conditional(hdr.willFlag, stringCodec) ::
         conditional(hdr.userNameFlag, stringCodec) ::
         conditional(hdr.passwordFlag, stringCodec)
-    }).as[ConnectFrame]
+    })).as[ConnectFrame]
 
   val connackReturnCodeCodec = new CaseEnumCodec[ConnectReturnCode](uint8)
 
   val zeroLength = bin"00000000"
 
-  implicit val connackVariableHeaderCodec = (
-      constant(zeroLength) :~>:
-      connackReturnCodeCodec.hlist
-    ).as[ConnackVariableHeader]
+  implicit val connackVariableHeaderCodec = (constant(zeroLength) :~>: connackReturnCodeCodec).as[ConnackVariableHeader]
 
-  implicit val connackMessageCodec = connackVariableHeaderCodec.hlist.as[ConnackFrame]
+  implicit val connackMessageCodec = (headerCodec :: connackVariableHeaderCodec).as[ConnackFrame]
 
-  implicit val disconnectMessageCodec = constant(zeroLength) ~> provide(DisconnectFrame)
+  implicit val disconnectMessageCodec = headerCodec.as[DisconnectFrame]
 
-  implicit val pingReqMessageCodec = constant(zeroLength) ~> provide(PingReqFrame)
+  implicit val pingReqMessageCodec = headerCodec.as[PingReqFrame]
 
-  implicit val pingRespMessageCodec = constant(zeroLength) ~> provide(PingRespFrame)
+  implicit val pingRespMessageCodec = headerCodec.as[PingRespFrame]
+
+  implicit val frameCodec = (
+    connectMessageCodec :+:
+    connackMessageCodec :+:
+    pingReqMessageCodec :+:
+    pingRespMessageCodec :+:
+    disconnectMessageCodec).discriminatedBy(uint4).using(Sized(1, 2, 12, 13, 14))
 }

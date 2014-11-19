@@ -84,8 +84,8 @@ class CodecSpec extends Specification {
       import net.sigusr.frames.{AtLeastOnce, CONNACK, Header}
       import scodec.bits._
 
-      val header = Header(CONNACK, dup = false, AtLeastOnce, retain = true)
-      Codec.encode(header) should succeedWith(bin"00100011")
+      val header = Header(dup = false, AtLeastOnce, retain = true)
+      Codec.encode(header) should succeedWith(bin"0011")
     }
 
     "Perform decoding of valid inputs" in {
@@ -95,8 +95,8 @@ class CodecSpec extends Specification {
       import net.sigusr.frames.{ExactlyOnce, Header, PUBREL}
       import scodec.bits._
 
-      val header = Header(PUBREL, dup = true, ExactlyOnce, retain = false)
-      Codec[Header].decode(bin"01101100110011") should succeedWith((bin"110011", header))
+      val header = Header(dup = true, ExactlyOnce, retain = false)
+      Codec[Header].decode(bin"1100110011") should succeedWith((bin"110011", header))
     }
   }
 
@@ -129,12 +129,12 @@ class CodecSpec extends Specification {
     "[0] Perform round trip encoding/decoding of a valid input" in {
       import net.sigusr.SpecUtils._
       import net.sigusr.codec.Codecs._
-      import net.sigusr.frames.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectFrame, AtLeastOnce}
+      import net.sigusr.frames.{Header, AtMostOnce, ConnectVariableHeader, ConnectFrame, AtLeastOnce}
       import scodec.bits._
 
-      val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
+      val header = Header(dup = false, AtMostOnce, retain = false)
       val connectVariableHeader = ConnectVariableHeader(userNameFlag = true, passwordFlag = true, willRetain = true, AtLeastOnce, willFlag = true, cleanSession = true, 15)
-      val connectMessage = ConnectFrame(connectVariableHeader, "clientId", Some("Topic"), Some("Message"), Some("User"), Some("Password"))
+      val connectMessage = ConnectFrame(header, connectVariableHeader, "clientId", Some("Topic"), Some("Message"), Some("User"), Some("Password"))
 
       Codec[ConnectFrame].decode(Codec.encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
     }
@@ -142,12 +142,12 @@ class CodecSpec extends Specification {
     "[1] Perform round trip encoding/decoding of a valid input" in {
       import net.sigusr.SpecUtils._
       import net.sigusr.codec.Codecs._
-      import net.sigusr.frames.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectFrame, AtLeastOnce}
+      import net.sigusr.frames.{Header, AtMostOnce, ConnectVariableHeader, ConnectFrame, AtLeastOnce}
       import scodec.bits._
 
-      val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
+      val header = Header(dup = false, AtMostOnce, retain = false)
       val connectVariableHeader = ConnectVariableHeader(userNameFlag = true, passwordFlag = false, willRetain = true, AtLeastOnce, willFlag = false, cleanSession = true, 15)
-      val connectMessage = ConnectFrame(connectVariableHeader, "clientId", None, None, Some("User"), None)
+      val connectMessage = ConnectFrame(header, connectVariableHeader, "clientId", None, None, Some("User"), None)
 
       Codec[ConnectFrame].decode(Codec.encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
     }
@@ -155,12 +155,12 @@ class CodecSpec extends Specification {
     "[2] Perform round trip encoding/decoding of a valid input" in {
       import net.sigusr.SpecUtils._
       import net.sigusr.codec.Codecs._
-      import net.sigusr.frames.{CONNECT, Header, AtMostOnce, ConnectVariableHeader, ConnectFrame, ExactlyOnce}
+      import net.sigusr.frames.{Header, AtMostOnce, ConnectVariableHeader, ConnectFrame, ExactlyOnce}
       import scodec.bits._
 
-      val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
+      val header = Header(dup = false, AtMostOnce, retain = false)
       val connectVariableHeader = ConnectVariableHeader(userNameFlag = false, passwordFlag = false, willRetain = true, ExactlyOnce, willFlag = false, cleanSession = false, 128)
-      val connectMessage = ConnectFrame(connectVariableHeader, "clientId", None, None, None, None)
+      val connectMessage = ConnectFrame(header, connectVariableHeader, "clientId", None, None, None, None)
 
       Codec[ConnectFrame].decode(Codec.encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
     }
@@ -194,12 +194,12 @@ class CodecSpec extends Specification {
     "Perform round trip encoding/decoding of a valid input" in {
       import net.sigusr.SpecUtils._
       import net.sigusr.codec.Codecs._
-      import net.sigusr.frames.{AtMostOnce, CONNACK, Header, ConnackVariableHeader, ConnectionAccepted, ConnackFrame}
+      import net.sigusr.frames.{AtMostOnce, Header, ConnackVariableHeader, ConnectionAccepted, ConnackFrame}
       import scodec.bits._
 
-      val header = Header(CONNACK, dup = false, AtMostOnce, retain = false)
+      val header = Header(dup = false, AtMostOnce, retain = false)
       val connackVariableHeader = ConnackVariableHeader(ConnectionAccepted)
-      val connectMessage = ConnackFrame(connackVariableHeader)
+      val connectMessage = ConnackFrame(header, connackVariableHeader)
 
       Codec[ConnackFrame].decode(Codec.encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
     }
@@ -209,13 +209,13 @@ class CodecSpec extends Specification {
     "Perform round trip encoding/decoding of a valid input" in {
       import net.sigusr.SpecUtils._
       import net.sigusr.codec.Codecs._
-      import net.sigusr.frames.{DISCONNECT, Header, AtMostOnce, DisconnectFrame, ConnectVariableHeader}
+      import net.sigusr.frames.{Header, AtMostOnce, DisconnectFrame}
       import scodec.bits._
 
-      val header = Header(DISCONNECT, dup = false, AtMostOnce, retain = false)
-      val disconnectMessage = DisconnectFrame
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val disconnectMessage = DisconnectFrame(header)
 
-      Codec.decode(Codec.encodeValid(disconnectMessage))(disconnectMessageCodec) should succeedWith((bin"", disconnectMessage))
+      Codec.decode[DisconnectFrame](Codec.encodeValid(disconnectMessage)) should succeedWith((bin"", disconnectMessage))
     }
   }
 
@@ -223,12 +223,13 @@ class CodecSpec extends Specification {
     "Perform round trip encoding/decoding of a valid input" in {
       import net.sigusr.SpecUtils._
       import net.sigusr.codec.Codecs._
-      import net.sigusr.frames.PingReqFrame
+      import net.sigusr.frames.{Header, AtMostOnce, PingReqFrame}
       import scodec.bits._
 
-      val pingReqMessage = PingReqFrame
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val pingReqMessage = PingReqFrame(header)
 
-      Codec.decode(Codec.encodeValid(pingReqMessage))(pingReqMessageCodec) should succeedWith((bin"", pingReqMessage))
+      Codec.decode[PingReqFrame](Codec.encodeValid(pingReqMessage)) should succeedWith((bin"", pingReqMessage))
     }
   }
 
@@ -236,12 +237,13 @@ class CodecSpec extends Specification {
     "Perform round trip encoding/decoding of a valid input" in {
       import net.sigusr.SpecUtils._
       import net.sigusr.codec.Codecs._
-      import net.sigusr.frames.PingRespFrame
+      import net.sigusr.frames.{Header, AtMostOnce, PingRespFrame}
       import scodec.bits._
 
-      val pingRespMessage = PingRespFrame
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val pingRespMessage = PingRespFrame(header)
 
-      Codec.decode(Codec.encodeValid(pingRespMessage))(pingRespMessageCodec) should succeedWith((bin"", pingRespMessage))
+      Codec.decode[PingRespFrame](Codec.encodeValid(pingRespMessage)) should succeedWith((bin"", pingRespMessage))
     }
   }
 }

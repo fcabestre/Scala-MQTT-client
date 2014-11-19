@@ -16,9 +16,4 @@
 
 package net.sigusr.frames
 
-
-case class Header(messageType : MessageTypes, dup : Boolean, qos : QualityOfService, retain : Boolean)
-
-object Header {
-//  implicit val hlistIso = Iso.hlist(Header.apply _, Header.unapply _)
-}
+case class Header(dup : Boolean, qos : QualityOfService, retain : Boolean)

@@ -54,27 +54,27 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
       context become ready(sender)
   }
 
-  def decodeBody(v : (BitVector, Header)) =
-    v._2.messageType match {
-      case CONNACK => 
-        Codec[ConnackFrame].decode(v._1) map { 
-          (v : (BitVector, ConnackFrame)) =>
-            v._2.connackVariableHeader.returnCode match {
-              case ConnectionAccepted =>
-                source ! MQTTConnected
-                context become connected(sender)
-              case code: ConnectReturnCode =>
-                source ! MQTTConnectionFailure(code2Reason(code))
-            }
-        }
-    }
+  def decodeBody(v : (BitVector, Header)) = ()
+//    v._2.messageType match {
+//      case CONNACK =>
+//        Codec[ConnackFrame].decode(v._1) map {
+//          (v : (BitVector, ConnackFrame)) =>
+//            v._2.connackVariableHeader.returnCode match {
+//              case ConnectionAccepted =>
+//                source ! MQTTConnected
+//                context become connected(sender)
+//              case code: ConnectReturnCode =>
+//                source ! MQTTConnectionFailure(code2Reason(code))
+//            }
+//        }
+//    }
 
   def ready(connection: ActorRef): Receive = {
     case MQTTConnect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
-      val header = Header(CONNECT, dup = false, AtMostOnce, retain = false)
+      val header = Header(dup = false, AtMostOnce, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce, willFlag = false, cleanSession, keepAlive)
-      val connectMessage = ConnectFrame(variableHeader, clientId, topic, message, user, password)
-      encodeAndSend(connection, header, connectMessage)
+      val connectMessage = ConnectFrame(header, variableHeader, clientId, topic, message, user, password)
+      encodeAndSend(connection, connectMessage)
 
     case Received(encodedResponse) ⇒ Codec[Header].decode(BitVector.view(encodedResponse.toArray)) map decodeBody
 
@@ -86,8 +86,8 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
 
   def connected(connection: ActorRef): Receive = {
     case MQTTDisconnect =>
-      val header = Header(DISCONNECT, dup = false, AtMostOnce, retain = false)
-      encodeAndSend(connection, header, DisconnectFrame)
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      encodeAndSend(connection, DisconnectFrame(header))
       context become ready(sender)
 
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
@@ -106,8 +106,8 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
   }
 
 
-  def encodeAndSend[A: Encoder](connection: ActorRef, header : Header, message: A) = {
-    val encodedConnectMessage = Codec.encodeValid(header) ++ Codec.encodeValid(message)
+  def encodeAndSend[A: Encoder](connection: ActorRef, message: A) = {
+    val encodedConnectMessage = Codec.encodeValid(message)
     connection ! Write(ByteString(encodedConnectMessage.toByteArray))
   }
 

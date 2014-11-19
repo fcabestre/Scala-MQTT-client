@@ -16,9 +16,4 @@
 
 package net.sigusr.frames
 
-
 case class ConnackVariableHeader(returnCode : ConnectReturnCode)
-
-object ConnackVariableHeader {
-//  implicit val hlistIso = Iso.hlist(ConnackVariableHeader.apply _, ConnackVariableHeader.unapply _)
-}

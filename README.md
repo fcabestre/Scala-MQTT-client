@@ -13,4 +13,4 @@ But quickly, when I came to look at how to encode/decode MQTT protocol frames, I
 
 * Scala 2.11.2
 * Akka 2.3.6
-* scodec-core 1.3.0
+* scodec-core 1.3.1
