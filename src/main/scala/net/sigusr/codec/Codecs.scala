@@ -30,10 +30,10 @@ final class RemainingLengthCodec extends Codec[Int] {
   val MinBytes = 0
   val MaxBytes = 4
 
-  def decode(bits: BitVector): String \/ (BitVector, Int) = {
+  def decode(bits: BitVector): Err \/ (BitVector, Int) = {
     @annotation.tailrec
-    def decodeAux(step: \/[String, (BitVector, Int)], factor: Int, depth: Int, value: Int): \/[String, (BitVector, Int)] =
-      if (depth == 4) \/.left("The remaining length must be 4 bytes long at most")
+    def decodeAux(step: \/[Err, (BitVector, Int)], factor: Int, depth: Int, value: Int): \/[Err, (BitVector, Int)] =
+      if (depth == 4) \/.left(Err("The remaining length must be 4 bytes long at most"))
       else step match {
         case e @ -\/(_) => e
         case \/-((b, d)) =>
@@ -49,21 +49,21 @@ final class RemainingLengthCodec extends Codec[Int] {
     def encodeAux(value: Int, digit: Int, bytes: ByteVector): ByteVector =
       if (value == 0) bytes :+ digit.asInstanceOf[Byte]
       else encodeAux(value / 128, value % 128, bytes :+ (digit | 0x80).asInstanceOf[Byte])
-    if (value < MinValue || value > MaxValue) \/.left(s"The remaining length must be in the range [$MinValue..$MaxValue], $value is not valid")
+    if (value < MinValue || value > MaxValue) \/.left(Err(s"The remaining length must be in the range [$MinValue..$MaxValue], $value is not valid"))
     else \/.right(BitVector(encodeAux(value / 128, value % 128, ByteVector.empty)))
   }
 }
 
-class CaseEnumCodec[T <: CaseEnum](codec: Codec[Int])(implicit fromEnum: Function[Int, \/[String, T]]) extends Codec[T] {
+class CaseEnumCodec[T <: CaseEnum](codec: Codec[Int])(implicit fromEnum: Function[Int, \/[Err, T]]) extends Codec[T] {
 
-  override def decode(bits: BitVector): \/[String, (BitVector, T)] =
+  override def decode(bits: BitVector): \/[Err, (BitVector, T)] =
     codec.decode(bits) flatMap {
       (b: BitVector, i: Int) => fromEnum(i) flatMap {
         (m: T) => \/.right((b, m))
       }
     }
 
-  override def encode(value: T): \/[String, BitVector] = codec.encode(value.enum)
+  override def encode(value: T): \/[Err, BitVector] = codec.encode(value.enum)
 }
 
 object Codecs {

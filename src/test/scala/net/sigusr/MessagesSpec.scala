@@ -17,6 +17,7 @@ package net.sigusr
  */
 
 import org.specs2.mutable._
+import scodec.Err
 
 class MessagesSpec extends Specification {
 
@@ -34,11 +35,11 @@ class MessagesSpec extends Specification {
       import net.sigusr.frames.MessageTypes._
       import SpecUtils._
 
-      fromEnum(0) should failWith("Message type encoded value should be in the range [1..14]")
+      fromEnum(0) should failWith(Err("Message type encoded value should be in the range [1..14]"))
       fromEnum(2) should succeedWith(CONNACK)
       fromEnum(7) should succeedWith(PUBCOMP)
       fromEnum(11) should succeedWith(UNSUBACK)
-      fromEnum(15) should failWith("Message type encoded value should be in the range [1..14]")
+      fromEnum(15) should failWith(Err("Message type encoded value should be in the range [1..14]"))
     }
   }
 
@@ -54,11 +55,11 @@ class MessagesSpec extends Specification {
       import net.sigusr.frames.QualityOfService._
       import SpecUtils._
 
-      fromEnum(-1) should failWith("Quality of service encoded value should be in the range [0..2]")
+      fromEnum(-1) should failWith(Err("Quality of service encoded value should be in the range [0..2]"))
       fromEnum(0) should succeedWith(AtMostOnce)
       fromEnum(1) should succeedWith(AtLeastOnce)
       fromEnum(2) should succeedWith(ExactlyOnce)
-      fromEnum(3) should failWith("Quality of service encoded value should be in the range [0..2]")
+      fromEnum(3) should failWith(Err("Quality of service encoded value should be in the range [0..2]"))
     }
   }
 
@@ -84,12 +85,12 @@ class MessagesSpec extends Specification {
       import net.sigusr.frames.ConnectReturnCode._
       import SpecUtils._
 
-      fromEnum(-1) should failWith("Connect return code encoded value should be in the range [0..5]")
+      fromEnum(-1) should failWith(Err("Connect return code encoded value should be in the range [0..5]"))
       fromEnum(0) should succeedWith(ConnectionAccepted)
       fromEnum(1) should succeedWith(ConnectionRefused1)
       fromEnum(3) should succeedWith(ConnectionRefused3)
       fromEnum(5) should succeedWith(ConnectionRefused5)
-      fromEnum(6) should failWith("Connect return code encoded value should be in the range [0..5]")
+      fromEnum(6) should failWith(Err("Connect return code encoded value should be in the range [0..5]"))
     }
   }
 }

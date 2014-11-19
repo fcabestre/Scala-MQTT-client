@@ -17,7 +17,7 @@ package net.sigusr
  */
 
 import org.specs2.mutable._
-import scodec.Codec
+import scodec.{Err, Codec}
 
 class CodecSpec extends Specification {
 
@@ -44,8 +44,8 @@ class CodecSpec extends Specification {
       import net.sigusr.SpecUtils._
       import net.sigusr.codec.Codecs._
 
-      remainingLengthCodec.encode(-1) should failWith(s"The remaining length must be in the range [0..268435455], -1 is not valid")
-      remainingLengthCodec.encode(268435455 + 1) should failWith(s"The remaining length must be in the range [0..268435455], 268435456 is not valid")
+      remainingLengthCodec.encode(-1) should failWith(Err(s"The remaining length must be in the range [0..268435455], -1 is not valid"))
+      remainingLengthCodec.encode(268435455 + 1) should failWith(Err(s"The remaining length must be in the range [0..268435455], 268435456 is not valid"))
 
     }
 
@@ -72,7 +72,7 @@ class CodecSpec extends Specification {
       import net.sigusr.codec.Codecs._
       import scodec.bits._
 
-      remainingLengthCodec.decode(hex"808080807f".bits) should failWith("The remaining length must be 4 bytes long at most")
+      remainingLengthCodec.decode(hex"808080807f".bits) should failWith(Err("The remaining length must be 4 bytes long at most"))
     }
   }
 

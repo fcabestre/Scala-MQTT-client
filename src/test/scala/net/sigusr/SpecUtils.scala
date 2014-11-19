@@ -21,21 +21,22 @@ import akka.testkit.TestKit
 import com.typesafe.config.ConfigFactory
 import org.specs2.matcher.{Expectable, Matcher}
 import org.specs2.specification.{AfterExample, Scope}
+import scodec.Err
 
 import scalaz.\/
 
 object SpecUtils {
 
-  class SuccessfulDisjunctionMatcher[T](v: T) extends Matcher[\/[String, T]] {
-    def apply[S <: \/[String, T]](e: Expectable[S]) = {
+  class SuccessfulDisjunctionMatcher[T](v: T) extends Matcher[\/[Err, T]] {
+    def apply[S <: \/[Err, T]](e: Expectable[S]) = {
       result(e.value exists {
         _ == v
       }, s"${e.description} equals to $v", s"The result is ${e.description}, instead of the expected value '$v'", e)
     }
   }
 
-  class FailedDisjunctionMatcher[T](m: String) extends Matcher[\/[String, T]] {
-    def apply[S <: \/[String, T]](e: Expectable[S]) = {
+  class FailedDisjunctionMatcher[T](m: Err) extends Matcher[\/[Err, T]] {
+    def apply[S <: \/[Err, T]](e: Expectable[S]) = {
       result(~e.value exists {
         _ == m
       }, s"${e.description} equals to $m", s"The result is ${e.description} instead of the expected error message '$m'", e)
@@ -44,7 +45,7 @@ object SpecUtils {
 
   def succeedWith[T](t: T) = new SuccessfulDisjunctionMatcher[T](t)
 
-  def failWith[T](t: String) = new FailedDisjunctionMatcher[T](t)
+  def failWith[T](t: Err) = new FailedDisjunctionMatcher[T](t)
 
   val configDebug =
     """akka {

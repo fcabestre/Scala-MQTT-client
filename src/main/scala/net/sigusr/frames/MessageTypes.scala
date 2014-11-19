@@ -16,6 +16,8 @@
 
 package net.sigusr.frames
 
+import scodec.Err
+
 import scala.annotation.switch
 import scalaz.\/
 
@@ -40,7 +42,7 @@ object MessageTypes {
 
   import scala.language.implicitConversions
 
-  implicit def fromEnum(enum: Int) =
+  implicit def fromEnum(enum: Int): \/[Err, MessageTypes] =
     (enum: @switch) match {
       case 1 => \/.right(CONNECT)
       case 2 => \/.right(CONNACK)
@@ -56,6 +58,6 @@ object MessageTypes {
       case 12 => \/.right(PINGREQ)
       case 13 => \/.right(PINGRESP)
       case 14 => \/.right(DISCONNECT)
-      case _ => \/.left("Message type encoded value should be in the range [1..14]")
+      case _ => \/.left(Err("Message type encoded value should be in the range [1..14]"))
     }
 }

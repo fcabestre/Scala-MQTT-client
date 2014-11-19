@@ -16,6 +16,8 @@
 
 package net.sigusr.frames
 
+import scodec.Err
+
 import scala.annotation.switch
 import scalaz.\/
 
@@ -29,11 +31,11 @@ object QualityOfService {
 
   import scala.language.implicitConversions
 
-  implicit def fromEnum(enum : Int) =
+  implicit def fromEnum(enum : Int): \/[Err, QualityOfService] =
     (enum: @switch) match {
       case 0 => \/.right(AtMostOnce)
       case 1 => \/.right(AtLeastOnce)
       case 2 => \/.right(ExactlyOnce)
-      case _ => \/.left("Quality of service encoded value should be in the range [0..2]")
+      case _ => \/.left(Err("Quality of service encoded value should be in the range [0..2]"))
     }
 }

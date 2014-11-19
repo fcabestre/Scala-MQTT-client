@@ -16,6 +16,8 @@
 
 package net.sigusr.frames
 
+import scodec.Err
+
 import scala.annotation.switch
 import scalaz.\/
 
@@ -32,7 +34,7 @@ object ConnectReturnCode {
 
   import scala.language.implicitConversions
 
-  implicit def fromEnum(enum: Int) =
+  implicit def fromEnum(enum: Int): \/[Err, ConnectReturnCode] =
     (enum: @switch) match {
       case 0 => \/.right(ConnectionAccepted)
       case 1 => \/.right(ConnectionRefused1)
@@ -40,6 +42,6 @@ object ConnectReturnCode {
       case 3 => \/.right(ConnectionRefused3)
       case 4 => \/.right(ConnectionRefused4)
       case 5 => \/.right(ConnectionRefused5)
-      case _ => \/.left("Connect return code encoded value should be in the range [0..5]")
+      case _ => \/.left(Err("Connect return code encoded value should be in the range [0..5]"))
     }
 }
