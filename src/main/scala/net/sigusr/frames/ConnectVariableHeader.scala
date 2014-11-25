@@ -16,6 +16,9 @@
 
 package net.sigusr.frames
 
+import scodec.bits.{BitVector, _}
+import scodec.codecs._
+
 case class ConnectVariableHeader(userNameFlag: Boolean,
                                  passwordFlag: Boolean,
                                  willRetain: Boolean,
@@ -28,4 +31,19 @@ case class ConnectVariableHeader(userNameFlag: Boolean,
 
   val protocolName = "MQIsdp"
   val protocolVersion = 0x03
+}
+
+object ConnectVariableHeader {
+  val connectVariableHeaderFixedBytes: BitVector = BitVector(hex"00064D514973647003")
+  implicit val connectVariableHeaderCodec = (
+    constant(connectVariableHeaderFixedBytes) :~>:
+      bool ::
+      bool ::
+      bool ::
+      qualityOfServiceCodec ::
+      bool ::
+      bool ::
+      ignore(1) :~>:
+      uint16
+    ).as[ConnectVariableHeader]
 }

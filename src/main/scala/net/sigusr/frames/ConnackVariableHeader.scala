@@ -16,4 +16,11 @@
 
 package net.sigusr.frames
 
+import scodec.codecs._
+
 case class ConnackVariableHeader(returnCode : ConnectReturnCode)
+object ConnackVariableHeader {
+  val connackReturnCodeCodec = new CaseEnumCodec[ConnectReturnCode](uint8)
+  implicit val connackVariableHeaderCodec = (constant(zeroLength) :~>: connackReturnCodeCodec).as[ConnackVariableHeader]
+
+}

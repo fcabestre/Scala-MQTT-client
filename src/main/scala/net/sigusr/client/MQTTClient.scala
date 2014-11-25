@@ -22,7 +22,6 @@ import akka.util.ByteString
 import java.net.InetSocketAddress
 
 import net.sigusr.frames._
-import net.sigusr.codec.Codecs._
 import net.sigusr.frames.{DisconnectFrame, ConnectFrame, ConnackFrame}
 import scodec.bits.BitVector
 import scodec.{Encoder, Codec}
@@ -51,7 +50,7 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
     case c @ Connected(_, _) ⇒
       sender ! Register(self)
       source ! MQTTReady
-      context become ready(sender)
+      context become ready(sender())
   }
 
   def decodeBody(v : (BitVector, Header)) = ()
@@ -88,7 +87,7 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
     case MQTTDisconnect =>
       val header = Header(dup = false, AtMostOnce, retain = false)
       encodeAndSend(connection, DisconnectFrame(header))
-      context become ready(sender)
+      context become ready(sender())
 
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
     case _: ConnectionClosed ⇒
@@ -106,8 +105,8 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
   }
 
 
-  def encodeAndSend[A: Encoder](connection: ActorRef, message: A) = {
-    val encodedConnectMessage = Codec.encodeValid(message)
+  def encodeAndSend(connection: ActorRef, message: Frame) = {
+    val encodedConnectMessage = Codec[Frame].encodeValid(message)
     connection ! Write(ByteString(encodedConnectMessage.toByteArray))
   }
 

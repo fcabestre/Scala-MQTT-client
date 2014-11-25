@@ -23,26 +23,6 @@ class MessagesSpec extends Specification {
 
   import net.sigusr.frames._
 
-  "Message types" should {
-    "Provide their «enum» value" in {
-      CONNECT.enum should be_==(1)
-      SUBACK.enum should be_==(9)
-      DISCONNECT.enum should be_==(14)
-    }
-
-    "Be constructable from their corresponding «enum» value" in {
-      import net.sigusr.SpecUtils._
-      import net.sigusr.frames.MessageTypes._
-      import SpecUtils._
-
-      fromEnum(0) should failWith(Err("Message type encoded value should be in the range [1..14]"))
-      fromEnum(2) should succeedWith(CONNACK)
-      fromEnum(7) should succeedWith(PUBCOMP)
-      fromEnum(11) should succeedWith(UNSUBACK)
-      fromEnum(15) should failWith(Err("Message type encoded value should be in the range [1..14]"))
-    }
-  }
-
   "Quality of service" should {
     "Provide their «enum» value" in {
       AtMostOnce.enum should be_==(0)
