@@ -25,7 +25,7 @@ import scala.concurrent.duration._
 
 class ActorSpec extends Specification with NoTimeConversions {
 
-  args(skipAll = true)
+//  args(skipAll = true)
 
   "The MQTTClient API" should {
 

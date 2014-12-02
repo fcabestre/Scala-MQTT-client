@@ -21,16 +21,17 @@ import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import java.net.InetSocketAddress
 
+import net.sigusr.frames
 import net.sigusr.frames._
 import net.sigusr.frames.{DisconnectFrame, ConnectFrame, ConnackFrame}
 import scodec.bits.BitVector
-import scodec.{Encoder, Codec}
+import scodec.{Err, Encoder, Codec}
 
 import scala.concurrent.duration.FiniteDuration
+import scalaz.\/
 
 object MQTTClient {
-  def props(source: ActorRef, remote: InetSocketAddress) =
-    Props(classOf[MQTTClient], source, remote)
+  def props(source: ActorRef, remote: InetSocketAddress) = Props(classOf[MQTTClient], source, remote)
 }
 
 class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with ActorLogging {
@@ -53,67 +54,33 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
       context become ready(sender())
   }
 
-  def decodeBody(v : (BitVector, Header)) = ()
-//    v._2.messageType match {
-//      case CONNACK =>
-//        Codec[ConnackFrame].decode(v._1) map {
-//          (v : (BitVector, ConnackFrame)) =>
-//            v._2.connackVariableHeader.returnCode match {
-//              case ConnectionAccepted =>
-//                source ! MQTTConnected
-//                context become connected(sender)
-//              case code: ConnectReturnCode =>
-//                source ! MQTTConnectionFailure(code2Reason(code))
-//            }
-//        }
-//    }
-
-  def ready(connection: ActorRef): Receive = {
+  def apiMessage2Frame(apiMessage : MQTTAPIMessage) : Frame = apiMessage match {
     case MQTTConnect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
       val header = Header(dup = false, AtMostOnce, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce, willFlag = false, cleanSession, keepAlive)
-      val connectMessage = ConnectFrame(header, variableHeader, clientId, topic, message, user, password)
-      encodeAndSend(connection, connectMessage)
-
-    case Received(encodedResponse) ⇒ Codec[Header].decode(BitVector.view(encodedResponse.toArray)) map decodeBody
-
-    case CommandFailed(w: Write) ⇒ // O/S buffer was full
-    case _: ConnectionClosed ⇒
-      source ! MQTTDisconnected
-      context stop self
-  }
-
-  def connected(connection: ActorRef): Receive = {
+      ConnectFrame(header, variableHeader, clientId, topic, message, user, password)
     case MQTTDisconnect =>
       val header = Header(dup = false, AtMostOnce, retain = false)
-      encodeAndSend(connection, DisconnectFrame(header))
-      context become ready(sender())
+      DisconnectFrame(header)
+  }
+
+  def frame2ApiMessage(frame : Frame) : MQTTAPIMessage = frame match {
+    case ConnackFrame(header, connackVariableHeader) => MQTTConnected
+  }
+
+  def ready(connection: ActorRef): Receive = {
+    case message : MQTTAPIMessage =>
+      val encodedMessage = Codec[Frame].encodeValid(apiMessage2Frame(message))
+      connection ! Write(ByteString(encodedMessage.toByteArray))
+
+    case Received(encodedResponse) ⇒ 
+      val decodedMessage = frame2ApiMessage(Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray)))
+      source ! decodedMessage
 
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
     case _: ConnectionClosed ⇒
       source ! MQTTDisconnected
       context stop self
   }
-
-  def code2Reason(code : ConnectReturnCode) = code match {
-    case ConnectionRefused1 => BadProtocolVersion
-    case ConnectionRefused2 => IdentifierRejected
-    case ConnectionRefused3 => ServerUnavailable
-    case ConnectionRefused4 => BadUserNameOrPassword
-    case ConnectionRefused5 => NotAuthorized
-    case _ => NotAuthorized // impossible
-  }
-
-
-  def encodeAndSend(connection: ActorRef, message: Frame) = {
-    val encodedConnectMessage = Codec[Frame].encodeValid(message)
-    connection ! Write(ByteString(encodedConnectMessage.toByteArray))
-  }
-
-  def timeout(delay: FiniteDuration, message: Any) = {
-    import context.dispatcher
-    context.system.scheduler.scheduleOnce(delay, self, message)
-  }
-
 }
 

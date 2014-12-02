@@ -20,9 +20,5 @@ import scodec.codecs._
 
 case class Header(dup : Boolean, qos : QualityOfService, retain : Boolean)
 object Header {
-  implicit val headerCodec = (
-    bool ::
-      qualityOfServiceCodec ::
-      bool
-    ).as[Header]
+  implicit val headerCodec = (bool :: qualityOfServiceCodec :: bool).as[Header]
 }
