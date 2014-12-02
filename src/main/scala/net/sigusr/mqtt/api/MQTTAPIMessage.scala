@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.sigusr.client
+package net.sigusr.mqtt.api
 
 sealed trait MQTTAPIMessage
 

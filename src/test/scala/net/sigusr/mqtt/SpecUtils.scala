@@ -1,4 +1,4 @@
-package net.sigusr
+package net.sigusr.mqtt
 
 /*
  * Copyright 2014 Frédéric Cabestre
@@ -16,7 +16,7 @@ package net.sigusr
  * limitations under the License.
  */
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.TestKit
 import com.typesafe.config.ConfigFactory
 import org.specs2.matcher.{Expectable, Matcher}

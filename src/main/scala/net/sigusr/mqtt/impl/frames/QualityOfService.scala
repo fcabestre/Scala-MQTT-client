@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.sigusr.frames
+package net.sigusr.mqtt.impl.frames
 
 import scodec.Err
 

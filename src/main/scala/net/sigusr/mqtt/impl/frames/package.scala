@@ -1,4 +1,4 @@
-package net.sigusr
+package net.sigusr.mqtt.impl
 
 import scodec.codecs._
 import scodec.bits._

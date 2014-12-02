@@ -14,13 +14,6 @@
  * limitations under the License.
  */
 
-package net.sigusr.frames
+package net.sigusr.mqtt.impl.frames
 
-import scodec.codecs._
-
-case class ConnackVariableHeader(returnCode : ConnectReturnCode)
-object ConnackVariableHeader {
-  val connackReturnCodeCodec = new CaseEnumCodec[ConnectReturnCode](uint8)
-  implicit val connackVariableHeaderCodec = (constant(zeroLength) :~>: connackReturnCodeCodec).as[ConnackVariableHeader]
-
-}
+trait CaseEnum { def enum : Int }

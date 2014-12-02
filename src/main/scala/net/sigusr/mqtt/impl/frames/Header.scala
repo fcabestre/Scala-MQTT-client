@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
-package net.sigusr.frames
+package net.sigusr.mqtt.impl.frames
 
-trait CaseEnum { def enum : Int }
+import scodec.codecs._
+
+case class Header(dup : Boolean, qos : QualityOfService, retain : Boolean)
+object Header {
+  implicit val headerCodec = (bool :: qualityOfServiceCodec :: bool).as[Header]
+}

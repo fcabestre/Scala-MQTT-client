@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package net.sigusr.frames
+package net.sigusr.mqtt.impl.frames
 
-import net.sigusr.frames.ConnectVariableHeader._
-import net.sigusr.frames.ConnackVariableHeader._
-import net.sigusr.frames.Header._
+import net.sigusr.mqtt.impl.frames.ConnackVariableHeader._
+import net.sigusr.mqtt.impl.frames.ConnectVariableHeader._
+import net.sigusr.mqtt.impl.frames.Header._
 import scodec.Codec
 import scodec.codecs._
 

@@ -14,21 +14,17 @@
  * limitations under the License.
  */
 
-package net.sigusr.client
+package net.sigusr.mqtt.api
 
-import akka.actor.{ActorRef, ActorLogging, Actor, Props}
-import akka.io.{IO, Tcp}
-import akka.util.ByteString
 import java.net.InetSocketAddress
 
-import net.sigusr.frames
-import net.sigusr.frames._
-import net.sigusr.frames.{DisconnectFrame, ConnectFrame, ConnackFrame}
-import scodec.bits.BitVector
-import scodec.{Err, Encoder, Codec}
+import akka.actor._
+import akka.util.ByteString
+import akka.io.{IO,Tcp}
 
-import scala.concurrent.duration.FiniteDuration
-import scalaz.\/
+import net.sigusr.mqtt.impl.frames.{ConnackFrame, ConnectFrame, DisconnectFrame, _}
+import scodec.Codec
+import scodec.bits.BitVector
 
 object MQTTClient {
   def props(source: ActorRef, remote: InetSocketAddress) = Props(classOf[MQTTClient], source, remote)
@@ -44,11 +40,11 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
   def receive = start
 
   def start: Receive = {
-    case CommandFailed(_: Connect) ⇒
+    case CommandFailed(_: Connect) =>
       source ! MQTTNotReady
       context stop self
 
-    case c @ Connected(_, _) ⇒
+    case c @ Connected(_, _) =>
       sender ! Register(self)
       source ! MQTTReady
       context become ready(sender())
@@ -77,10 +73,11 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends Actor with
       val decodedMessage = frame2ApiMessage(Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray)))
       source ! decodedMessage
 
-    case CommandFailed(w: Write) ⇒ // O/S buffer was full
     case _: ConnectionClosed ⇒
       source ! MQTTDisconnected
       context stop self
+
+    case CommandFailed(w: Write) ⇒ // O/S buffer was full
   }
 }
 

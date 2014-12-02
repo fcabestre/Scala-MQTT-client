@@ -1,4 +1,4 @@
-package net.sigusr
+package net.sigusr.mqtt
 
 /*
  * Copyright 2014 Frédéric Cabestre
@@ -21,7 +21,7 @@ import scodec.Err
 
 class MessagesSpec extends Specification {
 
-  import net.sigusr.frames._
+  import net.sigusr.mqtt.impl.frames._
 
   "Quality of service" should {
     "Provide their «enum» value" in {
@@ -31,9 +31,8 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import net.sigusr.SpecUtils._
-      import net.sigusr.frames.QualityOfService._
-      import SpecUtils._
+      import net.sigusr.mqtt.impl.frames.QualityOfService._
+      import net.sigusr.mqtt.SpecUtils._
 
       fromEnum(-1) should failWith(Err("Quality of service encoded value should be in the range [0..2]"))
       fromEnum(0) should succeedWith(AtMostOnce)
@@ -61,9 +60,8 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import net.sigusr.SpecUtils._
-      import net.sigusr.frames.ConnectReturnCode._
-      import SpecUtils._
+      import net.sigusr.mqtt.impl.frames.ConnectReturnCode._
+      import net.sigusr.mqtt.SpecUtils._
 
       fromEnum(-1) should failWith(Err("Connect return code encoded value should be in the range [0..5]"))
       fromEnum(0) should succeedWith(ConnectionAccepted)

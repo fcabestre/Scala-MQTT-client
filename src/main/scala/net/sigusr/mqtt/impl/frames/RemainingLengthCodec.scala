@@ -1,4 +1,4 @@
-package net.sigusr.frames
+package net.sigusr.mqtt.impl.frames
 
 import scodec.bits.{BitVector, _}
 import scodec.codecs._

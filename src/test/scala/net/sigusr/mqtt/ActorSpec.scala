@@ -14,24 +14,25 @@
  * limitations under the License.
  */
 
-package net.sigusr
+package net.sigusr.mqtt
 
 import java.net.InetSocketAddress
 
+import SpecUtils._
 import org.specs2.mutable._
 import org.specs2.time.NoTimeConversions
-import net.sigusr.SpecUtils._
+
 import scala.concurrent.duration._
 
 class ActorSpec extends Specification with NoTimeConversions {
 
-//  args(skipAll = true)
+  args(skipAll = true)
 
   "The MQTTClient API" should {
 
     "Allow to connect to a broker and then disconnect" in new SpecsTestKit {
 
-      import net.sigusr.client.{MQTTClient, MQTTDisconnect, MQTTDisconnected, MQTTConnect, MQTTConnected, MQTTReady}
+      import net.sigusr.mqtt.api.{MQTTClient, MQTTConnect, MQTTConnected, MQTTDisconnect, MQTTDisconnected, MQTTReady}
 
       val endpoint = new InetSocketAddress("localhost", 1883)
       val client = system.actorOf(MQTTClient.props(testActor, endpoint), "MQTTClient-service")
@@ -49,7 +50,7 @@ class ActorSpec extends Specification with NoTimeConversions {
 
     "Allow to connect to a broker and be disconnected" in new SpecsTestKit {
 
-      import net.sigusr.client.{MQTTClient, MQTTDisconnected, MQTTConnect, MQTTConnected, MQTTReady}
+      import net.sigusr.mqtt.api.{MQTTClient, MQTTConnect, MQTTConnected, MQTTDisconnected, MQTTReady}
 
       val endpoint = new InetSocketAddress("localhost", 1883)
       val client = system.actorOf(MQTTClient.props(testActor, endpoint), "MQTTClient-service")
