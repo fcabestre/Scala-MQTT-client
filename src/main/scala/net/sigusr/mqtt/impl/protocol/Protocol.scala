@@ -44,21 +44,21 @@ abstract class Protocol(client: ActorRef, mqttBrokerAddress: InetSocketAddress) 
     client ! MQTTDisconnected
   }
 
-  def toSend(message: MQTTAPIMessage) : Unit = {
+  def messageToSend(message: MQTTAPIMessage) : Unit = {
     val frame: Frame = apiMessage2Frame(message)
     self ! frame
   }
 
-  def received(frame: Frame) : Unit = {
+  def frameReceived(frame: Frame) : Unit = {
     val message: MQTTAPIMessage = frame2ApiMessage(frame)
     client ! message
   }
 
-  def ready() : Unit = {
+  def transportReady() : Unit = {
     client ! MQTTReady
   }
 
-  def notReady() : Unit = {
+  def transportNotReady() : Unit = {
     client ! MQTTNotReady
   }
 }

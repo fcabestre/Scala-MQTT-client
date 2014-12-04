@@ -22,7 +22,7 @@ import akka.actor.ActorRef
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
-import net.sigusr.mqtt.api.{MQTTDisconnected, MQTTReady, MQTTNotReady, MQTTAPIMessage}
+import net.sigusr.mqtt.api.MQTTAPIMessage
 import net.sigusr.mqtt.impl.frames.Frame
 import scodec.Codec
 import scodec.bits.BitVector
@@ -30,13 +30,14 @@ import scodec.bits.BitVector
 trait Transport {
   def initTransport(remote: InetSocketAddress) : Unit
   def disconnected() : Unit
-  def toSend(message: MQTTAPIMessage) : Unit
-  def received(frame: Frame) : Unit
-  def ready() : Unit
-  def notReady() : Unit
+  def messageToSend(message: MQTTAPIMessage) : Unit
+  def frameReceived(frame: Frame) : Unit
+  def transportReady() : Unit
+  def transportNotReady() : Unit
 }
 
 trait TCPTransport extends Transport{ this: Protocol =>
+  
   import context.system
   def initTransport(remote: InetSocketAddress) : Unit = IO(Tcp) ! Connect(remote)
 
@@ -46,25 +47,25 @@ trait TCPTransport extends Transport{ this: Protocol =>
 
   def start: Receive = {
     case CommandFailed(_: Connect) =>
-      notReady()
+      transportNotReady()
       context stop self
 
     case c @ Connected(_, _) =>
       sender ! Register(self)
-      ready()
+      transportReady()
       context become ready(sender())
   }
 
   def ready(connection: ActorRef): Receive = {
     case message : MQTTAPIMessage =>
-      toSend(message)
+      messageToSend(message)
 
     case frame : Frame =>
       val encodedMessage = Codec[Frame].encodeValid(frame)
       connection ! Write(ByteString(encodedMessage.toByteArray))
 
     case Received(encodedResponse) ⇒
-      received(Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray)))
+      frameReceived(Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray)))
 
     case _: ConnectionClosed ⇒
       disconnected()

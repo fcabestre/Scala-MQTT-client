@@ -29,7 +29,8 @@ import scala.concurrent.duration._
 
 class ActorSpec extends Specification with NoTimeConversions {
 
-  //  args(skipAll = true)
+  args(skipAll = true)
+
   class TestClient(source: ActorRef, remote: InetSocketAddress) extends Protocol(source, remote) with TCPTransport
 
   object TestClient {
