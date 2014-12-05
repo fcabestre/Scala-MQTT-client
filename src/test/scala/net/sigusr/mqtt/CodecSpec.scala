@@ -16,6 +16,7 @@ package net.sigusr.mqtt
  * limitations under the License.
  */
 
+import net.sigusr.mqtt.impl.frames._
 import org.specs2.mutable._
 import scodec.{Codec, Err}
 
@@ -24,9 +25,9 @@ class CodecSpec extends Specification {
   "A remaining length codec" should {
     "Perform encoding of valid inputs" in {
 
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames._
       import scodec.bits._
-      import impl.frames._
 
       remainingLengthCodec.encode(0) should succeedWith(hex"00".bits)
       remainingLengthCodec.encode(127) should succeedWith(hex"7f".bits)
@@ -41,8 +42,8 @@ class CodecSpec extends Specification {
 
     "Fail to encode certain input values" in {
 
-      import SpecUtils._
-      import impl.frames._
+      import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames._
 
       remainingLengthCodec.encode(-1) should failWith(Err(s"The remaining length must be in the range [0..268435455], -1 is not valid"))
       remainingLengthCodec.encode(268435455 + 1) should failWith(Err(s"The remaining length must be in the range [0..268435455], 268435456 is not valid"))
@@ -51,9 +52,9 @@ class CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
 
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames._
       import scodec.bits._
-      import impl.frames._
 
       remainingLengthCodec.decode(hex"00".bits) should succeedWith((BitVector.empty, 0))
       remainingLengthCodec.decode(hex"7f".bits) should succeedWith((BitVector.empty, 127))
@@ -68,9 +69,9 @@ class CodecSpec extends Specification {
 
     "Fail to decode certain input values" in {
 
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames._
       import scodec.bits._
-      import impl.frames._
 
       remainingLengthCodec.decode(hex"808080807f".bits) should failWith(Err("The remaining length must be 4 bytes long at most"))
     }
@@ -79,7 +80,7 @@ class CodecSpec extends Specification {
   "A header codec" should {
     "Perform encoding of valid input" in {
 
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{AtLeastOnce, Header}
       import scodec.bits._
 
@@ -89,7 +90,7 @@ class CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
 
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{ExactlyOnce, Header}
       import scodec.bits._
 
@@ -101,7 +102,7 @@ class CodecSpec extends Specification {
   "A connect variable header codec" should {
     "Perform encoding of valid inputs" in {
 
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.ConnectVariableHeader._
       import net.sigusr.mqtt.impl.frames.{AtMostOnce, ConnectVariableHeader}
       import scodec.bits._
@@ -113,7 +114,7 @@ class CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
 
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.ConnectVariableHeader._
       import net.sigusr.mqtt.impl.frames.{AtLeastOnce, ConnectVariableHeader}
       import scodec.bits._
@@ -125,7 +126,7 @@ class CodecSpec extends Specification {
 
   "A connect message codec should" should {
     "[0] Perform round trip encoding/decoding of a valid input" in {
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{AtLeastOnce, AtMostOnce, ConnectFrame, ConnectVariableHeader, Frame, Header}
       import scodec.bits._
 
@@ -138,7 +139,7 @@ class CodecSpec extends Specification {
     }
 
     "[1] Perform round trip encoding/decoding of a valid input" in {
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{AtLeastOnce, AtMostOnce, ConnectFrame, ConnectVariableHeader, Frame, Header}
       import scodec.bits._
 
@@ -150,7 +151,7 @@ class CodecSpec extends Specification {
     }
 
     "[2] Perform round trip encoding/decoding of a valid input" in {
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{AtMostOnce, ConnectFrame, ConnectVariableHeader, ExactlyOnce, Frame, Header}
       import scodec.bits._
 
@@ -162,7 +163,7 @@ class CodecSpec extends Specification {
     }
 
     "Perform encoding and match a captured value" in {
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{AtLeastOnce, AtMostOnce, ConnectFrame, ConnectVariableHeader, Frame, Header}
       import scodec.bits._
       val header = Header(dup = false, AtMostOnce, retain = false)
@@ -177,7 +178,7 @@ class CodecSpec extends Specification {
   "A connack variable header codec" should {
     "Perform encoding of valid inputs" in {
 
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{ConnackVariableHeader, ConnectionRefused2}
       import scodec.bits._
 
@@ -187,7 +188,7 @@ class CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
 
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{ConnackVariableHeader, ConnectionRefused5}
       import scodec.bits._
 
@@ -198,7 +199,7 @@ class CodecSpec extends Specification {
 
   "A connack message codec" should {
     "Perform round trip encoding/decoding of a valid input" in {
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{AtMostOnce, ConnackFrame, ConnackVariableHeader, ConnectionAccepted, Frame, Header}
       import scodec.bits._
 
@@ -210,7 +211,7 @@ class CodecSpec extends Specification {
     }
 
     "Perform decoding of captured values" in {
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{AtMostOnce, ConnackFrame, ConnackVariableHeader, ConnectionAccepted, Frame, Header}
       import scodec.bits._
 
@@ -222,9 +223,96 @@ class CodecSpec extends Specification {
     }
   }
 
+  "A subscribe variables header codec" should {
+    "Perform encoding of valid inputs" in {
+
+      import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames.MessageIdentifier
+      import scodec.bits._
+
+      val connackVariableHeader = MessageIdentifier(10)
+      Codec.encode(connackVariableHeader) should succeedWith(bin"0000000000001010")
+    }
+
+    "Perform decoding of valid inputs" in {
+
+      import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames.MessageIdentifier
+      import scodec.bits._
+
+      val res = MessageIdentifier(3)
+      Codec[MessageIdentifier].decode(bin"00000000000000110101") should succeedWith((bin"0101", res))
+    }
+  }
+
+
+  "A topics codec" should {
+    "Perform round trip encoding/decoding of a valid input" in {
+
+      import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames.SubscribeFrame._
+      import scodec.bits._
+
+      val topics = Vector(("topic0", AtMostOnce), ("topic1", AtLeastOnce), ("topic2", ExactlyOnce))
+      Codec[Topics].decode(Codec[Topics].encodeValid(topics)) should succeedWith(bin"", topics)
+    }
+  }
+
+  "A subscribe codec" should {
+    "Perform round trip encoding/decoding of a valid input" in {
+
+      import net.sigusr.mqtt.SpecUtils._
+      import scodec.bits._
+
+      val header = Header(dup = false, AtLeastOnce, retain = false)
+      val variableHeader = MessageIdentifier(3)
+      val topics = Vector(("topic0", AtMostOnce), ("topic1", AtLeastOnce), ("topic2", ExactlyOnce))
+      val subscribeFrame = SubscribeFrame(header, variableHeader, topics)
+      Codec[Frame].decode(Codec[Frame].encodeValid(subscribeFrame)) should succeedWith(bin"", subscribeFrame)
+    }
+
+    "Perform encoding and match a captured value" in {
+      import net.sigusr.mqtt.SpecUtils._
+      import scodec.bits._
+
+      val header = Header(dup = false, AtLeastOnce, retain = false)
+      val variableHeader = MessageIdentifier(1)
+      val topics = Vector(("topic", AtLeastOnce))
+      val subscribeFrame = SubscribeFrame(header, variableHeader, topics)
+      val capture = BitVector(0x82, 0x0a, 0x00, 0x01, 0x00, 0x05, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x01)
+      Codec[Frame].encode(subscribeFrame) should succeedWith(capture)
+    }
+  }
+
+  "A suback codec" should {
+    "Perform round trip encoding/decoding of a valid input" in {
+
+      import net.sigusr.mqtt.SpecUtils._
+      import scodec.bits._
+
+      val header = Header(dup = false, AtLeastOnce, retain = false)
+      val variableHeader = MessageIdentifier(3)
+      val qos = Vector(AtMostOnce, AtLeastOnce, ExactlyOnce)
+      val subackFrame = SubackFrame(header, variableHeader, qos)
+      Codec[Frame].decode(Codec[Frame].encodeValid(subackFrame)) should succeedWith(bin"", subackFrame)
+    }
+
+    "Perform encoding and match a captured value" in {
+      import net.sigusr.mqtt.SpecUtils._
+      import scodec.bits._
+
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val variableHeader = MessageIdentifier(1)
+      val qos = Vector(AtLeastOnce)
+      val subscribeFrame = SubackFrame(header, variableHeader, qos)
+      val capture = BitVector(0x90, 0x03, 0x00, 0x01, 0x01)
+      Codec[Frame].encode(subscribeFrame) should succeedWith(capture)
+    }
+  }
+
   "A disconnect message codec" should {
     "Perform round trip encoding/decoding of a valid input" in {
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{AtMostOnce, DisconnectFrame, Frame, Header}
       import scodec.bits._
 
@@ -237,7 +325,7 @@ class CodecSpec extends Specification {
 
   "A ping request message codec" should {
     "Perform round trip encoding/decoding of a valid input" in {
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{AtMostOnce, Frame, Header, PingReqFrame}
       import scodec.bits._
 
@@ -246,11 +334,23 @@ class CodecSpec extends Specification {
 
       Codec[Frame].decode(Codec[Frame].encodeValid(pingReqFrame)) should succeedWith((bin"", pingReqFrame))
     }
+
+    "Perform encoding and match a captured value" in {
+      import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames.{AtMostOnce, Frame, Header}
+      import scodec.bits._
+
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val connectMessage = PingReqFrame(header)
+
+      val capture = BitVector(0xc0, 0x00)
+      Codec[Frame].encode(connectMessage) should succeedWith(capture)
+    }
   }
 
   "A ping response message codec" should {
     "Perform round trip encoding/decoding of a valid input" in {
-      import SpecUtils._
+      import net.sigusr.mqtt.SpecUtils._
       import net.sigusr.mqtt.impl.frames.{AtMostOnce, Frame, Header, PingRespFrame}
       import scodec.bits._
 
@@ -258,6 +358,17 @@ class CodecSpec extends Specification {
       val pingRespFrame = PingRespFrame(header)
 
       Codec[Frame].decode(Codec[Frame].encodeValid(pingRespFrame)) should succeedWith((bin"", pingRespFrame))
+    }
+
+    "Perform decoding of captured values" in {
+      import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames.{AtMostOnce, Frame, Header}
+      import scodec.bits._
+
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val pingRespFrame = PingRespFrame(header)
+
+      Codec[Frame].decode(BitVector(0xd0, 0x00)) should succeedWith((bin"", pingRespFrame))
     }
   }
 }

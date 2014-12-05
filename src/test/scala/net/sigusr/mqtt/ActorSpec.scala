@@ -18,10 +18,10 @@ package net.sigusr.mqtt
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Props, ActorRef}
+import akka.actor.{ActorRef, Props}
 import net.sigusr.mqtt.SpecUtils._
-import net.sigusr.mqtt.api.MQTTClient
-import net.sigusr.mqtt.impl.protocol.{TCPTransport, Protocol}
+import net.sigusr.mqtt.api.{MQTTClient, MQTTWrongClientMessage}
+import net.sigusr.mqtt.impl.protocol.{Protocol, TCPTransport}
 import org.specs2.mutable._
 import org.specs2.time.NoTimeConversions
 
@@ -57,9 +57,9 @@ class ActorSpec extends Specification with NoTimeConversions {
       receiveOne(1 seconds) should be_==(MQTTDisconnected)
     }
 
-    "Allow to connect to a broker and be disconnected" in new SpecsTestKit {
+    "Allow to connect to a broker and keep connected even when idle" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTDisconnected, MQTTReady}
+      import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress("localhost", 1883)
       val client = system.actorOf(TestClient.props(testActor, endpoint), "MQTTClient-service")
@@ -70,7 +70,25 @@ class ActorSpec extends Specification with NoTimeConversions {
 
       receiveOne(1 seconds) should be_==(MQTTConnected)
 
-      receiveOne(2 seconds) should be_==(MQTTDisconnected)
+      expectNoMsg(2 seconds) should not throwA()
+    }
+
+    "Disallow to send a server side message" in new SpecsTestKit {
+
+      import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
+
+      val endpoint = new InetSocketAddress("localhost", 1883)
+      val client = system.actorOf(TestClient.props(testActor, endpoint), "MQTTClient-service")
+
+      expectMsg(1 second, MQTTReady)
+
+      client ! MQTTConnect("Test")
+
+      receiveOne(1 seconds) should be_==(MQTTConnected)
+
+      client ! MQTTReady
+
+      receiveOne(1 seconds) should be_==(MQTTWrongClientMessage)
     }
   }
 }

@@ -56,6 +56,7 @@ class MessagesSpec extends Specification {
     "Provide their «enum» value" in {
       ConnectionAccepted.enum should be_==(0)
       ConnectionRefused2.enum should be_==(2)
+      ConnectionRefused4.enum should be_==(4)
       ConnectionRefused5.enum should be_==(5)
     }
 
@@ -66,7 +67,9 @@ class MessagesSpec extends Specification {
       fromEnum(-1) should failWith(Err("Connect return code encoded value should be in the range [0..5]"))
       fromEnum(0) should succeedWith(ConnectionAccepted)
       fromEnum(1) should succeedWith(ConnectionRefused1)
+      fromEnum(2) should succeedWith(ConnectionRefused2)
       fromEnum(3) should succeedWith(ConnectionRefused3)
+      fromEnum(4) should succeedWith(ConnectionRefused4)
       fromEnum(5) should succeedWith(ConnectionRefused5)
       fromEnum(6) should failWith(Err("Connect return code encoded value should be in the range [0..5]"))
     }

@@ -32,6 +32,7 @@ case object MQTTConnected extends MQTTAPIMessage
 case class MQTTConnectionFailure(reason : MQTTConnectionFailureReason) extends MQTTAPIMessage
 case object MQTTDisconnect extends MQTTAPIMessage
 case object MQTTDisconnected extends MQTTAPIMessage
+case object MQTTWrongClientMessage extends MQTTAPIMessage
 
 sealed trait MQTTConnectionFailureReason
 case object BadProtocolVersion extends MQTTConnectionFailureReason

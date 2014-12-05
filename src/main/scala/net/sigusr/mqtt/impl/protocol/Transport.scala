@@ -34,6 +34,7 @@ trait Transport {
   def frameReceived(frame: Frame) : Unit
   def transportReady() : Unit
   def transportNotReady() : Unit
+  def timeOut(): Unit
 }
 
 trait TCPTransport extends Transport{ this: Protocol =>
@@ -57,6 +58,7 @@ trait TCPTransport extends Transport{ this: Protocol =>
   }
 
   def ready(connection: ActorRef): Receive = {
+
     case message : MQTTAPIMessage =>
       messageToSend(message)
 
