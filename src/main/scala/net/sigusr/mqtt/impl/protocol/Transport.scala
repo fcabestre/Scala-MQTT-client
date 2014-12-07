@@ -19,6 +19,7 @@ package net.sigusr.mqtt.impl.protocol
 import java.net.InetSocketAddress
 
 import akka.actor.ActorRef
+import akka.event.LoggingReceive
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
@@ -57,7 +58,7 @@ trait TCPTransport extends Transport{ this: Protocol =>
       context become ready(sender())
   }
 
-  def ready(connection: ActorRef): Receive = {
+  def ready(connection: ActorRef): Receive = LoggingReceive {
 
     case message : MQTTAPIMessage =>
       messageToSend(message)
