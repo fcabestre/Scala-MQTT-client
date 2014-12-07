@@ -18,15 +18,22 @@ package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor.ActorRef
+import akka.actor.{Cancellable, ActorRef}
 import akka.event.LoggingReceive
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import net.sigusr.mqtt.api.MQTTAPIMessage
-import net.sigusr.mqtt.impl.frames.Frame
+import net.sigusr.mqtt.impl.frames.{PingRespFrame, PingReqFrame, Frame}
+import net.sigusr.mqtt.impl.protocol.Transport.InternalAPIMessage
 import scodec.Codec
 import scodec.bits.BitVector
+
+object Transport {
+  private[protocol] sealed trait InternalAPIMessage
+  private[protocol] case object SendKeepAlive extends InternalAPIMessage
+  private[protocol] case object PingRespTimeout extends InternalAPIMessage
+}
 
 trait Transport {
   def initTransport(remote: InetSocketAddress) : Unit
@@ -62,6 +69,9 @@ trait TCPTransport extends Transport{ this: Protocol =>
 
     case message : MQTTAPIMessage =>
       messageToSend(message)
+
+    case internalMessage: InternalAPIMessage =>
+      handleInternalApiMessages(internalMessage)
 
     case frame : Frame =>
       val encodedMessage = Codec[Frame].encodeValid(frame)
