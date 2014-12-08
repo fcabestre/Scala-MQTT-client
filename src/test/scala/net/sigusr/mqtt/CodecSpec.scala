@@ -371,4 +371,18 @@ class CodecSpec extends Specification {
       Codec[Frame].decode(BitVector(0xd0, 0x00)) should succeedWith((bin"", pingRespFrame))
     }
   }
+
+  "A publish message codec" should {
+    "Perform round trip encoding/decoding of a valid input" in {
+      import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames.{AtMostOnce, Frame, Header}
+      import scodec.bits._
+
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val topic = "a/b"
+      val publishFrame = PublishFrame(header, topic, MessageIdentifier(10), ByteVector("Hello world".getBytes))
+
+      Codec[Frame].decode(Codec[Frame].encodeValid(publishFrame)) should succeedWith((bin"", publishFrame))
+    }
+  }
 }

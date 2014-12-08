@@ -16,6 +16,8 @@
 
 package net.sigusr.mqtt.api
 
+import net.sigusr.mqtt.impl.frames.QualityOfService
+
 sealed trait MQTTAPIMessage
 
 case object MQTTNotReady extends MQTTAPIMessage
@@ -33,6 +35,10 @@ case class MQTTConnectionFailure(reason : MQTTConnectionFailureReason) extends M
 case object MQTTDisconnect extends MQTTAPIMessage
 case object MQTTDisconnected extends MQTTAPIMessage
 case object MQTTWrongClientMessage extends MQTTAPIMessage
+case class MQTTPublish(topic: String, qos: QualityOfService, retain: Boolean, payload: Array[Byte],
+                       messageExchangeId: Option[Int] = None) extends MQTTAPIMessage
+case class MQTTPublishSuccess(messageExchangeId: Option[Int]) extends MQTTAPIMessage
+case class MQTTPublishFailure(reason: MQTTPublishFailureReason, messageExchangeId: Option[Int]) extends MQTTAPIMessage
 
 sealed trait MQTTConnectionFailureReason
 case object BadProtocolVersion extends MQTTConnectionFailureReason
@@ -40,3 +46,7 @@ case object IdentifierRejected extends MQTTConnectionFailureReason
 case object ServerUnavailable extends MQTTConnectionFailureReason
 case object BadUserNameOrPassword extends MQTTConnectionFailureReason
 case object NotAuthorized extends MQTTConnectionFailureReason
+
+// NOTE - may not need this
+sealed trait MQTTPublishFailureReason
+case object NoAckReceived extends MQTTPublishFailureReason

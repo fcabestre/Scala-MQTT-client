@@ -21,5 +21,5 @@ import scodec.codecs._
 case class MessageIdentifier(identifier : Int)
 
 object MessageIdentifier {
-  implicit val subscribeVariableHeaderCodec = uint16.as[MessageIdentifier]
+  implicit val messageIdentifierCodec = uint16.as[MessageIdentifier]
 }
