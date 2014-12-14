@@ -39,6 +39,10 @@ case class MQTTPublish(topic: String, qos: QualityOfService, retain: Boolean, pa
                        messageExchangeId: Option[Int] = None) extends MQTTAPIMessage
 case class MQTTPublishSuccess(messageExchangeId: Option[Int]) extends MQTTAPIMessage
 case class MQTTPublishFailure(reason: MQTTPublishFailureReason, messageExchangeId: Option[Int]) extends MQTTAPIMessage
+case class MQTTSubscribe(topics: Vector[(String, QualityOfService)], messageExchangeId: Option[Int]) extends MQTTAPIMessage
+case class MQTTSubscribeSuccess(messageExchangeId: Option[Int]) extends MQTTAPIMessage
+case class MQTTSubscribeFailure(failedTopics: Vector[String], messageExchangeId: Option[Int]) extends MQTTAPIMessage
+case class MQTTMessage(topic: String, payload: Array[Byte]) extends MQTTAPIMessage
 
 sealed trait MQTTConnectionFailureReason
 case object BadProtocolVersion extends MQTTConnectionFailureReason

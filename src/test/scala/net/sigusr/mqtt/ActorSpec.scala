@@ -21,7 +21,7 @@ import java.net.InetSocketAddress
 import akka.actor.{ActorRef, Props}
 import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api.{MQTTPublishSuccess, MQTTPublish, MQTTClient, MQTTWrongClientMessage}
-import net.sigusr.mqtt.impl.frames.AtLeastOnce
+import net.sigusr.mqtt.impl.frames.{ExactlyOnce, AtLeastOnce}
 import net.sigusr.mqtt.impl.protocol.{Protocol, TCPTransport}
 import org.specs2.mutable._
 import org.specs2.time.NoTimeConversions
@@ -31,11 +31,11 @@ import scala.concurrent.duration._
 
 class ActorSpec extends Specification with NoTimeConversions {
 
-  args(skipAll = true)
+  //args(skipAll = true)
 
   sequential
 
-  val brokerHost = "localhost"
+  val brokerHost = "192.168.1.215"
 
   class TestClient(source: ActorRef, remote: InetSocketAddress) extends Protocol(source, remote) with TCPTransport
 
@@ -112,6 +112,23 @@ class ActorSpec extends Specification with NoTimeConversions {
       client ! MQTTPublish("a/b", AtLeastOnce, retain = false, "Hello world".getBytes, Some(123))
 
       receiveOne(1 seconds) should be_==(MQTTPublishSuccess(Some(123)))
+    }
+
+    "Allow to publish a message with QOS 2 and complete the handshake" in new SpecsTestKit {
+      import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
+
+      val endpoint = new InetSocketAddress(brokerHost, 1883)
+      val client = TestActorRef(TestClient.props(testActor, endpoint), "MQTTClient-service")
+
+      expectMsg(1 second, MQTTReady)
+
+      client ! MQTTConnect("TestPubAck", keepAlive = 1)
+
+      receiveOne(1 seconds) should be_==(MQTTConnected)
+
+      client ! MQTTPublish("a/b", ExactlyOnce, retain = false, "Hello world".getBytes, Some(123))
+
+      receiveOne(2 seconds) should be_==(MQTTPublishSuccess(Some(123)))
     }
   }
 }

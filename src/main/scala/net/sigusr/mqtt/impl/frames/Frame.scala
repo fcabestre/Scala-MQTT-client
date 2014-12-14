@@ -23,6 +23,7 @@ import net.sigusr.mqtt.impl.frames.Header._
 import scodec.Codec
 import scodec.bits.ByteVector
 import scodec.codecs._
+import scodec.bits._
 
 sealed trait Frame {
   def header : Header
@@ -43,6 +44,9 @@ case class PingRespFrame(header : Header) extends Frame
 case class DisconnectFrame(header : Header) extends Frame
 case class PublishFrame(header: Header, topic: String, messageIdentifier: MessageIdentifier, payload: ByteVector) extends Frame
 case class PubackFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
+case class PubrecFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
+case class PubrelFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
+case class PubcompFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
 
 object ConnectFrame {
   implicit val discriminator : Discriminator[Frame, ConnectFrame, Int] = Discriminator(1)
@@ -78,9 +82,24 @@ object PubackFrame {
   implicit val codec: Codec[PubackFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec)).as[PubackFrame]
 }
 
+object PubrecFrame {
+  implicit val discriminator: Discriminator[Frame, PubrecFrame, Int] = Discriminator(5)
+  implicit val codec: Codec[PubrecFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec)).as[PubrecFrame]
+}
+
+object PubrelFrame {
+  implicit val discriminator: Discriminator[Frame, PubrelFrame, Int] = Discriminator(6)
+  implicit val codec: Codec[PubrelFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec)).as[PubrelFrame]
+}
+
+object PubcompFrame {
+  implicit val discriminator: Discriminator[Frame, PubcompFrame, Int] = Discriminator(7)
+  implicit val codec: Codec[PubcompFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec)).as[PubcompFrame]
+}
+
 object SubscribeFrame {
   implicit val discriminator : Discriminator[Frame, SubscribeFrame, Int] = Discriminator(8)
-  val topicCodec : Codec[Topic] = stringCodec ~ ignore(6).dropLeft(qualityOfServiceCodec)
+  val topicCodec : Codec[Topic] = (stringCodec :: ignore(6) :: qualityOfServiceCodec).dropUnits.as[Topic]
   implicit val topicsCodec : Codec[Topics] = vector(topicCodec)
   implicit val codec : Codec[SubscribeFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec :: topicsCodec)).as[SubscribeFrame]
 }
