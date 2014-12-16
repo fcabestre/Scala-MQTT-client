@@ -21,84 +21,77 @@ import java.net.InetSocketAddress
 import akka.actor._
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.{ConnackFrame, ConnectFrame, DisconnectFrame, _}
-import net.sigusr.mqtt.impl.protocol.Transport.{PingRespTimeout, SendKeepAlive, InternalAPIMessage}
+import net.sigusr.mqtt.impl.protocol.Transport.{InternalAPIMessage, PingRespTimeout, SendKeepAlive}
 import scodec.bits.ByteVector
+
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
-abstract class Protocol(client: ActorRef, mqttBrokerAddress: InetSocketAddress) extends Actor with Transport with ActorLogging {
+trait Protocol extends Transport {
 
-  var keepAliveTask: Option[Cancellable] = None
-  var keepAliveInterval: Option[Int] = None
-  var keepAliveResponseInterval: Option[Cancellable] = None
   var messageCounter = 0
   def incrMessageCounter: Int = (messageCounter + 1) % 65535
   var pubMap = Map[Int, Int]()
   // keyed by 'messageCounter', each value represents an optional client message exchange ID, and the topics to subscribe
   var subMap = Map[Int, (Option[Int], Vector[String])]()
 
-  initTransport(mqttBrokerAddress)
-  import context.dispatcher
-
-  def handleApiMessages(apiMessage : MQTTAPIMessage) : Option[Frame] = apiMessage match {
+  def handleApiMessages(apiMessage : MQTTAPIMessage) : List[Action] = apiMessage match {
     case MQTTConnect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
-      keepAliveInterval = Some(keepAlive)
       val header = Header(dup = false, AtMostOnce, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce, willFlag = false, cleanSession, keepAlive)
-      Some(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))
+      List(
+        SetKeepAliveValue(keepAlive seconds),
+        SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password)))
     case MQTTDisconnect =>
       val header = Header(dup = false, AtMostOnce, retain = false)
-      Some(DisconnectFrame(header))
+      List(SendToNetwork(DisconnectFrame(header)))
     case MQTTPublish(topic, qos, retain, payload, exchangeId) =>
       val header = Header(dup = false, qos, retain)
       messageCounter = incrMessageCounter
       if (qos == AtLeastOnce || qos == ExactlyOnce) {
         exchangeId foreach { id => pubMap += (messageCounter -> id) }
+        List(SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageCounter), ByteVector(payload))))
       } else {
         // according to spec, if QOS == AtMostOnce, then the server will not send an Ack
-        sender ! MQTTPublishSuccess(exchangeId)
+        List(
+          SendToClient(MQTTPublishSuccess(exchangeId)),
+          SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageCounter), ByteVector(payload))))
       }
-      Some(PublishFrame(header, topic, MessageIdentifier(messageCounter), ByteVector(payload)))
     case MQTTSubscribe(topics, exchangeId) =>
       val header = Header(dup = false, AtLeastOnce, retain = false)
       messageCounter = incrMessageCounter
       subMap += (messageCounter -> (exchangeId, topics.map(_._1)))
-      Some(SubscribeFrame(header, MessageIdentifier(messageCounter), topics))
-    case _ => None
+      List(SendToNetwork(SubscribeFrame(header, MessageIdentifier(messageCounter), topics)))
+    case _ => List(SendToClient(MQTTWrongClientMessage))
   }
 
-  def handleNetworkFrames(frame : Frame) : (Option[MQTTAPIMessage], Option[Frame]) = {
-    log.debug(s"Received frame: $frame")
+  def handleNetworkFrames(frame : Frame) : List[Action] = {
     frame match {
       case ConnackFrame(header, connackVariableHeader) =>
-        // side effect - start the keepAlive timer
-        keepAliveInterval foreach { k => // TODO - reset this task upon receiving another API message, so as to not oversend PingRequests
-          keepAliveTask = Some(context.system.scheduler.schedule(k.seconds, k.seconds, self, SendKeepAlive))
-        }
-        (Some(MQTTConnected), None)
+        List(StartKeepAliveTimer, SendToClient(MQTTConnected))
       case PingRespFrame(header) =>
-        keepAliveResponseInterval foreach { k => k.cancel() }
-        (None, None)
+        List(CancelPingResponseTimer)
       case PublishFrame(header, topic, messageIdentifier: MessageIdentifier, payload: ByteVector) =>
-        (Some(MQTTMessage(topic, payload.toArray)), None)
+        List(SendToClient(MQTTMessage(topic, payload.toArray)))
       case PubackFrame(header, messageIdentifier) =>
         // QoS 1 response
         val apiResponse = completePublish(header, messageIdentifier)
-        (Some(apiResponse), None)
+        List(SendToClient(apiResponse))
       case PubrecFrame(header, messageIdentifier) =>
         // QoS 2 part 2
-        (None, Some(PubrelFrame(header, messageIdentifier)))
+        List(SendToNetwork(PubrelFrame(header, messageIdentifier)))
       case PubcompFrame(header, messageIdentifier) =>
         // QoS 2 part 3
         val apiResponse = completePublish(header, messageIdentifier)
-        (Some(apiResponse), None)
+        List(SendToClient(apiResponse))
       case SubackFrame(header, messageIdentifier, topicResults) =>
         val apiResponse = {
           val clientInfo = subMap.getOrElse(messageIdentifier.identifier, (None, Vector()))
           // TODO - codec does not support subscribe failures yet
           MQTTSubscribeSuccess(clientInfo._1)
         }
-        (Some(apiResponse), None)
-      case _ => (None, None)
+        List(SendToClient(apiResponse))
+      case _ => Nil
     }
   }
 
@@ -112,49 +105,21 @@ abstract class Protocol(client: ActorRef, mqttBrokerAddress: InetSocketAddress) 
     }
   }
 
-  def handleInternalApiMessages(apiMessage: InternalAPIMessage): Unit = apiMessage match {
-    case SendKeepAlive => timeOut()
-    case PingRespTimeout =>
-      // TODO - is this the best way to flush the connection?
-      context.stop(self)
-    case _ =>
+  def handleInternalApiMessages(apiMessage: InternalAPIMessage): List[Action] = apiMessage match {
+    case SendKeepAlive => 
+      List(
+        StartPingResponseTimer, 
+        SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce, retain = false))))
+    case PingRespTimeout => List(CloseTransport)
+    case _ => Nil
   }
 
-  def disconnected() : Unit = {
-    client ! MQTTDisconnected
-  }
+  def disconnected() : Action = SendToClient(MQTTDisconnected)
 
-  def messageToSend(message: MQTTAPIMessage) : Unit = {
-    handleApiMessages(message).map(sendFrameToNetwork).getOrElse(client ! MQTTWrongClientMessage)
-  }
+  def connectionClosed() : Action = SendToClient(MQTTDisconnected)
 
-  def sendFrameToNetwork(frame : Frame): Unit = {
-    self ! frame
-  }
+  def transportReady() : Action = SendToClient(MQTTReady)
 
-  def frameReceived(frame: Frame) : Unit = {
-    val (maybeApiResp, maybeFrameResp) = handleNetworkFrames(frame)
-    maybeApiResp.map(client ! _).getOrElse(())
-    maybeFrameResp.map(sendFrameToNetwork).getOrElse(())
-  }
-
-  def transportReady() : Unit = {
-    client ! MQTTReady
-  }
-
-  def timeOut() : Unit = {
-    // we want to terminate the connection if we don't receive a PingResp in a 'reasonable amount of time'
-    keepAliveResponseInterval = Some(context.system.scheduler.scheduleOnce(5.seconds, self, PingRespTimeout ))
-    self ! PingReqFrame(Header(dup = false, AtMostOnce, retain = false))
-  }
-
-  def transportNotReady() : Unit = {
-    client ! MQTTNotReady
-  }
-
-  override def postStop(): Unit = {
-    keepAliveTask foreach { k => k.cancel() }
-    keepAliveResponseInterval foreach { k=> k.cancel() }
-  }
+  def transportNotReady() : Action = SendToClient(MQTTNotReady)
 }
 

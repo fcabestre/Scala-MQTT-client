@@ -20,7 +20,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, Props}
 import net.sigusr.mqtt.SpecUtils._
-import net.sigusr.mqtt.api.{MQTTPublishSuccess, MQTTPublish, MQTTClient, MQTTWrongClientMessage}
+import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.{ExactlyOnce, AtLeastOnce}
 import net.sigusr.mqtt.impl.protocol.{Protocol, TCPTransport}
 import org.specs2.mutable._
@@ -35,9 +35,9 @@ class ActorSpec extends Specification with NoTimeConversions {
 
   sequential
 
-  val brokerHost = "192.168.1.215"
+  val brokerHost = "localhost"
 
-  class TestClient(source: ActorRef, remote: InetSocketAddress) extends Protocol(source, remote) with TCPTransport
+  class TestClient(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Protocol
 
   object TestClient {
     def props(source: ActorRef, remote: InetSocketAddress) = Props(classOf[MQTTClient], source, remote)
@@ -72,11 +72,15 @@ class ActorSpec extends Specification with NoTimeConversions {
 
       expectMsg(1 second, MQTTReady)
 
-      client ! MQTTConnect("Test", keepAlive = 1)
+      client ! MQTTConnect("Test", keepAlive = 2)
 
       receiveOne(1 seconds) should be_==(MQTTConnected)
 
-      expectNoMsg(2 seconds) should not throwA()
+      expectNoMsg(4 seconds) should not throwA()
+
+      client ! MQTTDisconnect
+
+      receiveOne(1 seconds) should be_==(MQTTDisconnected)
     }
 
     "Disallow to send a server side message" in new SpecsTestKit {
