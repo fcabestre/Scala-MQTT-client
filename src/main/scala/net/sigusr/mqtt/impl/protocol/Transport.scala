@@ -18,62 +18,104 @@ package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor.ActorRef
-import akka.io.Tcp._
+import akka.actor.{Actor, Cancellable, ActorRef}
+import akka.event.LoggingReceive
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import net.sigusr.mqtt.api.MQTTAPIMessage
 import net.sigusr.mqtt.impl.frames.Frame
+import net.sigusr.mqtt.impl.protocol.Transport.PingRespTimeout
 import scodec.Codec
 import scodec.bits.BitVector
 
-trait Transport {
-  def initTransport(remote: InetSocketAddress) : Unit
-  def disconnected() : Unit
-  def messageToSend(message: MQTTAPIMessage) : Unit
-  def frameReceived(frame: Frame) : Unit
-  def transportReady() : Unit
-  def transportNotReady() : Unit
-  def timeOut(): Unit
+object Transport {
+  private[protocol] sealed trait InternalAPIMessage
+  private[protocol] case object SendKeepAlive extends InternalAPIMessage
+  private[protocol] case object PingRespTimeout extends InternalAPIMessage
 }
 
-trait TCPTransport extends Transport{ this: Protocol =>
-  
-  import context.system
-  def initTransport(remote: InetSocketAddress) : Unit = IO(Tcp) ! Connect(remote)
+trait Transport extends Actor {
+  def disconnected() : Action
+  def connectionClosed() : Action
+  def transportReady() : Action
+  def transportNotReady() : Action
+}
+
+abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddress) extends Transport { this: Protocol =>
 
   import akka.io.Tcp._
+  import context.{dispatcher, system}
+  import net.sigusr.mqtt.impl.protocol.Transport.{InternalAPIMessage, SendKeepAlive}
 
-  def receive = start
+  import scala.concurrent.duration.FiniteDuration
 
-  def start: Receive = {
+  var keepAliveValue : Option[FiniteDuration] = None
+  var keepAliveTask: Option[Cancellable] = None
+  var pingResponseTask: Option[Cancellable] = None
+
+  self ! (client, mqttBrokerAddress)
+
+  def receive = init
+
+  def init: Receive = LoggingReceive {
+    case (client : ActorRef, remote : InetSocketAddress) => 
+      IO(Tcp) ! Connect(remote)
+      context become starting(client)
+  }
+
+  def starting(client : ActorRef) : Receive = LoggingReceive {
     case CommandFailed(_: Connect) =>
-      transportNotReady()
+      processAction(client, null, transportNotReady())
       context stop self
 
     case c @ Connected(_, _) =>
       sender ! Register(self)
-      transportReady()
-      context become ready(sender())
+      processAction(client, sender(), transportReady())
+      context become connected(client, sender())
   }
 
-  def ready(connection: ActorRef): Receive = {
-
+  def connected(client : ActorRef, connection: ActorRef): Receive = LoggingReceive {
     case message : MQTTAPIMessage =>
-      messageToSend(message)
-
-    case frame : Frame =>
-      val encodedMessage = Codec[Frame].encodeValid(frame)
-      connection ! Write(ByteString(encodedMessage.toByteArray))
-
+      handleApiMessages(message).foreach(processAction(client, connection, _))
+    case internalMessage: InternalAPIMessage =>
+      handleInternalApiMessages(internalMessage).foreach(processAction(client, connection, _))
     case Received(encodedResponse) ⇒
-      frameReceived(Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray)))
-
+      val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
+      handleNetworkFrames(frame).foreach(processAction(client, connection, _))
     case _: ConnectionClosed ⇒
-      disconnected()
+      processAction(client, connection, disconnected())
       context stop self
-
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
+  }
+
+  def processAction(client : ActorRef, connection: ActorRef, action : Action) = {
+    action match {
+      case Nothing =>
+      case SetKeepAliveValue(duration) =>
+        keepAliveValue = Some(duration)
+      case StartKeepAliveTimer =>
+        keepAliveValue foreach { k =>
+          keepAliveTask = Some(context.system.scheduler.schedule(k, k, self, SendKeepAlive))
+        }
+      case StartPingResponseTimer =>
+        keepAliveValue foreach { k =>
+          pingResponseTask = Some(context.system.scheduler.scheduleOnce(k, self, PingRespTimeout))
+        }
+      case CancelPingResponseTimer =>
+        pingResponseTask foreach { _.cancel() }
+      case SendToClient(message) =>
+        client ! message
+      case SendToNetwork(frame) =>
+        val encodedFrame = Codec[Frame].encodeValid(frame)
+        connection ! Write(ByteString(encodedFrame.toByteArray))
+      case CloseTransport =>
+        connection ! Close
+    }
+  }
+
+  override def postStop(): Unit = {
+    keepAliveTask foreach { _.cancel() }
+    pingResponseTask foreach { _.cancel() }
   }
 }
 
