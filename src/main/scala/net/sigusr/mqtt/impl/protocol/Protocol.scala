@@ -16,9 +16,6 @@
 
 package net.sigusr.mqtt.impl.protocol
 
-import java.net.InetSocketAddress
-
-import akka.actor._
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.{ConnackFrame, ConnectFrame, DisconnectFrame, _}
 import net.sigusr.mqtt.impl.protocol.Transport.{InternalAPIMessage, PingRespTimeout, SendKeepAlive}
@@ -31,6 +28,7 @@ trait Protocol extends Transport {
 
   var messageCounter = 0
   def incrMessageCounter: Int = (messageCounter + 1) % 65535
+
   var pubMap = Map[Int, Int]()
   // keyed by 'messageCounter', each value represents an optional client message exchange ID, and the topics to subscribe
   var subMap = Map[Int, (Option[Int], Vector[String])]()
@@ -111,10 +109,7 @@ trait Protocol extends Transport {
         StartPingResponseTimer, 
         SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce, retain = false))))
     case PingRespTimeout => List(CloseTransport)
-    case _ => Nil
   }
-
-  def disconnected() : Action = SendToClient(MQTTDisconnected)
 
   def connectionClosed() : Action = SendToClient(MQTTDisconnected)
 

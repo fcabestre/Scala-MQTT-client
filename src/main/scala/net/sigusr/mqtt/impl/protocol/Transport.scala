@@ -34,14 +34,13 @@ object Transport {
   private[protocol] case object PingRespTimeout extends InternalAPIMessage
 }
 
-trait Transport extends Actor {
-  def disconnected() : Action
+trait Transport {
   def connectionClosed() : Action
   def transportReady() : Action
   def transportNotReady() : Action
 }
 
-abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddress) extends Transport { this: Protocol =>
+abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddress) extends Actor with Transport { this: Protocol =>
 
   import akka.io.Tcp._
   import context.{dispatcher, system}
@@ -83,7 +82,7 @@ abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddre
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
       handleNetworkFrames(frame).foreach(processAction(client, connection, _))
     case _: ConnectionClosed ⇒
-      processAction(client, connection, disconnected())
+      processAction(client, connection, connectionClosed())
       context stop self
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
   }
