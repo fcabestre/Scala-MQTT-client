@@ -14,3 +14,7 @@ But quickly, when I came to look at how to encode/decode MQTT protocol frames, I
 * Scala 2.11.2
 * Akka 2.3.6
 * scodec-core 1.5.0
+
+## License
+
+This work is licenced under an [Apache Version 2.0 license](http://github.com/fcabestre/Scala-MQTT-client/blob/master/LICENSE)
