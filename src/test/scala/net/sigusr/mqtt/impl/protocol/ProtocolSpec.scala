@@ -1,5 +1,6 @@
 package net.sigusr.mqtt.impl.protocol
 
+import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames._
 import net.sigusr.mqtt.impl.protocol.Transport.{PingRespTimeout, SendKeepAlive}
@@ -72,8 +73,7 @@ class ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val topic = "topic0"
       val qos = AtMostOnce
       val retain = true
-      val payload = Array[Byte]()
-      Random.nextBytes(payload)
+      val payload = makeRandomByteVector(48)
       val exchangeId = Some(Random.nextInt(65535))
       val input = MQTTPublish(topic, qos, retain, payload, exchangeId)
       val header = Header(dup = false, qos, retain)
@@ -88,8 +88,7 @@ class ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val topic = "topic0"
       val qos = AtLeastOnce
       val retain = true
-      val payload = Array[Byte]()
-      Random.nextBytes(payload)
+      val payload = makeRandomByteVector(32)
       val exchangeId = Some(Random.nextInt(65535))
       val input = MQTTPublish(topic, qos, retain, payload, exchangeId)
       val header = Header(dup = false, qos, retain)
@@ -103,7 +102,6 @@ class ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val result = List(SendToClient(MQTTWrongClientMessage))
       handleApiMessages(input) should_== result
     }
-
   }
 
   "The incrMessageCounter() function" should {
@@ -140,13 +138,25 @@ class ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val header = Header(dup = false, AtLeastOnce, retain = false)
       val connackVariableHeader = ConnackVariableHeader(ConnectionRefused4)
       val input = ConnackFrame(header, connackVariableHeader)
-      handleNetworkFrames(input) should_== List(StartKeepAliveTimer, SendToClient(MQTTConnected))
+      val result = List(StartKeepAliveTimer, SendToClient(MQTTConnected))
+      handleNetworkFrames(input) should_== result
     }
 
     "Define the actions to perform to handle a PingRespFrame" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
       val input = PingRespFrame(header)
-      handleNetworkFrames(input) should_== List(CancelPingResponseTimer)
+      val result = List(CancelPingResponseTimer)
+      handleNetworkFrames(input) should_== result
+    }
+
+    "Define the actions to perform to handle a PublishFrame" in {
+      val header = Header(dup = false, AtLeastOnce, retain = false)
+      val topic = "topic"
+      val messageIdentifier = MessageIdentifier(Random.nextInt())
+      val payload = makeRandomByteVector(64)
+      val input = PublishFrame(header, topic, messageIdentifier, ByteVector(payload))
+      val result = List(SendToClient(MQTTMessage(topic, payload)))
+      handleNetworkFrames(input) should_== result
     }
   }
 }

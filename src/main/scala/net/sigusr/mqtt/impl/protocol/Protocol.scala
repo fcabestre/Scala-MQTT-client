@@ -69,8 +69,8 @@ trait Protocol extends Transport {
         List(StartKeepAliveTimer, SendToClient(MQTTConnected))
       case PingRespFrame(header) =>
         List(CancelPingResponseTimer)
-      case PublishFrame(header, topic, messageIdentifier: MessageIdentifier, payload: ByteVector) =>
-        List(SendToClient(MQTTMessage(topic, payload.toArray)))
+      case PublishFrame(header, topic, messageIdentifier, payload) =>
+        List(SendToClient(MQTTMessage(topic, payload.toArray.to[Vector])))
       case PubackFrame(header, messageIdentifier) =>
         // QoS 1 response
         val apiResponse = completePublish(header, messageIdentifier)

@@ -23,6 +23,7 @@ import org.specs2.matcher.{Expectable, Matcher}
 import org.specs2.specification.{AfterExample, Scope}
 import scodec.Err
 
+import scala.util.Random
 import scalaz.\/
 
 object SpecUtils {
@@ -77,4 +78,9 @@ object SpecUtils {
     def after = system.shutdown()
   }
 
+  def makeRandomByteVector(size : Int) = {
+    val bytes = new Array[Byte](64)
+    Random.nextBytes(bytes)
+    bytes.to[Vector]
+  }
 }
