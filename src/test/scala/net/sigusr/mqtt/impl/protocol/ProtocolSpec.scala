@@ -14,6 +14,7 @@ import scala.util.Random
 class ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
   sequential
+  isolated
 
   "The transportNotReady() function" should {
     "Define the action to perform when the transport is not ready" in {
@@ -156,6 +157,53 @@ class ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val payload = makeRandomByteVector(64)
       val input = PublishFrame(header, topic, messageIdentifier, ByteVector(payload))
       val result = List(SendToClient(MQTTMessage(topic, payload)))
+      handleNetworkFrames(input) should_== result
+    }
+
+    "Define the actions to perform to handle a PubackFrame when an exchange identifier is available" in {
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val id = Random.nextInt()
+      val messageCounter = Random.nextInt(65534) + 1
+      pubMap += (messageCounter -> id)
+      val messageIdentifier = MessageIdentifier(messageCounter)
+      val input = PubackFrame(header, messageIdentifier)
+      val result = List(SendToClient(MQTTPublishSuccess(Some(id))))
+      handleNetworkFrames(input) should_== result
+    }
+
+    "Define the actions to perform to handle a PubackFrame when no exchange identifier is available" in {
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val messageCounter = Random.nextInt(65534) + 1
+      val messageIdentifier = MessageIdentifier(messageCounter)
+      val input = PubackFrame(header, messageIdentifier)
+      val result = List(SendToClient(MQTTPublishSuccess(None)))
+      handleNetworkFrames(input) should_== result
+    }
+
+    "Define the actions to perform to handle a PubrecFrame" in {
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val messageIdentifier = MessageIdentifier(Random.nextInt())
+      val input = PubrecFrame(header, messageIdentifier)
+      val result = List(SendToNetwork(PubrelFrame(header, messageIdentifier)))
+      handleNetworkFrames(input) should_== result
+    }
+
+    "Define the actions to perform to handle a PubcompFrame when no exchange identifier is available" in {
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val messageIdentifier = MessageIdentifier(Random.nextInt())
+      val input = PubcompFrame(header, messageIdentifier)
+      val result = List(SendToClient(MQTTPublishSuccess(None)))
+      handleNetworkFrames(input) should_== result
+    }
+
+    "Define the actions to perform to handle a PubcompFrame when an exchange identifier is available" in {
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val id = Random.nextInt()
+      val messageCounter = Random.nextInt(65534) + 1
+      pubMap += (messageCounter -> id)
+      val messageIdentifier = MessageIdentifier(messageCounter)
+      val input = PubcompFrame(header, messageIdentifier)
+      val result = List(SendToClient(MQTTPublishSuccess(Some(id))))
       handleNetworkFrames(input) should_== result
     }
   }
