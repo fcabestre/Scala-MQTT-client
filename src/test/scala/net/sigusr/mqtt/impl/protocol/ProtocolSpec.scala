@@ -206,5 +206,28 @@ class ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val result = List(SendToClient(MQTTPublishSuccess(Some(id))))
       handleNetworkFrames(input) should_== result
     }
+
+    "Define the actions to perform to handle a SubackFrame when an exchange identifier is available" in {
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val id = Random.nextInt()
+      val messageCounter = Random.nextInt(65534) + 1
+      val topics = Vector[String]("topic0", "topic1")
+      val qos = Vector[QualityOfService](AtLeastOnce, ExactlyOnce)
+      subMap += (messageCounter -> (Some(id), topics))
+      val messageIdentifier = MessageIdentifier(messageCounter)
+      val input = SubackFrame(header, messageIdentifier, qos)
+      val result = List(SendToClient(MQTTSubscribeSuccess(Some(id))))
+      handleNetworkFrames(input) should_== result
+    }
+
+    "Define the actions to perform to handle a SubackFrame when no exchange identifier is available" in {
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val messageCounter = Random.nextInt(65534) + 1
+      val qos = Vector[QualityOfService](AtLeastOnce, ExactlyOnce)
+      val messageIdentifier = MessageIdentifier(messageCounter)
+      val input = SubackFrame(header, messageIdentifier, qos)
+      val result = List(SendToClient(MQTTSubscribeSuccess(None)))
+      handleNetworkFrames(input) should_== result
+    }
   }
 }
