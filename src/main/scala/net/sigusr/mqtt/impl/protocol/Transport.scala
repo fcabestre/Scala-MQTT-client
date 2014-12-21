@@ -18,9 +18,8 @@ package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, Cancellable, ActorRef}
+import akka.actor.{Actor, ActorRef, Cancellable}
 import akka.event.LoggingReceive
-import akka.io.{IO, Tcp}
 import akka.util.ByteString
 import net.sigusr.mqtt.api.MQTTAPIMessage
 import net.sigusr.mqtt.impl.frames.Frame
@@ -40,10 +39,10 @@ trait Transport {
   def transportNotReady() : Action
 }
 
-abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddress) extends Actor with Transport { this: Protocol =>
+abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddress) extends Actor with Transport { this: Client with Protocol =>
 
   import akka.io.Tcp._
-  import context.{dispatcher, system}
+  import context.dispatcher
   import net.sigusr.mqtt.impl.protocol.Transport.{InternalAPIMessage, SendKeepAlive}
 
   import scala.concurrent.duration.FiniteDuration
@@ -57,8 +56,8 @@ abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddre
   def receive = init
 
   def init: Receive = LoggingReceive {
-    case (client : ActorRef, remote : InetSocketAddress) => 
-      IO(Tcp) ! Connect(remote)
+    case (client : ActorRef, remote : InetSocketAddress) =>
+      tcpActor ! Connect(remote)
       context become starting(client)
   }
 

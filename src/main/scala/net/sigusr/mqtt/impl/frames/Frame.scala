@@ -18,12 +18,11 @@ package net.sigusr.mqtt.impl.frames
 
 import net.sigusr.mqtt.impl.frames.ConnackVariableHeader._
 import net.sigusr.mqtt.impl.frames.ConnectVariableHeader._
-import net.sigusr.mqtt.impl.frames.MessageIdentifier._
 import net.sigusr.mqtt.impl.frames.Header._
+import net.sigusr.mqtt.impl.frames.MessageIdentifier._
 import scodec.Codec
 import scodec.bits.ByteVector
 import scodec.codecs._
-import scodec.bits._
 
 sealed trait Frame {
   def header : Header

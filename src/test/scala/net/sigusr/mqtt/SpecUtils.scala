@@ -16,7 +16,7 @@ package net.sigusr.mqtt
  * limitations under the License.
  */
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import com.typesafe.config.ConfigFactory
 import org.specs2.matcher.{Expectable, Matcher}

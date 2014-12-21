@@ -31,8 +31,8 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import net.sigusr.mqtt.impl.frames.QualityOfService._
       import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames.QualityOfService._
 
       fromEnum(-1) should failWith(Err("Quality of service encoded value should be in the range [0..2]"))
       fromEnum(0) should succeedWith(AtMostOnce)
@@ -61,8 +61,8 @@ class MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import net.sigusr.mqtt.impl.frames.ConnectReturnCode._
       import net.sigusr.mqtt.SpecUtils._
+      import net.sigusr.mqtt.impl.frames.ConnectReturnCode._
 
       fromEnum(-1) should failWith(Err("Connect return code encoded value should be in the range [0..5]"))
       fromEnum(0) should succeedWith(ConnectionAccepted)

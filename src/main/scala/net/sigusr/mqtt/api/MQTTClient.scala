@@ -19,9 +19,15 @@ package net.sigusr.mqtt.api
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, Props}
-import net.sigusr.mqtt.impl.protocol.{Protocol, TCPTransport}
+import akka.io.{IO, Tcp}
+import net.sigusr.mqtt.impl.protocol.{Client, Protocol, TCPTransport}
 
-class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Protocol
+class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Client with Protocol {
+
+  import context.system
+
+  val tcpActor = IO(Tcp)
+}
 
 object MQTTClient {
   def props(source: ActorRef, remote: InetSocketAddress) = Props(classOf[MQTTClient], source, remote)

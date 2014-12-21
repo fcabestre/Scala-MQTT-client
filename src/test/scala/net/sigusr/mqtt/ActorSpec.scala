@@ -19,13 +19,14 @@ package net.sigusr.mqtt
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, Props}
+import akka.io.{IO, Tcp}
+import akka.testkit._
 import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
-import net.sigusr.mqtt.impl.frames.{ExactlyOnce, AtLeastOnce}
-import net.sigusr.mqtt.impl.protocol.{Protocol, TCPTransport}
+import net.sigusr.mqtt.impl.frames.{AtLeastOnce, ExactlyOnce}
+import net.sigusr.mqtt.impl.protocol.{Client, Protocol, TCPTransport}
 import org.specs2.mutable._
 import org.specs2.time.NoTimeConversions
-import akka.testkit._
 
 import scala.concurrent.duration._
 
@@ -36,7 +37,10 @@ class ActorSpec extends Specification with NoTimeConversions {
 
   val brokerHost = "localhost"
 
-  class TestClient(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Protocol
+  class TestClient(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Client with Protocol {
+    import context.system
+    val tcpActor = IO(Tcp)
+  }
 
   object TestClient {
     def props(source: ActorRef, remote: InetSocketAddress) = Props(classOf[MQTTClient], source, remote)

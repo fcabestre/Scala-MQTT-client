@@ -17,8 +17,8 @@
 package net.sigusr.mqtt.impl.frames
 
 import scodec.bits.BitVector
-import scodec.{Err, Codec}
 import scodec.codecs._
+import scodec.{Codec, Err}
 
 import scalaz.\/
 
