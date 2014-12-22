@@ -3,7 +3,7 @@ package net.sigusr.mqtt.impl.protocol
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, Props}
-import akka.io.Tcp.Connect
+import akka.io.Tcp.{Register, Connected, Connect}
 import akka.testkit.TestActorRef
 import net.sigusr.mqtt.SpecUtils.SpecsTestKit
 import net.sigusr.mqtt.api.MQTTReady
@@ -24,10 +24,11 @@ object TransportSpec extends Specification with NoTimeConversions {
 
   "The TCPTransport" should {
 
-    "Send messages to the client when processing a SendToClient action" in new SpecsTestKit {
-      val client = TestActorRef[TestClient](TestClient.props(testActor), "MQTTClient-service").underlyingActor
+    "Exchange messages during initialisation" in new SpecsTestKit {
+      val clientRef = TestActorRef[TestClient](TestClient.props(testActor), "MQTTClient-service")
+      val client = clientRef.underlyingActor
       expectMsg(Connect(fakeBrokerAddress, None, Nil, None, pullMode = false))
-      client.processAction(testActor, testActor, SendToClient(MQTTReady))
+      clientRef.receive(Connected(fakeBrokerAddress, fakeBrokerAddress))
       expectMsg(MQTTReady)
     }
 
