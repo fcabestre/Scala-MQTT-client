@@ -33,11 +33,7 @@ object Transport {
   private[protocol] case object PingRespTimeout extends InternalAPIMessage
 }
 
-trait Transport {
-  def connectionClosed() : Action
-  def transportReady() : Action
-  def transportNotReady() : Action
-}
+trait Transport
 
 abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddress) extends Actor with Transport { this: Client with Protocol =>
 
