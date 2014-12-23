@@ -47,28 +47,19 @@ abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddre
   var keepAliveTask: Option[Cancellable] = None
   var pingResponseTask: Option[Cancellable] = None
 
-  self ! (client, mqttBrokerAddress)
+  tcpActor ! Connect(mqttBrokerAddress)
 
-  def receive = init
-
-  def init: Receive = LoggingReceive {
-    case (client : ActorRef, remote : InetSocketAddress) =>
-      tcpActor ! Connect(remote)
-      context become starting(client)
-  }
-
-  def starting(client : ActorRef) : Receive = LoggingReceive {
+  def receive = LoggingReceive {
     case CommandFailed(_: Connect) =>
       processAction(client, null, transportNotReady())
       context stop self
-
     case c @ Connected(_, _) =>
       sender ! Register(self)
       processAction(client, sender(), transportReady())
-      context become connected(client, sender())
+      context become connected(sender())
   }
 
-  def connected(client : ActorRef, connection: ActorRef): Receive = LoggingReceive {
+  def connected(connection: ActorRef): Receive = LoggingReceive {
     case message : MQTTAPIMessage =>
       handleApiMessages(message).foreach(processAction(client, connection, _))
     case internalMessage: InternalAPIMessage =>
