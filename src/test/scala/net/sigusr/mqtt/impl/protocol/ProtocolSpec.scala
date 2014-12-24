@@ -11,7 +11,7 @@ import scodec.bits.ByteVector
 import scala.concurrent.duration._
 import scala.util.Random
 
-class ProtocolSpec extends Specification with Protocol with NoTimeConversions {
+object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
   sequential
   isolated

@@ -30,7 +30,7 @@ import org.specs2.time.NoTimeConversions
 
 import scala.concurrent.duration._
 
-class ActorSpec extends Specification with NoTimeConversions {
+object ActorSpec extends Specification with NoTimeConversions {
 
   args(skipAll = true)
   sequential

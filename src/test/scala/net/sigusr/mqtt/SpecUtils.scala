@@ -16,7 +16,7 @@ package net.sigusr.mqtt
  * limitations under the License.
  */
 
-import akka.actor.ActorSystem
+import akka.actor.{Actor, ActorSystem}
 import akka.testkit.TestKit
 import com.typesafe.config.ConfigFactory
 import org.specs2.matcher.{Expectable, Matcher}
@@ -76,6 +76,8 @@ object SpecUtils {
 
   class SpecsTestKit extends TestKit(ActorSystem("MQTTClient-system", ConfigFactory.parseString(config))) with Scope with AfterExample {
     def after = system.shutdown()
+
+    def tcpActor(receive : Actor.Receive) = system.actorOf(TcpActor.props(receive), "TcpActor-Service")
   }
 
   def makeRandomByteVector(size : Int) = {

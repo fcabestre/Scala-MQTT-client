@@ -20,7 +20,7 @@ import net.sigusr.mqtt.impl.frames._
 import org.specs2.mutable._
 import scodec.{Codec, Err}
 
-class CodecSpec extends Specification {
+object CodecSpec extends Specification {
 
   "A remaining length codec" should {
     "Perform encoding of valid inputs" in {

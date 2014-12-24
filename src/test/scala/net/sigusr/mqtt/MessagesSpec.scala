@@ -19,7 +19,7 @@ package net.sigusr.mqtt
 import org.specs2.mutable._
 import scodec.Err
 
-class MessagesSpec extends Specification {
+object MessagesSpec extends Specification {
 
   import net.sigusr.mqtt.impl.frames._
 
