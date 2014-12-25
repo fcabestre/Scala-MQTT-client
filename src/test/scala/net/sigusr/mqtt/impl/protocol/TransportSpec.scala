@@ -3,14 +3,15 @@ package net.sigusr.mqtt.impl.protocol
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, Props}
+import akka.io.Tcp
 import akka.io.Tcp._
 import akka.testkit.TestActorRef
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecUtils.SpecsTestKit
 import net.sigusr.mqtt.api._
+import net.sigusr.mqtt.impl.protocol.Transport.PingRespTimeout
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
-import scodec.bits.BitVector
 
 object TransportSpec extends Specification with NoTimeConversions {
 
@@ -66,6 +67,34 @@ object TransportSpec extends Specification with NoTimeConversions {
       expectMsg(MQTTConnected)
       clientRef.receive(MQTTDisconnect)
       clientRef.receive(Closed, _tcpActor)
+      expectMsg(MQTTDisconnected)
+    }
+
+    "After a successful initialisation connect and then ping the server" in new SpecsTestKit {
+      val connackFrame = ByteString(0x20, 0x02, 0x00, 0x00)
+      var count = 0
+      lazy val _tcpActor : ActorRef = tcpActor {
+        case Connect(remote, _, _, _, _) =>
+        case Write(byteString, _) =>
+          if (byteString(0) == -64) {
+            count += 1
+            if (count == 0) {
+              val string = ByteString(0xd0, 0x00)
+              clientRef.receive(Received(string))
+            }
+            else if (count == 1) {
+              clientRef.receive(PingRespTimeout)
+            }
+          }
+        case Close =>
+          clientRef.receive(Aborted)
+      }
+      val clientRef = TestActorRef[TestClient](TestClient.props(testActor, _tcpActor), "MQTTClient-service")
+      clientRef.receive(Connected(fakeBrokerAddress, fakeBrokerAddress), _tcpActor)
+      expectMsg(MQTTReady)
+      clientRef.receive(MQTTConnect("test", 1, cleanSession = false, Some("test/topic"), Some("test death"), None, None))
+      clientRef.receive(Received(connackFrame), _tcpActor)
+      expectMsg(MQTTConnected)
       expectMsg(MQTTDisconnected)
     }
   }

@@ -75,7 +75,6 @@ abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddre
 
   def processAction(client : ActorRef, connection: ActorRef, action : Action) = {
     action match {
-      case Nothing =>
       case SetKeepAliveValue(duration) =>
         keepAliveValue = Some(duration)
       case StartKeepAliveTimer =>
