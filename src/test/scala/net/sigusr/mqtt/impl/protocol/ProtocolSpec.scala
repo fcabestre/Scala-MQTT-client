@@ -135,6 +135,14 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
   }
 
   "The handleNetworkFrames() function" should {
+
+    "Provide no actions when the frame should not be handled" in {
+      val header = Header(dup = false, AtLeastOnce, retain = false)
+      val input = PingReqFrame(header)
+      val result = List()
+      handleNetworkFrames(input) should_== result
+    }
+
     "Define the actions to perform to handle a ConnackFrame" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
       val connackVariableHeader = ConnackVariableHeader(ConnectionRefused4)

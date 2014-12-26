@@ -69,6 +69,8 @@ object TransportSpec extends Specification with NoTimeConversions {
           if (byte == 0x10) {
             mqttClientRef.receive(Received(connackFrame), tcpManagerActor)
           }
+          // Why when I write 0xe0 instead of -32
+          // here things go really wrong ?
           else if (byte == -32) {
             mqttClientRef.receive(Closed, tcpManagerActor)
           }
@@ -98,7 +100,6 @@ object TransportSpec extends Specification with NoTimeConversions {
             mqttClientRef.receive(Received(connackFrame), tcpManagerActor)
           }
           else if (byte == 0xc0) {
-            pingReqCount += 1
             if (pingReqCount == 0) {
               mqttClientRef.receive(Received(pingRespFrame), tcpManagerActor)
             }
@@ -106,6 +107,7 @@ object TransportSpec extends Specification with NoTimeConversions {
               // What should be the sender here ?
               mqttClientRef.receive(PingRespTimeout)
             }
+            pingReqCount += 1
           }
         case Close =>
           mqttClientRef.receive(Aborted, tcpManagerActor)
