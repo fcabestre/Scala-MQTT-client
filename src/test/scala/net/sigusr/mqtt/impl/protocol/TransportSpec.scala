@@ -3,7 +3,6 @@ package net.sigusr.mqtt.impl.protocol
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, Props}
-import akka.io.Tcp
 import akka.io.Tcp._
 import akka.testkit.TestActorRef
 import akka.util.ByteString
@@ -15,85 +14,107 @@ import org.specs2.time.NoTimeConversions
 
 object TransportSpec extends Specification with NoTimeConversions {
 
-  private val fakeBrokerAddress : InetSocketAddress = new InetSocketAddress(0)
+  sequential
+  isolated
 
-  class TestClient(clientActor: ActorRef, _tcpActor: ActorRef) extends TCPTransport(clientActor, fakeBrokerAddress) with Client with Protocol {
+  private val fakeBrokerAddress : InetSocketAddress = new InetSocketAddress(0)
+  private val fakeLocalAddress : InetSocketAddress = new InetSocketAddress(0)
+
+  class TestMQTTClient(clientActor: ActorRef, _tcpActor: ActorRef) extends TCPTransport(clientActor, fakeBrokerAddress) with Client with Protocol {
     override def tcpActor: ActorRef = _tcpActor
   }
 
-  object TestClient {
-    def props(testActor : ActorRef, tcpActor: ActorRef) = Props(classOf[TestClient], testActor, tcpActor)
+  object TestMQTTClient {
+    def props(clientActor : ActorRef, tcpActor: ActorRef) = Props(classOf[TestMQTTClient], clientActor, tcpActor)
   }
 
   "The TCPTransport" should {
 
     "Exchange messages during a successful initialisation" in new SpecsTestKit {
-      private val _tcpActor = tcpActor {
+      lazy val mqttClientRef = TestActorRef[TestMQTTClient](TestMQTTClient.props(clientActor, tcpManagerActor), "MQTTClient-0")
+      val tcpManagerActor : ActorRef = tcpActor {
         case Connect(remote, _, _, _, _) =>
           remote should be_==(fakeBrokerAddress)
+          mqttClientRef.receive(Connected(fakeBrokerAddress, fakeLocalAddress), tcpManagerActor)
       }
-      val clientRef = TestActorRef[TestClient](TestClient.props(testActor, _tcpActor), "MQTTClient-service")
-      clientRef.receive(Connected(fakeBrokerAddress, fakeBrokerAddress), _tcpActor)
+
+      // Required to initialize the lazy val
+      mqttClientRef
       expectMsg(MQTTReady)
     }
 
     "Exchange messages during a failed initialisation" in new SpecsTestKit {
-      private val _tcpActor = tcpActor {
+      lazy val mqttClientRef = TestActorRef[TestMQTTClient](TestMQTTClient.props(clientActor, tcpManagerActor), "MQTTClient-1")
+      private val tcpManagerActor : ActorRef = tcpActor {
         case Connect(remote, _, _, _, _) =>
-          remote should be_==(fakeBrokerAddress) //Connect(fakeBrokerAddress, None, Nil, None, pullMode = false)
+          remote should be_==(fakeBrokerAddress)
+          val connect = Connect(fakeBrokerAddress, None, Nil, None, pullMode = false)
+          mqttClientRef.receive(CommandFailed(connect), tcpManagerActor)
       }
-      val clientRef = TestActorRef[TestClient](TestClient.props(testActor, _tcpActor), "MQTTClient-service")
-      private val connect = Connect(fakeBrokerAddress, None, Nil, None, pullMode = false)
-      clientRef.receive(CommandFailed(connect), _tcpActor)
+
+      // Required to initialize the lazy val
+      mqttClientRef
       expectMsg(MQTTNotReady)
     }
 
     "After a successful initialisation connect and then disconnect" in new SpecsTestKit {
-      val connectFrame = ByteString(0x10, 0x2a, 0x00, 0x06, 0x4d, 0x51, 0x49, 0x73, 0x64, 0x70, 0x03, 0x2c, 0x00, 0x3c, 0x00, 0x04, 0x74, 0x65, 0x73, 0x74, 0x00, 0x0a, 0x74, 0x65, 0x73, 0x74, 0x2f, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x00, 0x0a, 0x74, 0x65, 0x73, 0x74, 0x20, 0x64, 0x65, 0x61, 0x74, 0x68)
       val connackFrame = ByteString(0x20, 0x02, 0x00, 0x00)
-      val disconnectFrame = ByteString(0xe0, 0x00)
-      private val _tcpActor = tcpActor {
+      lazy val mqttClientRef = TestActorRef[TestMQTTClient](TestMQTTClient.props(clientActor, tcpManagerActor), "MQTTClient-2")
+      val tcpManagerActor : ActorRef = tcpActor {
         case Connect(remote, _, _, _, _) =>
           remote should be_==(fakeBrokerAddress)
+          mqttClientRef.receive(Connected(fakeBrokerAddress, fakeLocalAddress), tcpManagerActor)
         case Write(byteString, _) =>
-          // TODO Put the right frame, or...
-          // TODO byteString should beOneOf(connectFrame, disconnectFrame)
+          val byte = byteString(0).toInt
+          if (byte == 0x10) {
+            mqttClientRef.receive(Received(connackFrame), tcpManagerActor)
+          }
+          else if (byte == -32) {
+            mqttClientRef.receive(Closed, tcpManagerActor)
+          }
       }
-      val clientRef = TestActorRef[TestClient](TestClient.props(testActor, _tcpActor), "MQTTClient-service")
-      clientRef.receive(Connected(fakeBrokerAddress, fakeBrokerAddress), _tcpActor)
+
+      // Required to initialize the lazy val
+      mqttClientRef
       expectMsg(MQTTReady)
-      clientRef.receive(MQTTConnect("test", 30, cleanSession = false, Some("test/topic"), Some("test death"), None, None))
-      clientRef.receive(Received(connackFrame), _tcpActor)
+      mqttClientRef.receive(MQTTConnect("test", 30, cleanSession = false, Some("test/topic"), Some("test death"), None, None), clientActor)
       expectMsg(MQTTConnected)
-      clientRef.receive(MQTTDisconnect)
-      clientRef.receive(Closed, _tcpActor)
+      mqttClientRef.receive(MQTTDisconnect, clientActor)
       expectMsg(MQTTDisconnected)
     }
 
-    "After a successful initialisation connect and then ping the server" in new SpecsTestKit {
+    "After a successful initialisation connect, ping the server and disconnect when the server stops replying" in new SpecsTestKit {
       val connackFrame = ByteString(0x20, 0x02, 0x00, 0x00)
-      var count = 0
-      lazy val _tcpActor : ActorRef = tcpActor {
+      val pingRespFrame = ByteString(0xd0, 0x00)
+      lazy val mqttClientRef = TestActorRef[TestMQTTClient](TestMQTTClient.props(clientActor, tcpManagerActor), "MQTTClient-3")
+      var pingReqCount = 0
+      val tcpManagerActor : ActorRef = tcpActor {
         case Connect(remote, _, _, _, _) =>
+          remote should be_==(fakeBrokerAddress)
+          mqttClientRef.receive(Connected(fakeBrokerAddress, fakeLocalAddress), tcpManagerActor)
         case Write(byteString, _) =>
-          if (byteString(0) == -64) {
-            count += 1
-            if (count == 0) {
-              val string = ByteString(0xd0, 0x00)
-              clientRef.receive(Received(string))
+          val byte: Byte = byteString(0)
+          if (byte == 0x10) {
+            mqttClientRef.receive(Received(connackFrame), tcpManagerActor)
+          }
+          else if (byte == 0xc0) {
+            pingReqCount += 1
+            if (pingReqCount == 0) {
+              mqttClientRef.receive(Received(pingRespFrame), tcpManagerActor)
             }
-            else if (count == 1) {
-              clientRef.receive(PingRespTimeout)
+            else if (pingReqCount == 1) {
+              // What should be the sender here ?
+              mqttClientRef.receive(PingRespTimeout)
             }
           }
         case Close =>
-          clientRef.receive(Aborted)
+          mqttClientRef.receive(Aborted, tcpManagerActor)
       }
-      val clientRef = TestActorRef[TestClient](TestClient.props(testActor, _tcpActor), "MQTTClient-service")
-      clientRef.receive(Connected(fakeBrokerAddress, fakeBrokerAddress), _tcpActor)
+
+      // Required to initialize the lazy val
+      mqttClientRef
       expectMsg(MQTTReady)
-      clientRef.receive(MQTTConnect("test", 1, cleanSession = false, Some("test/topic"), Some("test death"), None, None))
-      clientRef.receive(Received(connackFrame), _tcpActor)
+      mqttClientRef.receive(MQTTConnect("test", 1, cleanSession = false, Some("test/topic"), Some("test death"), None, None), clientActor)
       expectMsg(MQTTConnected)
       expectMsg(MQTTDisconnected)
     }

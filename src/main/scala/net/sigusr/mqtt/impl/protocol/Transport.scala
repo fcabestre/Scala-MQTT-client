@@ -50,10 +50,10 @@ abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddre
   tcpActor ! Connect(mqttBrokerAddress)
 
   def receive = LoggingReceive {
-    case CommandFailed(_: Connect) =>
+    case CommandFailed(_ : Connect) =>
       processAction(client, null, transportNotReady())
       context stop self
-    case c @ Connected(_, _) =>
+    case Connected(_, _) =>
       sender ! Register(self)
       processAction(client, sender(), transportReady())
       context become connected(sender())

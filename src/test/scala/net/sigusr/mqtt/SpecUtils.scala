@@ -78,6 +78,7 @@ object SpecUtils {
     def after = system.shutdown()
 
     def tcpActor(receive : Actor.Receive) = system.actorOf(TcpActor.props(receive), "TcpActor-Service")
+    def clientActor = testActor
   }
 
   def makeRandomByteVector(size : Int) = {
