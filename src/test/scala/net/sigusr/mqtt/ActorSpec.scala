@@ -39,7 +39,7 @@ object ActorSpec extends Specification with NoTimeConversions {
 
   class TestClient(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Client with Protocol {
     import context.system
-    val tcpActor = IO(Tcp)
+    val tcpManagerActor = IO(Tcp)
   }
 
   object TestClient {

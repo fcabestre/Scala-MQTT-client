@@ -19,5 +19,5 @@ package net.sigusr.mqtt.impl.protocol
 import akka.actor.ActorRef
 
 trait Client {
-  def tcpActor: ActorRef
+  def tcpManagerActor: ActorRef
 }

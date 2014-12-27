@@ -17,7 +17,7 @@ package net.sigusr.mqtt
  */
 
 import akka.actor.{Actor, ActorSystem}
-import akka.testkit.TestKit
+import akka.testkit.{ImplicitSender, TestKit}
 import com.typesafe.config.ConfigFactory
 import org.specs2.matcher.{Expectable, Matcher}
 import org.specs2.specification.{AfterExample, Scope}
@@ -74,7 +74,7 @@ object SpecUtils {
        }
     """
 
-  class SpecsTestKit extends TestKit(ActorSystem("MQTTClient-system", ConfigFactory.parseString(configDebug))) with Scope with AfterExample {
+  class SpecsTestKit extends TestKit(ActorSystem("MQTTClient-system", ConfigFactory.parseString(config))) with Scope with AfterExample {
     def after = system.shutdown()
 
     def tcpActor(receive : Actor.Receive) = system.actorOf(TcpActor.props(receive), "TcpActor-Service")

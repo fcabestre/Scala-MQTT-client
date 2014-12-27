@@ -26,7 +26,7 @@ class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends TCPTranspo
 
   import context.system
 
-  val tcpActor = IO(Tcp)
+  val tcpManagerActor = IO(Tcp)
 }
 
 object MQTTClient {
