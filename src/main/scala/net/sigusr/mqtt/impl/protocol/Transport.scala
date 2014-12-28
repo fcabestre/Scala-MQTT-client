@@ -33,9 +33,11 @@ object Transport {
   private[protocol] case object PingRespTimeout extends InternalAPIMessage
 }
 
-trait Transport
+trait Transport {
+  def tcpManagerActor: ActorRef
+}
 
-abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddress) extends Actor with Transport { this: Client with Protocol =>
+abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddress) extends Actor with Transport { this: Protocol =>
 
   import akka.io.Tcp._
   import context.dispatcher

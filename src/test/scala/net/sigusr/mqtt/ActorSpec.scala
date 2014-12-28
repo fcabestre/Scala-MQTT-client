@@ -24,7 +24,7 @@ import akka.testkit._
 import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.{AtLeastOnce, ExactlyOnce}
-import net.sigusr.mqtt.impl.protocol.{Client, Protocol, TCPTransport}
+import net.sigusr.mqtt.impl.protocol.{Protocol, TCPTransport}
 import org.specs2.mutable._
 import org.specs2.time.NoTimeConversions
 
@@ -37,13 +37,13 @@ object ActorSpec extends Specification with NoTimeConversions {
 
   val brokerHost = "localhost"
 
-  class TestClient(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Client with Protocol {
+  class TestMQTTManager(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Protocol {
     import context.system
-    val tcpManagerActor = IO(Tcp)
+    override def tcpManagerActor = IO(Tcp)
   }
 
-  object TestClient {
-    def props(source: ActorRef, remote: InetSocketAddress) = Props(classOf[MQTTClient], source, remote)
+  object TestMQTTManager {
+    def props(source: ActorRef, remote: InetSocketAddress) = Props(classOf[MQTTManager], source, remote)
   }
 
   "The MQTTClient API" should {
@@ -53,15 +53,15 @@ object ActorSpec extends Specification with NoTimeConversions {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTDisconnect, MQTTDisconnected, MQTTReady}
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val client = system.actorOf(TestClient.props(testActor, endpoint), "MQTTClient-service")
+      val mqttManager = system.actorOf(TestMQTTManager.props(testActor, endpoint), "MQTTClient-service")
 
       expectMsg(1 second, MQTTReady)
 
-      client ! MQTTConnect("Test")
+      mqttManager ! MQTTConnect("Test")
 
       receiveOne(1 seconds) should be_==(MQTTConnected)
 
-      client ! MQTTDisconnect
+      mqttManager ! MQTTDisconnect
 
       receiveOne(1 seconds) should be_==(MQTTDisconnected)
     }
@@ -71,17 +71,17 @@ object ActorSpec extends Specification with NoTimeConversions {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val client = system.actorOf(TestClient.props(testActor, endpoint), "MQTTClient-service")
+      val mqttManager = system.actorOf(TestMQTTManager.props(testActor, endpoint), "MQTTClient-service")
 
       expectMsg(1 second, MQTTReady)
 
-      client ! MQTTConnect("Test", keepAlive = 2)
+      mqttManager ! MQTTConnect("Test", keepAlive = 2)
 
       receiveOne(1 seconds) should be_==(MQTTConnected)
 
       expectNoMsg(4 seconds) should not throwA()
 
-      client ! MQTTDisconnect
+      mqttManager ! MQTTDisconnect
 
       receiveOne(1 seconds) should be_==(MQTTDisconnected)
     }
@@ -91,15 +91,15 @@ object ActorSpec extends Specification with NoTimeConversions {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val client = system.actorOf(TestClient.props(testActor, endpoint), "MQTTClient-service")
+      val mqttManager = system.actorOf(TestMQTTManager.props(testActor, endpoint), "MQTTClient-service")
 
       expectMsg(1 second, MQTTReady)
 
-      client ! MQTTConnect("Test")
+      mqttManager ! MQTTConnect("Test")
 
       receiveOne(1 seconds) should be_==(MQTTConnected)
 
-      client ! MQTTReady
+      mqttManager ! MQTTReady
 
       receiveOne(1 seconds) should be_==(MQTTWrongClientMessage)
     }
@@ -108,15 +108,15 @@ object ActorSpec extends Specification with NoTimeConversions {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val client = system.actorOf(TestClient.props(testActor, endpoint), "MQTTClient-service")
+      val mqttManager = system.actorOf(TestMQTTManager.props(testActor, endpoint), "MQTTClient-service")
 
       expectMsg(1 second, MQTTReady)
 
-      client ! MQTTConnect("TestPubAck", keepAlive = 1)
+      mqttManager ! MQTTConnect("TestPubAck")
 
       receiveOne(1 seconds) should be_==(MQTTConnected)
 
-      client ! MQTTPublish("a/b", AtLeastOnce, retain = false, "Hello world".getBytes.to[Vector], Some(123))
+      mqttManager ! MQTTPublish("a/b", AtLeastOnce, retain = false, "Hello world".getBytes.to[Vector], Some(123))
 
       receiveOne(1 seconds) should be_==(MQTTPublishSuccess(Some(123)))
     }
@@ -125,15 +125,15 @@ object ActorSpec extends Specification with NoTimeConversions {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val client = TestActorRef(TestClient.props(testActor, endpoint), "MQTTClient-service")
+      val mqttManager = TestActorRef(TestMQTTManager.props(testActor, endpoint), "MQTTClient-service")
 
       expectMsg(1 second, MQTTReady)
 
-      client ! MQTTConnect("TestPubAck", keepAlive = 1)
+      mqttManager ! MQTTConnect("TestPubAck")
 
       receiveOne(1 seconds) should be_==(MQTTConnected)
 
-      client ! MQTTPublish("a/b", ExactlyOnce, retain = false, "Hello world".getBytes.to[Vector], Some(123))
+      mqttManager ! MQTTPublish("a/b", ExactlyOnce, retain = false, "Hello world".getBytes.to[Vector], Some(123))
 
       receiveOne(2 seconds) should be_==(MQTTPublishSuccess(Some(123)))
     }

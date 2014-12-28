@@ -20,16 +20,14 @@ import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, Props}
 import akka.io.{IO, Tcp}
-import net.sigusr.mqtt.impl.protocol.{Client, Protocol, TCPTransport}
+import net.sigusr.mqtt.impl.protocol.{Protocol, TCPTransport}
 
-class MQTTClient(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Client with Protocol {
-
+class MQTTManager(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Protocol {
   import context.system
-
-  val tcpManagerActor = IO(Tcp)
+  override def tcpManagerActor = IO(Tcp)
 }
 
-object MQTTClient {
-  def props(source: ActorRef, remote: InetSocketAddress) = Props(classOf[MQTTClient], source, remote)
+object MQTTManager {
+  def props(source: ActorRef, remote: InetSocketAddress) = Props(classOf[MQTTManager], source, remote)
 }
 

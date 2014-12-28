@@ -24,7 +24,7 @@ import scodec.bits.ByteVector
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-trait Protocol extends Transport {
+trait Protocol {
 
   var messageCounter = 0
   def incrMessageCounter: Int = (messageCounter + 1) % 65535
