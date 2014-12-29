@@ -20,7 +20,7 @@ import scodec.bits.{BitVector, _}
 import scodec.codecs._
 import scodec.{Codec, Err}
 
-import scalaz.{-\/, \/, \/-}
+import scalaz.{-\/, \/-, \/}
 
 final class RemainingLengthCodec extends Codec[Int] {
 
@@ -30,11 +30,12 @@ final class RemainingLengthCodec extends Codec[Int] {
    val MaxBytes = 4
 
    def decode(bits: BitVector): Err \/ (BitVector, Int) = {
-     @annotation.tailrec
      def decodeAux(step: \/[Err, (BitVector, Int)], factor: Int, depth: Int, value: Int): \/[Err, (BitVector, Int)] =
        if (depth == 4) \/.left(Err("The remaining length must be 4 bytes long at most"))
        else step match {
+         // $COVERAGE-OFF$
          case e @ -\/(_) => e
+         // $COVERAGE-ON$
          case \/-((b, d)) =>
            if ((d & 128) == 0) \/.right((b, value + (d & 127) * factor))
            else decodeAux(uint8.decode(b), factor * 128, depth + 1, value + (d & 127) * factor)
