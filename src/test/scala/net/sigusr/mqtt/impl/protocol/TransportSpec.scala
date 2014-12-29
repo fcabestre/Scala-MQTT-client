@@ -1,8 +1,24 @@
+/*
+ * Copyright 2014 Frédéric Cabestre
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor.{ActorSystem, ActorRef, Props}
+import akka.actor._
 import akka.io.Tcp._
 import akka.testkit.{ImplicitSender, TestProbe}
 import akka.util.ByteString
@@ -22,12 +38,8 @@ object TransportSpec extends Specification with NoTimeConversions {
   private val fakeBrokerAddress : InetSocketAddress = new InetSocketAddress(0)
   private val fakeLocalAddress : InetSocketAddress = new InetSocketAddress(0)
 
-  class TestMQTTManager(clientActor: ActorRef, _tcpManagerActor: ActorRef) extends TCPTransport(clientActor, fakeBrokerAddress) with Protocol {
+  class TestMQTTManager(_tcpManagerActor: ActorRef) extends TCPTransport(fakeBrokerAddress) with Protocol {
     override def tcpManagerActor: ActorRef = _tcpManagerActor
-  }
-
-  object TestMQTTManager {
-    def props(clientActor : ActorRef, tcpManagerActor: ActorRef) = Props(classOf[TestMQTTManager], clientActor, tcpManagerActor)
   }
 
   class FakeTCPManagerActor(implicit system : ActorSystem) extends TestProbe(system) with ImplicitSender {
@@ -101,11 +113,19 @@ object TransportSpec extends Specification with NoTimeConversions {
     }
   }
 
+  class FakeMQTTManagerParent(testMQTTManagerName : String, fakeTCPManagerActor : ActorRef)(implicit testActor : ActorRef) extends Actor {
+    val child = context.actorOf(Props(new TestMQTTManager(fakeTCPManagerActor)), testMQTTManagerName)
+    def receive = {
+      case x if sender == child => testActor forward x
+      case x => child forward x
+    }
+  }
+
   "The TCPTransport" should {
 
     "Exchange messages during a successful initialisation" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(TestMQTTManager.props(clientActor, fakeTCPManagerActor.ref), "MQTTClient-0")
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-0", fakeTCPManagerActor.ref)))
 
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
@@ -114,7 +134,7 @@ object TransportSpec extends Specification with NoTimeConversions {
 
     "Exchange messages during a failed initialisation" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(TestMQTTManager.props(clientActor, fakeTCPManagerActor.ref), "MQTTClient-1")
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-1", fakeTCPManagerActor.ref)))
 
       fakeTCPManagerActor.expectConnectThenFail()
       expectMsg(MQTTNotReady)
@@ -122,7 +142,7 @@ object TransportSpec extends Specification with NoTimeConversions {
 
     "After a successful initialisation connect and then disconnect" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(TestMQTTManager.props(clientActor, fakeTCPManagerActor.ref), "MQTTClient-2")
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-2", fakeTCPManagerActor.ref)))
 
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
@@ -137,7 +157,7 @@ object TransportSpec extends Specification with NoTimeConversions {
 
     "After a successful initialisation connect, ping the server and disconnect when the server stops replying" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(TestMQTTManager.props(clientActor, fakeTCPManagerActor.ref), "MQTTClient-3")
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-3", fakeTCPManagerActor.ref)))
 
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()

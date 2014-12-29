@@ -37,13 +37,13 @@ trait Transport {
   def tcpManagerActor: ActorRef
 }
 
-abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddress) extends Actor with Transport { this: Protocol =>
+abstract class TCPTransport(mqttBrokerAddress: InetSocketAddress) extends Actor with Transport { this: Protocol =>
 
   import akka.io.Tcp._
   import context.dispatcher
   import net.sigusr.mqtt.impl.protocol.Transport.{InternalAPIMessage, SendKeepAlive}
 
-  import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.FiniteDuration
 
   var keepAliveValue : Option[FiniteDuration] = None
   var keepAliveTask: Option[Cancellable] = None
@@ -53,30 +53,30 @@ abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddre
 
   def receive = LoggingReceive {
     case CommandFailed(_ : Connect) =>
-      processAction(transportNotReady(), sender())
+      processAction(transportNotReady(), context.parent, sender())
       context stop self
     case Connected(_, _) =>
       val connectionActor: ActorRef = sender()
       connectionActor ! Register(self)
-      processAction(transportReady(), connectionActor)
-      context become connected(connectionActor)
+      processAction(transportReady(), context.parent, connectionActor)
+      context become connected(context.parent, connectionActor)
   }
 
-  def connected(connectionActor : ActorRef): Receive = LoggingReceive {
+  def connected(clientActor : ActorRef, connectionActor : ActorRef): Receive = LoggingReceive {
     case message : MQTTAPIMessage =>
-      handleApiMessages(message).foreach((action: Action) => processAction(action, connectionActor))
+      handleApiMessages(message).foreach((action: Action) => processAction(action, clientActor, connectionActor))
     case internalMessage: InternalAPIMessage =>
-      handleInternalApiMessages(internalMessage).foreach((action: Action) => processAction(action, connectionActor))
+      handleInternalApiMessages(internalMessage).foreach((action: Action) => processAction(action, clientActor, connectionActor))
     case Received(encodedResponse) ⇒
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
-      handleNetworkFrames(frame).foreach((action: Action) => processAction(action, connectionActor))
+      handleNetworkFrames(frame).foreach((action: Action) => processAction(action, clientActor, connectionActor))
     case _: ConnectionClosed ⇒
-      processAction(connectionClosed(), connectionActor)
+      processAction(connectionClosed(), clientActor, connectionActor)
       context stop self
     case CommandFailed(w: Write) ⇒ // O/S buffer was full
   }
 
-  def processAction(action: Action, connectionActor : ActorRef) = {
+  def processAction(action: Action, clientActor : ActorRef, connectionActor : ActorRef) = {
     action match {
       case SetKeepAliveValue(duration) =>
         keepAliveValue = Some(duration)
@@ -91,7 +91,7 @@ abstract class TCPTransport(client: ActorRef, mqttBrokerAddress: InetSocketAddre
       case CancelPingResponseTimer =>
         pingResponseTask foreach { _.cancel() }
       case SendToClient(message) =>
-        client ! message
+        clientActor ! message
       case SendToNetwork(frame) =>
         val encodedFrame = Codec[Frame].encodeValid(frame)
         connectionActor ! Write(ByteString(encodedFrame.toByteArray))

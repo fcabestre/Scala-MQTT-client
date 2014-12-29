@@ -18,9 +18,8 @@ package net.sigusr.mqtt
 
 import java.net.InetSocketAddress
 
-import akka.actor.{ActorRef, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.io.{IO, Tcp}
-import akka.testkit._
 import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.{AtLeastOnce, ExactlyOnce}
@@ -37,13 +36,17 @@ object ActorSpec extends Specification with NoTimeConversions {
 
   val brokerHost = "localhost"
 
-  class TestMQTTManager(source: ActorRef, remote: InetSocketAddress) extends TCPTransport(source, remote) with Protocol {
+  class TestMQTTManager(remote: InetSocketAddress) extends TCPTransport(remote) with Protocol {
     import context.system
     override def tcpManagerActor = IO(Tcp)
   }
 
-  object TestMQTTManager {
-    def props(source: ActorRef, remote: InetSocketAddress) = Props(classOf[MQTTManager], source, remote)
+  class FakeMQTTManagerParent(testMQTTManagerName : String, remote : InetSocketAddress)(implicit testActor : ActorRef) extends Actor {
+    val child = context.actorOf(Props(new TestMQTTManager(remote)), testMQTTManagerName)
+    def receive = {
+      case x if sender == child => testActor forward x
+      case x => child forward x
+    }
   }
 
   "The MQTTClient API" should {
@@ -53,7 +56,7 @@ object ActorSpec extends Specification with NoTimeConversions {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTDisconnect, MQTTDisconnected, MQTTReady}
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = system.actorOf(TestMQTTManager.props(testActor, endpoint), "MQTTClient-service")
+      val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
 
       expectMsg(1 second, MQTTReady)
 
@@ -71,7 +74,7 @@ object ActorSpec extends Specification with NoTimeConversions {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = system.actorOf(TestMQTTManager.props(testActor, endpoint), "MQTTClient-service")
+      val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
 
       expectMsg(1 second, MQTTReady)
 
@@ -91,7 +94,7 @@ object ActorSpec extends Specification with NoTimeConversions {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = system.actorOf(TestMQTTManager.props(testActor, endpoint), "MQTTClient-service")
+      val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
 
       expectMsg(1 second, MQTTReady)
 
@@ -108,7 +111,7 @@ object ActorSpec extends Specification with NoTimeConversions {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = system.actorOf(TestMQTTManager.props(testActor, endpoint), "MQTTClient-service")
+      val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
 
       expectMsg(1 second, MQTTReady)
 
@@ -125,7 +128,7 @@ object ActorSpec extends Specification with NoTimeConversions {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = TestActorRef(TestMQTTManager.props(testActor, endpoint), "MQTTClient-service")
+      val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
 
       expectMsg(1 second, MQTTReady)
 
