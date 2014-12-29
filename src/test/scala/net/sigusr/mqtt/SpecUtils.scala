@@ -76,8 +76,6 @@ object SpecUtils {
 
   class SpecsTestKit extends TestKit(ActorSystem("MQTTClient-system", ConfigFactory.parseString(config))) with Scope with AfterExample {
     def after = system.shutdown()
-
-    def tcpActor(receive : Actor.Receive) = system.actorOf(TcpActor.props(receive), "TcpActor-Service")
     def clientActor = testActor
   }
 
