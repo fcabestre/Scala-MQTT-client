@@ -19,8 +19,4 @@ scalacOptions ++= Seq("-feature", "-deprecation")
 
 net.virtualvoid.sbt.graph.Plugin.graphSettings
 
-scoverage.ScoverageSbtPlugin.instrumentSettings
-
-org.scoverage.coveralls.CoverallsPlugin.coverallsSettings
-
-org.scoverage.coveralls.CoverallsPlugin.CoverallsKeys.coverallsToken := Some("4c62CwXnosg5iwouVOrCa46frQwqtBlzk")
+CoverallsPlugin.CoverallsKeys.coverallsToken := Some("4c62CwXnosg5iwouVOrCa46frQwqtBlzk")
