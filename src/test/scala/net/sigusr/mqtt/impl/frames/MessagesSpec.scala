@@ -1,4 +1,4 @@
-package net.sigusr.mqtt
+package net.sigusr.mqtt.impl.frames
 
 /*
  * Copyright 2014 Frédéric Cabestre
@@ -20,8 +20,6 @@ import org.specs2.mutable._
 import scodec.Err
 
 object MessagesSpec extends Specification {
-
-  import net.sigusr.mqtt.impl.frames._
 
   "Quality of service" should {
     "Provide their «enum» value" in {

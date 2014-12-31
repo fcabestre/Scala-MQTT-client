@@ -36,16 +36,18 @@ case class ConnectFrame(header : Header, variableHeader: ConnectVariableHeader,
                         password: Option[String]) extends Frame
 
 case class ConnackFrame(header : Header, connackVariableHeader: ConnackVariableHeader) extends Frame
-case class SubscribeFrame(header : Header, messageIdentifier : MessageIdentifier, topics : Vector[(String, QualityOfService)]) extends Frame
-case class SubackFrame(header : Header, messageIdentifier : MessageIdentifier, topics : Vector[QualityOfService]) extends Frame
-case class PingReqFrame(header : Header) extends Frame
-case class PingRespFrame(header : Header) extends Frame
-case class DisconnectFrame(header : Header) extends Frame
 case class PublishFrame(header: Header, topic: String, messageIdentifier: MessageIdentifier, payload: ByteVector) extends Frame
 case class PubackFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
 case class PubrecFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
 case class PubrelFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
 case class PubcompFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
+case class SubscribeFrame(header : Header, messageIdentifier : MessageIdentifier, topics : Vector[(String, QualityOfService)]) extends Frame
+case class SubackFrame(header : Header, messageIdentifier : MessageIdentifier, topics : Vector[QualityOfService]) extends Frame
+case class UnsubscribeFrame(header : Header, messageIdentifier: MessageIdentifier, topics: Vector[String]) extends Frame
+case class UnsubackFrame(header : Header, messageIdentifier: MessageIdentifier) extends Frame
+case class PingReqFrame(header : Header) extends Frame
+case class PingRespFrame(header : Header) extends Frame
+case class DisconnectFrame(header : Header) extends Frame
 
 object ConnectFrame {
   implicit val discriminator : Discriminator[Frame, ConnectFrame, Int] = Discriminator(1)
@@ -107,6 +109,16 @@ object SubackFrame {
   implicit val discriminator : Discriminator[Frame, SubackFrame, Int] = Discriminator(9)
   implicit val qosCodec : Codec[Vector[QualityOfService]] = vector(ignore(6).dropLeft(qualityOfServiceCodec))
   implicit val codec : Codec[SubackFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec :: qosCodec)).as[SubackFrame]
+}
+
+object UnsubscribeFrame {
+  implicit val discriminator : Discriminator[Frame, UnsubscribeFrame, Int] = Discriminator(10)
+  implicit val codec : Codec[UnsubscribeFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec :: vector(stringCodec))).as[UnsubscribeFrame]
+}
+
+object UnsubackFrame {
+  implicit val discriminator : Discriminator[Frame, UnsubackFrame, Int] = Discriminator(11)
+  implicit val codec : Codec[UnsubackFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec)).as[UnsubackFrame]
 }
 
 object PingReqFrame {
