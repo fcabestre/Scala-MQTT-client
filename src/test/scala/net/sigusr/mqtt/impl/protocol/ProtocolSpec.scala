@@ -78,11 +78,10 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
     "Define the action to perform to handle a MQTTSubscribe API message" in {
       val topics = Vector(("topic0", AtMostOnce), ("topic1", ExactlyOnce), ("topic2", AtLeastOnce))
-      val exchangeId = Some(Random.nextInt(65535))
-      val input = MQTTSubscribe(topics, exchangeId)
+      val messageId = Random.nextInt(65535)
+      val input = MQTTSubscribe(topics, messageId)
       val header = Header(dup = false, AtLeastOnce, retain = false)
-      messageCounter = 5
-      val result = List(SendToNetwork(SubscribeFrame(header, MessageIdentifier(messageCounter + 1), topics)))
+      val result = List(SendToNetwork(SubscribeFrame(header, MessageIdentifier(messageId), topics)))
       handleApiMessages(input) should_== result
     }
 
@@ -91,13 +90,10 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val qos = AtMostOnce
       val retain = true
       val payload = makeRandomByteVector(48)
-      val exchangeId = Some(Random.nextInt(65535))
-      val input = MQTTPublish(topic, qos, retain, payload, exchangeId)
-      val header = Header(dup = false, qos, retain)
-      messageCounter = 42
-      val result = List(
-        SendToClient(MQTTPublishSuccess(exchangeId)),
-        SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageCounter + 1), ByteVector(payload))))
+      val messageId = Random.nextInt(65535)
+      val input = MQTTPublish(topic, payload, qos, Some(messageId), retain, retain = true)
+      val header = Header(dup = true, qos, retain)
+      val result = List(SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId), ByteVector(payload))))
       handleApiMessages(input) should_== result
     }
 
@@ -106,31 +102,17 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val qos = AtLeastOnce
       val retain = true
       val payload = makeRandomByteVector(32)
-      val exchangeId = Some(Random.nextInt(65535))
-      val input = MQTTPublish(topic, qos, retain, payload, exchangeId)
+      val messageId = Random.nextInt(65535)
+      val input = MQTTPublish(topic, payload, qos, Some(messageId), retain)
       val header = Header(dup = false, qos, retain)
-      messageCounter = 42
-      val result = List(SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageCounter + 1), ByteVector(payload))))
+      val result = List(SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId), ByteVector(payload))))
       handleApiMessages(input) should_== result
     }
 
     "Define the action to perform to handle an API message that should not be sent by the user" in {
       val input = MQTTReady
-      val result = List(SendToClient(MQTTWrongClientMessage))
+      val result = List(SendToClient(MQTTWrongClientMessage(MQTTReady)))
       handleApiMessages(input) should_== result
-    }
-  }
-
-  "The incrMessageCounter() function" should {
-    "Increment the message counter by one" in {
-      val initalValue = Random.nextInt(65534)
-      messageCounter = initalValue
-      incrMessageCounter should_== initalValue + 1
-    }
-
-    "Reset the counter to 1 when starting from 65535" in {
-      messageCounter = 65535
-      incrMessageCounter should_== 1
     }
   }
 
@@ -177,80 +159,49 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
     "Define the actions to perform to handle a PublishFrame" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
       val topic = "topic"
-      val messageIdentifier = MessageIdentifier(Random.nextInt())
+      val messageId = Random.nextInt(65534) + 1
+      val messageIdentifier = MessageIdentifier(messageId)
       val payload = makeRandomByteVector(64)
       val input = PublishFrame(header, topic, messageIdentifier, ByteVector(payload))
       val result = List(SendToClient(MQTTMessage(topic, payload)))
       handleNetworkFrames(input) should_== result
     }
 
-    "Define the actions to perform to handle a PubackFrame when an exchange identifier is available" in {
+    "Define the actions to perform to handle a PubackFrame" in {
       val header = Header(dup = false, AtMostOnce, retain = false)
-      val id = Random.nextInt()
-      val messageCounter = Random.nextInt(65534) + 1
-      pubMap += (messageCounter -> id)
-      val messageIdentifier = MessageIdentifier(messageCounter)
+      val messageId = Random.nextInt(65534) + 1
+      val messageIdentifier = MessageIdentifier(messageId)
       val input = PubackFrame(header, messageIdentifier)
-      val result = List(SendToClient(MQTTPublishSuccess(Some(id))))
-      handleNetworkFrames(input) should_== result
-    }
-
-    "Define the actions to perform to handle a PubackFrame when no exchange identifier is available" in {
-      val header = Header(dup = false, AtMostOnce, retain = false)
-      val messageCounter = Random.nextInt(65534) + 1
-      val messageIdentifier = MessageIdentifier(messageCounter)
-      val input = PubackFrame(header, messageIdentifier)
-      val result = List(SendToClient(MQTTPublishSuccess(None)))
+      val result = List(SendToClient(MQTTPublishSuccess(messageId)))
       handleNetworkFrames(input) should_== result
     }
 
     "Define the actions to perform to handle a PubrecFrame" in {
       val header = Header(dup = false, AtMostOnce, retain = false)
-      val messageIdentifier = MessageIdentifier(Random.nextInt())
+      val messageId = Random.nextInt(65534) + 1
+      val messageIdentifier = MessageIdentifier(messageId)
       val input = PubrecFrame(header, messageIdentifier)
       val result = List(SendToNetwork(PubrelFrame(header, messageIdentifier)))
       handleNetworkFrames(input) should_== result
     }
 
-    "Define the actions to perform to handle a PubcompFrame when no exchange identifier is available" in {
+    "Define the actions to perform to handle a PubcompFrame" in {
       val header = Header(dup = false, AtMostOnce, retain = false)
-      val messageIdentifier = MessageIdentifier(Random.nextInt())
+      val messageId = Random.nextInt(65534) + 1
+      val messageIdentifier = MessageIdentifier(messageId)
       val input = PubcompFrame(header, messageIdentifier)
-      val result = List(SendToClient(MQTTPublishSuccess(None)))
+      val result = List(SendToClient(MQTTPublishSuccess(messageId)))
       handleNetworkFrames(input) should_== result
     }
 
-    "Define the actions to perform to handle a PubcompFrame when an exchange identifier is available" in {
+    "Define the actions to perform to handle a SubackFrame" in {
       val header = Header(dup = false, AtMostOnce, retain = false)
-      val id = Random.nextInt()
-      val messageCounter = Random.nextInt(65534) + 1
-      pubMap += (messageCounter -> id)
-      val messageIdentifier = MessageIdentifier(messageCounter)
-      val input = PubcompFrame(header, messageIdentifier)
-      val result = List(SendToClient(MQTTPublishSuccess(Some(id))))
-      handleNetworkFrames(input) should_== result
-    }
-
-    "Define the actions to perform to handle a SubackFrame when an exchange identifier is available" in {
-      val header = Header(dup = false, AtMostOnce, retain = false)
-      val id = Random.nextInt()
-      val messageCounter = Random.nextInt(65534) + 1
+      val identifier: Int = Random.nextInt(65534) + 1
+      val messageIdentifier = MessageIdentifier(identifier)
       val topics = Vector[String]("topic0", "topic1")
       val qos = Vector[QualityOfService](AtLeastOnce, ExactlyOnce)
-      subMap += (messageCounter -> (Some(id), topics))
-      val messageIdentifier = MessageIdentifier(messageCounter)
       val input = SubackFrame(header, messageIdentifier, qos)
-      val result = List(SendToClient(MQTTSubscribeSuccess(Some(id))))
-      handleNetworkFrames(input) should_== result
-    }
-
-    "Define the actions to perform to handle a SubackFrame when no exchange identifier is available" in {
-      val header = Header(dup = false, AtMostOnce, retain = false)
-      val messageCounter = Random.nextInt(65534) + 1
-      val qos = Vector[QualityOfService](AtLeastOnce, ExactlyOnce)
-      val messageIdentifier = MessageIdentifier(messageCounter)
-      val input = SubackFrame(header, messageIdentifier, qos)
-      val result = List(SendToClient(MQTTSubscribeSuccess(None)))
+      val result = List(SendToClient(MQTTSubscribeSuccess(identifier, qos)))
       handleNetworkFrames(input) should_== result
     }
   }

@@ -31,7 +31,7 @@ import scala.concurrent.duration._
 
 object ActorSpec extends Specification with NoTimeConversions {
 
-  args(skipAll = true)
+//  args(skipAll = true)
   sequential
 
   val brokerHost = "localhost"
@@ -104,7 +104,7 @@ object ActorSpec extends Specification with NoTimeConversions {
 
       mqttManager ! MQTTReady
 
-      receiveOne(1 seconds) should be_==(MQTTWrongClientMessage)
+      receiveOne(1 seconds) should be_==(MQTTWrongClientMessage(MQTTReady))
     }
 
     "Allow to publish a message with QOS 1 and receive a Puback response" in new SpecsTestKit {
@@ -119,9 +119,9 @@ object ActorSpec extends Specification with NoTimeConversions {
 
       receiveOne(1 seconds) should be_==(MQTTConnected)
 
-      mqttManager ! MQTTPublish("a/b", AtLeastOnce, retain = false, "Hello world".getBytes.to[Vector], Some(123))
+      mqttManager ! MQTTPublish("a/b", "Hello world".getBytes.to[Vector], AtLeastOnce, Some(123))
 
-      receiveOne(1 seconds) should be_==(MQTTPublishSuccess(Some(123)))
+      receiveOne(1 seconds) should be_==(MQTTPublishSuccess(123))
     }
 
     "Allow to publish a message with QOS 2 and complete the handshake" in new SpecsTestKit {
@@ -136,9 +136,9 @@ object ActorSpec extends Specification with NoTimeConversions {
 
       receiveOne(1 seconds) should be_==(MQTTConnected)
 
-      mqttManager ! MQTTPublish("a/b", ExactlyOnce, retain = false, "Hello world".getBytes.to[Vector], Some(123))
+      mqttManager ! MQTTPublish("a/b", "Hello world".getBytes.to[Vector], ExactlyOnce, Some(123))
 
-      receiveOne(2 seconds) should be_==(MQTTPublishSuccess(Some(123)))
+      receiveOne(2 seconds) should be_==(MQTTPublishSuccess(123))
     }
   }
 }

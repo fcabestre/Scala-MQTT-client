@@ -26,13 +26,6 @@ import scala.language.postfixOps
 
 trait Protocol {
 
-  var messageCounter = 0
-  def incrMessageCounter: Int = (messageCounter + 1) % 65535
-
-  var pubMap = Map[Int, Int]()
-  // keyed by 'messageCounter', each value represents an optional client message exchange ID, and the topics to subscribe
-  var subMap = Map[Int, (Option[Int], Vector[String])]()
-
   def handleApiMessages(apiMessage : MQTTAPIMessage) : List[Action] = apiMessage match {
     case MQTTConnect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
       val header = Header(dup = false, AtMostOnce, retain = false)
@@ -43,24 +36,16 @@ trait Protocol {
     case MQTTDisconnect =>
       val header = Header(dup = false, AtMostOnce, retain = false)
       List(SendToNetwork(DisconnectFrame(header)))
-    case MQTTPublish(topic, qos, retain, payload, exchangeId) =>
-      val header = Header(dup = false, qos, retain)
-      messageCounter = incrMessageCounter
-      if (qos == AtLeastOnce || qos == ExactlyOnce) {
-        exchangeId foreach { id => pubMap += (messageCounter -> id) }
-        List(SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageCounter), ByteVector(payload))))
-      } else {
-        // according to spec, if QOS == AtMostOnce, then the server will not send an Ack
-        List(
-          SendToClient(MQTTPublishSuccess(exchangeId)),
-          SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageCounter), ByteVector(payload))))
-      }
-    case MQTTSubscribe(topics, exchangeId) =>
+    case MQTTPublish(topic, payload, qos @ AtMostOnce, messageId, retain, dup) =>
+      val header = Header(dup, qos, retain)
+      List(SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId.getOrElse(0)), ByteVector(payload))))
+    case MQTTPublish(topic, payload, qos, Some(messageId), retain, dup) =>
+      val header = Header(dup, qos, retain)
+      List(SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId), ByteVector(payload))))
+    case MQTTSubscribe(topics, messageId) =>
       val header = Header(dup = false, AtLeastOnce, retain = false)
-      messageCounter = incrMessageCounter
-      subMap += (messageCounter -> (exchangeId, topics.map(_._1)))
-      List(SendToNetwork(SubscribeFrame(header, MessageIdentifier(messageCounter), topics)))
-    case _ => List(SendToClient(MQTTWrongClientMessage))
+      List(SendToNetwork(SubscribeFrame(header, MessageIdentifier(messageId), topics)))
+    case m => List(SendToClient(MQTTWrongClientMessage(m)))
   }
 
   def handleNetworkFrames(frame : Frame) : List[Action] = {
@@ -71,35 +56,15 @@ trait Protocol {
         List(CancelPingResponseTimer)
       case PublishFrame(header, topic, messageIdentifier, payload) =>
         List(SendToClient(MQTTMessage(topic, payload.toArray.to[Vector])))
-      case PubackFrame(header, messageIdentifier) =>
-        // QoS 1 response
-        val apiResponse = completePublish(header, messageIdentifier)
-        List(SendToClient(apiResponse))
+      case PubackFrame(header, MessageIdentifier(messageId)) =>
+        List(SendToClient(MQTTPublishSuccess(messageId)))
       case PubrecFrame(header, messageIdentifier) =>
-        // QoS 2 part 2
         List(SendToNetwork(PubrelFrame(header, messageIdentifier)))
-      case PubcompFrame(header, messageIdentifier) =>
-        // QoS 2 part 3
-        val apiResponse = completePublish(header, messageIdentifier)
-        List(SendToClient(apiResponse))
+      case PubcompFrame(header, MessageIdentifier(messageId)) =>
+        List(SendToClient(MQTTPublishSuccess(messageId)))
       case SubackFrame(header, messageIdentifier, topicResults) =>
-        val apiResponse = {
-          val clientInfo = subMap.getOrElse(messageIdentifier.identifier, (None, Vector()))
-          // TODO - codec does not support subscribe failures yet
-          MQTTSubscribeSuccess(clientInfo._1)
-        }
-        List(SendToClient(apiResponse))
+        List(SendToClient(MQTTSubscribeSuccess(messageIdentifier.identifier, topicResults)))
       case _ => Nil
-    }
-  }
-
-  private def completePublish(header: Header, messageIdentifier: MessageIdentifier): MQTTPublishSuccess = {
-    if (pubMap.contains(messageIdentifier.identifier)) {
-      val exId = pubMap get messageIdentifier.identifier
-      pubMap -= messageIdentifier.identifier
-      MQTTPublishSuccess(exId)
-    } else {
-      MQTTPublishSuccess(None)
     }
   }
 

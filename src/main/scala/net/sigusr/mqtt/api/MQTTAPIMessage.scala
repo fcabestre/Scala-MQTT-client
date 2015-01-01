@@ -16,7 +16,7 @@
 
 package net.sigusr.mqtt.api
 
-import net.sigusr.mqtt.impl.frames.QualityOfService
+import net.sigusr.mqtt.impl.frames.{AtMostOnce, ExactlyOnce, AtLeastOnce, QualityOfService}
 
 sealed trait MQTTAPIMessage
 
@@ -34,14 +34,18 @@ case object MQTTConnected extends MQTTAPIMessage
 case class MQTTConnectionFailure(reason : MQTTConnectionFailureReason) extends MQTTAPIMessage
 case object MQTTDisconnect extends MQTTAPIMessage
 case object MQTTDisconnected extends MQTTAPIMessage
-case object MQTTWrongClientMessage extends MQTTAPIMessage
-case class MQTTPublish(topic: String, qos: QualityOfService, retain: Boolean, payload: Vector[Byte], messageExchangeId: Option[Int] = None) extends MQTTAPIMessage
-case class MQTTPublishSuccess(messageExchangeId: Option[Int]) extends MQTTAPIMessage
+case class MQTTWrongClientMessage(message : MQTTAPIMessage) extends MQTTAPIMessage
+case class MQTTPublish(topic: String, payload: Vector[Byte], qos: QualityOfService = AtMostOnce, messageExchangeId: Option[Int] = None, dup : Boolean = false, retain: Boolean = false) extends MQTTAPIMessage {
+  require(qos == AtMostOnce || messageExchangeId.isDefined)
+}
+case class MQTTPublishSuccess(messageExchangeId: Int) extends MQTTAPIMessage
 case class MQTTPublishFailure(reason: MQTTPublishFailureReason, messageExchangeId: Option[Int]) extends MQTTAPIMessage
-case class MQTTSubscribe(topics: Vector[(String, QualityOfService)], messageExchangeId: Option[Int]) extends MQTTAPIMessage
-case class MQTTSubscribeSuccess(messageExchangeId: Option[Int]) extends MQTTAPIMessage
-case class MQTTSubscribeFailure(failedTopics: Vector[String], messageExchangeId: Option[Int]) extends MQTTAPIMessage
+case class MQTTSubscribe(topics: Vector[(String, QualityOfService)], messageExchangeId: Int) extends MQTTAPIMessage
+case class MQTTSubscribeSuccess(messageExchangeId: Int, topicResults : Vector[QualityOfService]) extends MQTTAPIMessage
+case class MQTTSubscribeFailure(failedTopics: Vector[String], messageExchangeId: Int) extends MQTTAPIMessage
 case class MQTTMessage(topic: String, payload: Vector[Byte]) extends MQTTAPIMessage
+case class MQTTUnsubscribe(topics : Vector[String], messageExchangeId: Int)
+case class MQTTUnsubscribed(messageExchangeId: Int)
 
 sealed trait MQTTConnectionFailureReason
 case object BadProtocolVersion extends MQTTConnectionFailureReason

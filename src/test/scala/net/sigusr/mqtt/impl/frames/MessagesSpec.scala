@@ -72,4 +72,24 @@ object MessagesSpec extends Specification {
       fromEnum(6) should failWith(Err("Connect return code encoded value should be in the range [0..5]"))
     }
   }
+
+  "MessageIdentifier" should {
+    "Check the range of the integer provided to its constructor" in {
+      MessageIdentifier(-1) should throwA[IllegalArgumentException]
+      MessageIdentifier(0) should not (throwA[IllegalArgumentException])
+      MessageIdentifier(65535) should not (throwA[IllegalArgumentException])
+      MessageIdentifier(65536) should throwA[IllegalArgumentException]
+    }
+  }
+
+  "MQTTPublish" should {
+    "Have a valid combination of QoS and message identifier" in {
+      import net.sigusr.mqtt.api.MQTTPublish
+      MQTTPublish("topic", Vector(0x00), AtMostOnce) should not (throwA[IllegalArgumentException])
+      MQTTPublish("topic", Vector(0x00), AtLeastOnce) should throwA[IllegalArgumentException]
+      MQTTPublish("topic", Vector(0x00), AtLeastOnce, Some(1)) should not (throwA[IllegalArgumentException])
+      MQTTPublish("topic", Vector(0x00), ExactlyOnce) should throwA[IllegalArgumentException]
+      MQTTPublish("topic", Vector(0x00), ExactlyOnce, Some(1)) should not (throwA[IllegalArgumentException])
+    }
+  }
 }

@@ -18,7 +18,9 @@ package net.sigusr.mqtt.impl.frames
 
 import scodec.codecs._
 
-case class MessageIdentifier(identifier : Int)
+case class MessageIdentifier(identifier : Int) {
+  require(identifier >= 0 && identifier < 65536)
+}
 
 object MessageIdentifier {
   implicit val messageIdentifierCodec = uint16.as[MessageIdentifier]
