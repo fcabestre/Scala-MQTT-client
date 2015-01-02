@@ -172,7 +172,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val messageId = Random.nextInt(65534) + 1
       val messageIdentifier = MessageIdentifier(messageId)
       val input = PubackFrame(header, messageIdentifier)
-      val result = List(SendToClient(MQTTPublishSuccess(messageId)))
+      val result = List(SendToClient(MQTTPublished(messageId)))
       handleNetworkFrames(input) should_== result
     }
 
@@ -190,7 +190,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val messageId = Random.nextInt(65534) + 1
       val messageIdentifier = MessageIdentifier(messageId)
       val input = PubcompFrame(header, messageIdentifier)
-      val result = List(SendToClient(MQTTPublishSuccess(messageId)))
+      val result = List(SendToClient(MQTTPublished(messageId)))
       handleNetworkFrames(input) should_== result
     }
 
@@ -201,7 +201,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val topics = Vector[String]("topic0", "topic1")
       val qos = Vector[QualityOfService](AtLeastOnce, ExactlyOnce)
       val input = SubackFrame(header, messageIdentifier, qos)
-      val result = List(SendToClient(MQTTSubscribeSuccess(identifier, qos)))
+      val result = List(SendToClient(MQTTSubscribed(identifier, qos)))
       handleNetworkFrames(input) should_== result
     }
   }

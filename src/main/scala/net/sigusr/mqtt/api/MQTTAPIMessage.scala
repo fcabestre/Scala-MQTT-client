@@ -38,11 +38,9 @@ case class MQTTWrongClientMessage(message : MQTTAPIMessage) extends MQTTAPIMessa
 case class MQTTPublish(topic: String, payload: Vector[Byte], qos: QualityOfService = AtMostOnce, messageExchangeId: Option[Int] = None, dup : Boolean = false, retain: Boolean = false) extends MQTTAPIMessage {
   require(qos == AtMostOnce || messageExchangeId.isDefined)
 }
-case class MQTTPublishSuccess(messageExchangeId: Int) extends MQTTAPIMessage
-case class MQTTPublishFailure(reason: MQTTPublishFailureReason, messageExchangeId: Option[Int]) extends MQTTAPIMessage
+case class MQTTPublished(messageExchangeId: Int) extends MQTTAPIMessage
 case class MQTTSubscribe(topics: Vector[(String, QualityOfService)], messageExchangeId: Int) extends MQTTAPIMessage
-case class MQTTSubscribeSuccess(messageExchangeId: Int, topicResults : Vector[QualityOfService]) extends MQTTAPIMessage
-case class MQTTSubscribeFailure(failedTopics: Vector[String], messageExchangeId: Int) extends MQTTAPIMessage
+case class MQTTSubscribed(messageExchangeId: Int, topicResults : Vector[QualityOfService]) extends MQTTAPIMessage
 case class MQTTMessage(topic: String, payload: Vector[Byte]) extends MQTTAPIMessage
 case class MQTTUnsubscribe(topics : Vector[String], messageExchangeId: Int)
 case class MQTTUnsubscribed(messageExchangeId: Int)
@@ -53,7 +51,3 @@ case object IdentifierRejected extends MQTTConnectionFailureReason
 case object ServerUnavailable extends MQTTConnectionFailureReason
 case object BadUserNameOrPassword extends MQTTConnectionFailureReason
 case object NotAuthorized extends MQTTConnectionFailureReason
-
-// NOTE - may not need this
-sealed trait MQTTPublishFailureReason
-case object NoAckReceived extends MQTTPublishFailureReason

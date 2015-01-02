@@ -22,7 +22,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.io.{IO, Tcp}
 import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
-import net.sigusr.mqtt.impl.frames.{AtLeastOnce, ExactlyOnce}
+import net.sigusr.mqtt.impl.frames.{AtMostOnce, AtLeastOnce, ExactlyOnce}
 import net.sigusr.mqtt.impl.protocol.{Protocol, TCPTransport}
 import org.specs2.mutable._
 import org.specs2.time.NoTimeConversions
@@ -89,6 +89,28 @@ object ActorSpec extends Specification with NoTimeConversions {
       receiveOne(1 seconds) should be_==(MQTTDisconnected)
     }
 
+    "Allow to subscribe to topics and receive a subscription acknowledgement" in new SpecsTestKit {
+
+      import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
+
+      val endpoint = new InetSocketAddress(brokerHost, 1883)
+      val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
+
+      expectMsg(1 second, MQTTReady)
+
+      mqttManager ! MQTTConnect("Test")
+
+      receiveOne(1 seconds) should be_==(MQTTConnected)
+
+      mqttManager ! MQTTSubscribe(Vector(("topic0", AtMostOnce), ("topic1", AtLeastOnce), ("topic2", ExactlyOnce)), 42)
+
+      receiveOne(1 seconds) should be_==(MQTTSubscribed(42, Vector(AtMostOnce, AtLeastOnce, ExactlyOnce)))
+
+      mqttManager ! MQTTDisconnect
+
+      receiveOne(1 seconds) should be_==(MQTTDisconnected)
+    }
+
     "Disallow to send a server side message" in new SpecsTestKit {
 
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
@@ -121,7 +143,7 @@ object ActorSpec extends Specification with NoTimeConversions {
 
       mqttManager ! MQTTPublish("a/b", "Hello world".getBytes.to[Vector], AtLeastOnce, Some(123))
 
-      receiveOne(1 seconds) should be_==(MQTTPublishSuccess(123))
+      receiveOne(1 seconds) should be_==(MQTTPublished(123))
     }
 
     "Allow to publish a message with QOS 2 and complete the handshake" in new SpecsTestKit {
@@ -138,7 +160,7 @@ object ActorSpec extends Specification with NoTimeConversions {
 
       mqttManager ! MQTTPublish("a/b", "Hello world".getBytes.to[Vector], ExactlyOnce, Some(123))
 
-      receiveOne(2 seconds) should be_==(MQTTPublishSuccess(123))
+      receiveOne(2 seconds) should be_==(MQTTPublished(123))
     }
   }
 }

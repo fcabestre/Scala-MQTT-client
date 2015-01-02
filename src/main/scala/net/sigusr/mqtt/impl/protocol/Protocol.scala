@@ -57,13 +57,13 @@ trait Protocol {
       case PublishFrame(header, topic, messageIdentifier, payload) =>
         List(SendToClient(MQTTMessage(topic, payload.toArray.to[Vector])))
       case PubackFrame(header, MessageIdentifier(messageId)) =>
-        List(SendToClient(MQTTPublishSuccess(messageId)))
+        List(SendToClient(MQTTPublished(messageId)))
       case PubrecFrame(header, messageIdentifier) =>
         List(SendToNetwork(PubrelFrame(header, messageIdentifier)))
       case PubcompFrame(header, MessageIdentifier(messageId)) =>
-        List(SendToClient(MQTTPublishSuccess(messageId)))
+        List(SendToClient(MQTTPublished(messageId)))
       case SubackFrame(header, messageIdentifier, topicResults) =>
-        List(SendToClient(MQTTSubscribeSuccess(messageIdentifier.identifier, topicResults)))
+        List(SendToClient(MQTTSubscribed(messageIdentifier.identifier, topicResults)))
       case _ => Nil
     }
   }

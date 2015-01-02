@@ -85,11 +85,11 @@ object MessagesSpec extends Specification {
   "MQTTPublish" should {
     "Have a valid combination of QoS and message identifier" in {
       import net.sigusr.mqtt.api.MQTTPublish
-      MQTTPublish("topic", Vector(0x00), AtMostOnce) should not (throwA[IllegalArgumentException])
+      MQTTPublish("topic", Vector(0x00), AtMostOnce) should not throwA()
       MQTTPublish("topic", Vector(0x00), AtLeastOnce) should throwA[IllegalArgumentException]
-      MQTTPublish("topic", Vector(0x00), AtLeastOnce, Some(1)) should not (throwA[IllegalArgumentException])
+      MQTTPublish("topic", Vector(0x00), AtLeastOnce, Some(1)) should not throwA()
       MQTTPublish("topic", Vector(0x00), ExactlyOnce) should throwA[IllegalArgumentException]
-      MQTTPublish("topic", Vector(0x00), ExactlyOnce, Some(1)) should not (throwA[IllegalArgumentException])
+      MQTTPublish("topic", Vector(0x00), ExactlyOnce, Some(1)) should not throwA()
     }
   }
 }
