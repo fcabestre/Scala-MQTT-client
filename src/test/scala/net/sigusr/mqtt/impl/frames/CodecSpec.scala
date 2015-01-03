@@ -239,14 +239,35 @@ object CodecSpec extends Specification {
       headerDependentMessageIdentifierCodec(header).encode(messageIdentifier) should succeedWith(bin"0000000000001010")
     }
 
-//    "Perform decoding of valid inputs" in {
-//
-//      import net.sigusr.mqtt.SpecUtils._
-//      import scodec.bits._
-//
-//      val res = MessageIdentifier(3)
-//      Codec[MessageIdentifier].decode(bin"00000000000000110101") should succeedWith((bin"0101", res))
-//    }
+    "Perform decoding of valid inputs at Qos 0" in {
+
+      import net.sigusr.mqtt.SpecUtils._
+      import scodec.bits._
+
+      val header = Header(dup = false, AtMostOnce, retain = false)
+      val res = MessageIdentifier(0)
+      headerDependentMessageIdentifierCodec(header).decode(bin"00000000000000110101") should succeedWith((bin"00000000000000110101", res))
+    }
+
+    "Perform decoding of valid inputs at Qos 1" in {
+
+      import net.sigusr.mqtt.SpecUtils._
+      import scodec.bits._
+
+      val header = Header(dup = false, AtLeastOnce, retain = false)
+      val res = MessageIdentifier(3)
+      headerDependentMessageIdentifierCodec(header).decode(bin"00000000000000110101") should succeedWith((bin"0101", res))
+    }
+
+    "Perform decoding of valid inputs at Qos 2" in {
+
+      import net.sigusr.mqtt.SpecUtils._
+      import scodec.bits._
+
+      val header = Header(dup = false, ExactlyOnce, retain = false)
+      val res = MessageIdentifier(3)
+      headerDependentMessageIdentifierCodec(header).decode(bin"00000000000000110101") should succeedWith((bin"0101", res))
+    }
   }
 
 
