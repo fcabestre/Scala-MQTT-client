@@ -46,8 +46,18 @@ case class MQTTUnsubscribe(topics : Vector[String], messageExchangeId: Int)
 case class MQTTUnsubscribed(messageExchangeId: Int)
 
 sealed trait MQTTConnectionFailureReason
-case object BadProtocolVersion extends MQTTConnectionFailureReason
-case object IdentifierRejected extends MQTTConnectionFailureReason
-case object ServerUnavailable extends MQTTConnectionFailureReason
-case object BadUserNameOrPassword extends MQTTConnectionFailureReason
-case object NotAuthorized extends MQTTConnectionFailureReason
+case object BadProtocolVersion extends MQTTConnectionFailureReason {
+  override def toString = "Bad protocol version"
+}
+case object IdentifierRejected extends MQTTConnectionFailureReason {
+  override def toString = "Identifier rejected"
+}
+case object ServerUnavailable extends MQTTConnectionFailureReason {
+  override def toString = "Server unavailable"
+}
+case object BadUserNameOrPassword extends MQTTConnectionFailureReason {
+  override def toString = "Bad user name or password"
+}
+case object NotAuthorized extends MQTTConnectionFailureReason {
+  override def toString = "Not authorized"
+}

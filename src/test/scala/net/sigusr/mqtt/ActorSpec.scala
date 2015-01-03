@@ -129,6 +129,21 @@ object ActorSpec extends Specification with NoTimeConversions {
       receiveOne(1 seconds) should be_==(MQTTWrongClientMessage(MQTTReady))
     }
 
+    "Allow to publish a message with QOS 0" in new SpecsTestKit {
+      import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
+
+      val endpoint = new InetSocketAddress(brokerHost, 1883)
+      val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
+
+      expectMsg(1 second, MQTTReady)
+
+      mqttManager ! MQTTConnect("TestPubAck")
+
+      receiveOne(1 seconds) should be_==(MQTTConnected)
+
+      mqttManager ! MQTTPublish("a/b", "Hello world".getBytes.to[Vector], AtMostOnce, Some(123))
+    }
+
     "Allow to publish a message with QOS 1 and receive a Puback response" in new SpecsTestKit {
       import net.sigusr.mqtt.api.{MQTTConnect, MQTTConnected, MQTTReady}
 

@@ -75,7 +75,9 @@ object ConnackFrame {
 
 object PublishFrame {
   implicit val discriminator : Discriminator[Frame, PublishFrame, Int] = Discriminator(3)
-  implicit val codec: Codec[PublishFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, stringCodec :: messageIdentifierCodec :: bytes)).as[PublishFrame]
+  implicit val codec: Codec[PublishFrame] = (headerCodec >>:~ {
+    (hdr : Header) => variableSizeBytes(remainingLengthCodec, stringCodec :: headerDependentMessageIdentifierCodec(hdr) :: bytes)
+  }).as[PublishFrame]
 }
 
 object PubackFrame {
