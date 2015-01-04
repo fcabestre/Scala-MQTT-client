@@ -21,3 +21,5 @@ scalacOptions ++= Seq("-feature", "-deprecation")
 net.virtualvoid.sbt.graph.Plugin.graphSettings
 
 CoverallsPlugin.CoverallsKeys.coverallsToken := Some("4c62CwXnosg5iwouVOrCa46frQwqtBlzk")
+
+ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages := ".*examples.*"
