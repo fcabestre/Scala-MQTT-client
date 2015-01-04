@@ -73,7 +73,6 @@ import scala.concurrent.duration.FiniteDuration
     case _: ConnectionClosed ⇒
       processAction(connectionClosed(), clientActor, connectionActor)
       context stop self
-    case CommandFailed(w: Write) ⇒ // O/S buffer was full
   }
 
   def processAction(action: Action, clientActor : ActorRef, connectionActor : ActorRef) = {
