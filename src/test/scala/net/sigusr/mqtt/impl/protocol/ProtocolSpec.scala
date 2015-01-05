@@ -29,9 +29,6 @@ import scala.util.Random
 
 object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
-  sequential
-  isolated
-
   "The transportNotReady() function" should {
     "Define the action to perform when the transport is not ready" in {
       transportNotReady() shouldEqual SendToClient(MQTTNotReady)
@@ -62,17 +59,17 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val input = MQTTConnect(clientId, keepAlive, cleanSession, topic, message, user, password)
       val header = Header(dup = false, AtMostOnce, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce, willFlag = false, cleanSession, keepAlive)
-      val result =List(
+      val result =Sequence(Seq(
         SetKeepAliveValue(keepAlive seconds),
-        SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password)))
+        SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
       handleApiMessages(input) should_== result
     }
 
     "Define the action to perform to handle a MQTTDisconnect API message" in {
       val input = MQTTDisconnect
       val header = Header(dup = false, AtMostOnce, retain = false)
-      List(SendToNetwork(DisconnectFrame(header)))
-      val result =List(SendToNetwork(DisconnectFrame(header)))
+      SendToNetwork(DisconnectFrame(header))
+      val result = SendToNetwork(DisconnectFrame(header))
       handleApiMessages(input) should_== result
     }
 
@@ -81,7 +78,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val messageId = Random.nextInt(65535)
       val input = MQTTSubscribe(topics, messageId)
       val header = Header(dup = false, AtLeastOnce, retain = false)
-      val result = List(SendToNetwork(SubscribeFrame(header, MessageIdentifier(messageId), topics)))
+      val result = SendToNetwork(SubscribeFrame(header, MessageIdentifier(messageId), topics))
       handleApiMessages(input) should_== result
     }
 
@@ -93,7 +90,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val messageId = Random.nextInt(65535)
       val input = MQTTPublish(topic, payload, qos, Some(messageId), retain, retain = true)
       val header = Header(dup = true, qos, retain)
-      val result = List(SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId), ByteVector(payload))))
+      val result = SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId), ByteVector(payload)))
       handleApiMessages(input) should_== result
     }
 
@@ -105,13 +102,13 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val messageId = Random.nextInt(65535)
       val input = MQTTPublish(topic, payload, qos, Some(messageId), retain)
       val header = Header(dup = false, qos, retain)
-      val result = List(SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId), ByteVector(payload))))
+      val result = SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId), ByteVector(payload)))
       handleApiMessages(input) should_== result
     }
 
     "Define the action to perform to handle an API message that should not be sent by the user" in {
       val input = MQTTReady
-      val result = List(SendToClient(MQTTWrongClientMessage(MQTTReady)))
+      val result = SendToClient(MQTTWrongClientMessage(MQTTReady))
       handleApiMessages(input) should_== result
     }
   }
@@ -119,15 +116,15 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
   "The handleInternalApiMessages() function" should {
     "Define the action to perform to handle a SendKeepAlive internal API message" in {
       val input = SendKeepAlive
-      val result = List(
+      val result = Sequence(Seq(
         StartPingResponseTimer,
-        SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce, retain = false))))
+        SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce, retain = false)))))
       handleInternalApiMessages(input) should_== result
     }
 
     "Define the action to perform to handle a PingRespTimeout internal API message" in {
       val input = PingRespTimeout
-      val result = List(CloseTransport)
+      val result = CloseTransport
       handleInternalApiMessages(input) should_== result
     }
   }
@@ -137,7 +134,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
     "Provide no actions when the frame should not be handled" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
       val input = PingReqFrame(header)
-      val result = List()
+      val result = Sequence()
       handleNetworkFrames(input) should_== result
     }
 
@@ -145,14 +142,14 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val header = Header(dup = false, AtLeastOnce, retain = false)
       val connackVariableHeader = ConnackVariableHeader(ConnectionRefused4)
       val input = ConnackFrame(header, connackVariableHeader)
-      val result = List(StartKeepAliveTimer, SendToClient(MQTTConnected))
+      val result = Sequence(Seq(StartKeepAliveTimer, SendToClient(MQTTConnected)))
       handleNetworkFrames(input) should_== result
     }
 
     "Define the actions to perform to handle a PingRespFrame" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
       val input = PingRespFrame(header)
-      val result = List(CancelPingResponseTimer)
+      val result = CancelPingResponseTimer
       handleNetworkFrames(input) should_== result
     }
 
@@ -163,7 +160,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val messageIdentifier = MessageIdentifier(messageId)
       val payload = makeRandomByteVector(64)
       val input = PublishFrame(header, topic, messageIdentifier, ByteVector(payload))
-      val result = List(SendToClient(MQTTMessage(topic, payload)))
+      val result = SendToClient(MQTTMessage(topic, payload))
       handleNetworkFrames(input) should_== result
     }
 
@@ -172,7 +169,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val messageId = Random.nextInt(65534) + 1
       val messageIdentifier = MessageIdentifier(messageId)
       val input = PubackFrame(header, messageIdentifier)
-      val result = List(SendToClient(MQTTPublished(messageId)))
+      val result = SendToClient(MQTTPublished(messageId))
       handleNetworkFrames(input) should_== result
     }
 
@@ -181,7 +178,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val messageId = Random.nextInt(65534) + 1
       val messageIdentifier = MessageIdentifier(messageId)
       val input = PubrecFrame(header, messageIdentifier)
-      val result = List(SendToNetwork(PubrelFrame(header, messageIdentifier)))
+      val result = SendToNetwork(PubrelFrame(header, messageIdentifier))
       handleNetworkFrames(input) should_== result
     }
 
@@ -190,7 +187,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val messageId = Random.nextInt(65534) + 1
       val messageIdentifier = MessageIdentifier(messageId)
       val input = PubcompFrame(header, messageIdentifier)
-      val result = List(SendToClient(MQTTPublished(messageId)))
+      val result = SendToClient(MQTTPublished(messageId))
       handleNetworkFrames(input) should_== result
     }
 
@@ -201,7 +198,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val topics = Vector[String]("topic0", "topic1")
       val qos = Vector[QualityOfService](AtLeastOnce, ExactlyOnce)
       val input = SubackFrame(header, messageIdentifier, qos)
-      val result = List(SendToClient(MQTTSubscribed(identifier, qos)))
+      val result = SendToClient(MQTTSubscribed(identifier, qos))
       handleNetworkFrames(input) should_== result
     }
   }

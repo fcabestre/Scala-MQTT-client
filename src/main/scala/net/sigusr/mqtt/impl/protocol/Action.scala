@@ -23,6 +23,7 @@ import scala.concurrent.duration.FiniteDuration
 
 sealed trait Action
 
+case class Sequence(actions : Seq[Action] = Nil) extends Action
 case class SendToClient(message : MQTTAPIMessage) extends Action
 case class SendToNetwork(frame : Frame) extends Action
 case object CloseTransport extends Action

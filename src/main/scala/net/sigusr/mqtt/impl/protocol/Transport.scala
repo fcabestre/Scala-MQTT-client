@@ -64,19 +64,20 @@ import scala.concurrent.duration.FiniteDuration
 
   def connected(clientActor : ActorRef, connectionActor : ActorRef): Receive = LoggingReceive {
     case message : MQTTAPIMessage =>
-      handleApiMessages(message).foreach((action: Action) => processAction(action, clientActor, connectionActor))
+      processAction(handleApiMessages(message), clientActor, connectionActor)
     case internalMessage: InternalAPIMessage =>
-      handleInternalApiMessages(internalMessage).foreach((action: Action) => processAction(action, clientActor, connectionActor))
+      processAction(handleInternalApiMessages(internalMessage), clientActor, connectionActor)
     case Received(encodedResponse) ⇒
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
-      handleNetworkFrames(frame).foreach((action: Action) => processAction(action, clientActor, connectionActor))
+      processAction(handleNetworkFrames(frame), clientActor, connectionActor)
     case _: ConnectionClosed ⇒
       processAction(connectionClosed(), clientActor, connectionActor)
       context stop self
   }
 
-  def processAction(action: Action, clientActor : ActorRef, connectionActor : ActorRef) = {
+  def processAction(action: Action, clientActor : ActorRef, connectionActor : ActorRef) : Unit = {
     action match {
+      case Sequence(actions) => actions foreach { (action : Action) => processAction(action, clientActor, connectionActor) }
       case SetKeepAliveValue(duration) =>
         keepAliveValue = Some(duration)
       case StartKeepAliveTimer =>
