@@ -36,7 +36,7 @@ trait Protocol {
     case MQTTDisconnect =>
       val header = Header(dup = false, AtMostOnce, retain = false)
       SendToNetwork(DisconnectFrame(header))
-    case MQTTPublish(topic, payload, qos @ AtMostOnce, messageId, retain, dup) =>
+    case MQTTPublish(topic, payload, qos, messageId, retain, dup) if qos == AtMostOnce =>
       val header = Header(dup, qos, retain)
       SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId.getOrElse(0)), ByteVector(payload)))
     case MQTTPublish(topic, payload, qos, Some(messageId), retain, dup) =>
@@ -68,13 +68,12 @@ trait Protocol {
     }
   }
 
-  def handleInternalApiMessages(apiMessage: InternalAPIMessage): Action = apiMessage match {
-    case SendKeepAlive => 
-      Sequence(Seq(
-        StartPingResponseTimer, 
-        SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce, retain = false)))))
-    case PingRespTimeout => CloseTransport
-  }
+  def sendKeepAlive(): Action =
+    Sequence(Seq(
+      StartPingResponseTimer,
+      SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce, retain = false)))))
+
+  def pingResponseTimeout(): Action = CloseTransport
 
   def connectionClosed() : Action = SendToClient(MQTTDisconnected)
 
