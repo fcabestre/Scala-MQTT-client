@@ -18,20 +18,16 @@ package net.sigusr.mqtt.impl.protocol
 
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames._
-import net.sigusr.mqtt.impl.protocol.Transport.{InternalAPIMessage, PingRespTimeout, SendKeepAlive}
 import scodec.bits.ByteVector
-
-import scala.concurrent.duration._
-import scala.language.postfixOps
 
 trait Protocol {
 
-  def handleApiMessages(apiMessage : MQTTAPIMessage) : Action = apiMessage match {
+  private[protocol] def handleApiMessages(apiMessage : MQTTAPIMessage) : Action = apiMessage match {
     case MQTTConnect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
       val header = Header(dup = false, AtMostOnce, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce, willFlag = false, cleanSession, keepAlive)
       Sequence(
-        Seq(SetKeepAliveValue(keepAlive seconds),
+        Seq(SetKeepAliveValue(keepAlive * 1000),
         SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
     case MQTTDisconnect =>
       val header = Header(dup = false, AtMostOnce, retain = false)
@@ -48,12 +44,12 @@ trait Protocol {
     case m => SendToClient(MQTTWrongClientMessage(m))
   }
 
-  def handleNetworkFrames(frame : Frame) : Action = {
+  private[protocol] def handleNetworkFrames(frame : Frame, keepAliveValue : Long) : Action = {
     frame match {
       case ConnackFrame(header, connackVariableHeader) =>
-        Sequence(Seq(StartKeepAliveTimer, SendToClient(MQTTConnected)))
+        Sequence(Seq(StartTimer(keepAliveValue), SendToClient(MQTTConnected)))
       case PingRespFrame(header) =>
-        CancelPingResponseTimer
+        SetPendingPingResponse(isPending = false)
       case PublishFrame(header, topic, messageIdentifier, payload) =>
         SendToClient(MQTTMessage(topic, payload.toArray.to[Vector]))
       case PubackFrame(header, MessageIdentifier(messageId)) =>
@@ -68,17 +64,24 @@ trait Protocol {
     }
   }
 
-  def sendKeepAlive(): Action =
-    Sequence(Seq(
-      StartPingResponseTimer,
-      SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce, retain = false)))))
+  private[protocol] def timerSignal(currentTime: Long, keepAliveValue: Long, lastSentMessageTimestamp: Long, isPingResponsePending: Boolean): Action =
+    if (isPingResponsePending)
+      CloseTransport
+    else {
+      val timeout = keepAliveValue - currentTime + lastSentMessageTimestamp
+      if (timeout < 1000)
+        Sequence(Seq(
+          SetPendingPingResponse(isPending = true),
+          StartTimer(keepAliveValue),
+          SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce, retain = false)))))
+      else
+          StartTimer(timeout)
+    }
 
-  def pingResponseTimeout(): Action = CloseTransport
+  private[protocol] def connectionClosed() : Action = SendToClient(MQTTDisconnected)
 
-  def connectionClosed() : Action = SendToClient(MQTTDisconnected)
+  private[protocol] def transportReady() : Action = SendToClient(MQTTReady)
 
-  def transportReady() : Action = SendToClient(MQTTReady)
-
-  def transportNotReady() : Action = SendToClient(MQTTNotReady)
+  private[protocol] def transportNotReady() : Action = SendToClient(MQTTNotReady)
 }
 

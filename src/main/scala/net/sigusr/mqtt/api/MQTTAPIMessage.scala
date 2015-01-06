@@ -16,19 +16,21 @@
 
 package net.sigusr.mqtt.api
 
-import net.sigusr.mqtt.impl.frames.{AtMostOnce, ExactlyOnce, AtLeastOnce, QualityOfService}
+import net.sigusr.mqtt.impl.frames.{AtMostOnce, QualityOfService}
 
 sealed trait MQTTAPIMessage
 
 case object MQTTNotReady extends MQTTAPIMessage
 case object MQTTReady extends MQTTAPIMessage
 case class MQTTConnect(clientId : String,
-                   keepAlive : Int = 30,
+                   keepAlive : Int = DEFAULT_KEEP_ALIVE,
                    cleanSession : Boolean = true,
                    topic : Option[String] = None,
                    message : Option[String] = None,
                    user : Option[String] = None,
-                   password : Option[String] = None) extends MQTTAPIMessage
+                   password : Option[String] = None) extends MQTTAPIMessage {
+  require(keepAlive >= 0 && keepAlive < 65636)
+}
 
 case object MQTTConnected extends MQTTAPIMessage
 case class MQTTConnectionFailure(reason : MQTTConnectionFailureReason) extends MQTTAPIMessage

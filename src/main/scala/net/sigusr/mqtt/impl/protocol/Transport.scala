@@ -18,36 +18,31 @@ package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef, Cancellable}
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable}
 import akka.event.LoggingReceive
 import akka.util.ByteString
-import net.sigusr.mqtt.api.MQTTAPIMessage
+import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.Frame
-import net.sigusr.mqtt.impl.protocol.Transport.PingRespTimeout
 import scodec.Codec
 import scodec.bits.BitVector
 
-object Transport {
-  private[protocol] sealed trait InternalAPIMessage
-  private[protocol] case object SendKeepAlive extends InternalAPIMessage
-  private[protocol] case object PingRespTimeout extends InternalAPIMessage
-}
+import scala.concurrent.duration.{FiniteDuration, _}
+
+private[protocol] case object TimerSignal
 
 trait Transport {
   def tcpManagerActor: ActorRef
 }
 
-abstract class TCPTransport(mqttBrokerAddress: InetSocketAddress) extends Actor with Transport { this: Protocol =>
+abstract class TCPTransport(mqttBrokerAddress: InetSocketAddress) extends Actor with Transport with ActorLogging { this: Protocol =>
 
   import akka.io.Tcp._
   import context.dispatcher
-  import net.sigusr.mqtt.impl.protocol.Transport.{InternalAPIMessage, SendKeepAlive}
 
-import scala.concurrent.duration.FiniteDuration
-
-  var keepAliveValue : Option[FiniteDuration] = None
-  var keepAliveTask: Option[Cancellable] = None
-  var pingResponseTask: Option[Cancellable] = None
+  var lastSentMessageTimestamp: Long = 0
+  var isPingResponsePending = false
+  var keepAliveValue : Long = DEFAULT_KEEP_ALIVE
+  var timerTask: Option[Cancellable] = None
 
   tcpManagerActor ! Connect(mqttBrokerAddress)
 
@@ -65,11 +60,11 @@ import scala.concurrent.duration.FiniteDuration
   def connected(clientActor : ActorRef, connectionActor : ActorRef): Receive = LoggingReceive {
     case message : MQTTAPIMessage =>
       processAction(handleApiMessages(message), clientActor, connectionActor)
-    case internalMessage: InternalAPIMessage =>
-      processAction(handleInternalApiMessages(internalMessage), clientActor, connectionActor)
+    case TimerSignal =>
+      processAction(timerSignal(System.currentTimeMillis(), keepAliveValue, lastSentMessageTimestamp, isPingResponsePending), clientActor, connectionActor)
     case Received(encodedResponse) ⇒
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
-      processAction(handleNetworkFrames(frame), clientActor, connectionActor)
+      processAction(handleNetworkFrames(frame, keepAliveValue), clientActor, connectionActor)
     case _: ConnectionClosed ⇒
       processAction(connectionClosed(), clientActor, connectionActor)
       context stop self
@@ -79,20 +74,15 @@ import scala.concurrent.duration.FiniteDuration
     action match {
       case Sequence(actions) => actions foreach { (action : Action) => processAction(action, clientActor, connectionActor) }
       case SetKeepAliveValue(duration) =>
-        keepAliveValue = Some(duration)
-      case StartKeepAliveTimer =>
-        keepAliveValue foreach { k =>
-          keepAliveTask = Some(context.system.scheduler.schedule(k, k, self, SendKeepAlive))
-        }
-      case StartPingResponseTimer =>
-        keepAliveValue foreach { k =>
-          pingResponseTask = Some(context.system.scheduler.scheduleOnce(k, self, PingRespTimeout))
-        }
-      case CancelPingResponseTimer =>
-        pingResponseTask foreach { _.cancel() }
+        keepAliveValue = duration
+      case StartTimer(timeout) =>
+        timerTask = Some(context.system.scheduler.scheduleOnce(FiniteDuration(timeout, MILLISECONDS), self, TimerSignal))
+      case SetPendingPingResponse(isPending) =>
+        isPingResponsePending = isPending
       case SendToClient(message) =>
         clientActor ! message
       case SendToNetwork(frame) =>
+        lastSentMessageTimestamp = System.currentTimeMillis()
         val encodedFrame = Codec[Frame].encodeValid(frame)
         connectionActor ! Write(ByteString(encodedFrame.toByteArray))
       case CloseTransport =>
@@ -101,8 +91,7 @@ import scala.concurrent.duration.FiniteDuration
   }
 
   override def postStop(): Unit = {
-    keepAliveTask foreach { _.cancel() }
-    pingResponseTask foreach { _.cancel() }
+    timerTask foreach { _.cancel() }
   }
 }
 

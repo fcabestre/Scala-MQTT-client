@@ -19,17 +19,14 @@ package net.sigusr.mqtt.impl.protocol
 import net.sigusr.mqtt.api.MQTTAPIMessage
 import net.sigusr.mqtt.impl.frames.Frame
 
-import scala.concurrent.duration.FiniteDuration
-
 sealed trait Action
 
 case class Sequence(actions : Seq[Action] = Nil) extends Action
 case class SendToClient(message : MQTTAPIMessage) extends Action
 case class SendToNetwork(frame : Frame) extends Action
 case object CloseTransport extends Action
-case class SetKeepAliveValue(duration : FiniteDuration) extends Action
-case object StartKeepAliveTimer extends Action
-case object StartPingResponseTimer extends Action
-case object CancelPingResponseTimer extends Action
+case class SetKeepAliveValue(timeout : Long) extends Action
+case class StartTimer(timeout : Long) extends Action
+case class SetPendingPingResponse(isPending : Boolean) extends Action
 
 

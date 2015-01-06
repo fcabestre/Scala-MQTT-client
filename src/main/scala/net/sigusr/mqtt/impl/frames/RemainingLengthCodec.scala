@@ -20,7 +20,7 @@ import scodec.bits.{BitVector, _}
 import scodec.codecs._
 import scodec.{Codec, Err}
 
-import scalaz.{-\/, \/-, \/}
+import scalaz.{-\/, \/, \/-}
 
 final class RemainingLengthCodec extends Codec[Int] {
 

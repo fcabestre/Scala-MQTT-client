@@ -24,7 +24,6 @@ import akka.testkit.{ImplicitSender, TestProbe}
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecUtils.SpecsTestKit
 import net.sigusr.mqtt.api._
-import net.sigusr.mqtt.impl.protocol.Transport.PingRespTimeout
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 
@@ -88,7 +87,7 @@ object TransportSpec extends Specification with NoTimeConversions {
             }
             else if (pingReqCount == 1) {
               // What should be the sender here ?
-              sender() ! PingRespTimeout
+//              sender() ! TimerSignal
             }
             pingReqCount += 1
           }

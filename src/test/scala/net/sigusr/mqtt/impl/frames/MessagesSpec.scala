@@ -82,6 +82,16 @@ object MessagesSpec extends Specification {
     }
   }
 
+  "MQTTConnect" should {
+    "Check the range of the keep alive value provided to its constructor" in {
+      import net.sigusr.mqtt.api.MQTTConnect
+      MQTTConnect("Client", keepAlive = -1) should throwA[IllegalArgumentException]
+      MQTTConnect("Client", keepAlive = 0) should not throwA()
+      MQTTConnect("Client", keepAlive = 65635) should not throwA()
+      MQTTConnect("Client", keepAlive = 65636) should throwA[IllegalArgumentException]
+    }
+  }
+
   "MQTTPublish" should {
     "Have a valid combination of QoS and message identifier" in {
       import net.sigusr.mqtt.api.MQTTPublish
