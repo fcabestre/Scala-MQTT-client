@@ -86,6 +86,13 @@ object MessagesSpec extends Specification {
         case MessageIdentifier(i) => i should_=== 42
       }
     }
+
+    "Have a literal syntax" in {
+      mi"42" should_=== MessageIdentifier(42)
+      mi"-1" should throwA[IllegalArgumentException]
+      mi"65536" should throwA[IllegalArgumentException]
+      mi"fortytwo" should throwA[NumberFormatException]
+    }
   }
 
   "MQTTConnect" should {

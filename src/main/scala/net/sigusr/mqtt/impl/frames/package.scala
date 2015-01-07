@@ -34,4 +34,17 @@ package object frames {
   val remainingLengthCodec = new RemainingLengthCodec
   val stringCodec = variableSizeBytes(uint16, utf8)
   val zeroLength = bin"00000000"
+
+  implicit class MessageIdentifierLiteral(val sc: StringContext) extends AnyVal {
+    def mi(args: Any*): MessageIdentifier = {
+      val strings = sc.parts.iterator
+      val expressions = args.iterator
+      val buf = new StringBuffer(strings.next())
+      while (strings.hasNext) {
+        buf append expressions.next
+        buf append strings.next
+      }
+      MessageIdentifier(buf.toString.toInt)
+    }
+  }
 }

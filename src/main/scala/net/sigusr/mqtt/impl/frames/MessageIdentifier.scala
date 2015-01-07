@@ -28,7 +28,8 @@ object MessageIdentifier {
   def checkValue(value : Int): Boolean = value >= 0 && value < 65536
 
   def apply(value : Int): MessageIdentifier = {
-    require(checkValue(value))
+    if (!checkValue(value))
+      throw new IllegalArgumentException("The value of a message identifier must be in the range [0..65535]")
     new MessageIdentifier(value)
   }
 
