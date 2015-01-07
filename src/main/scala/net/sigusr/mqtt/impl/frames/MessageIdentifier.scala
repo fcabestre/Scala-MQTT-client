@@ -16,12 +16,32 @@
 
 package net.sigusr.mqtt.impl.frames
 
+import scodec.{Err, Codec}
+import scodec.bits.BitVector
 import scodec.codecs._
 
-case class MessageIdentifier(identifier : Int) {
-  require(identifier >= 0 && identifier < 65536)
-}
+import scalaz.\/
+
+class MessageIdentifier(val identifier : Int) extends AnyVal
 
 object MessageIdentifier {
-  implicit val messageIdentifierCodec = uint16.as[MessageIdentifier]
+  def checkValue(value : Int): Boolean = value >= 0 && value < 65536
+
+  def apply(value : Int): MessageIdentifier = {
+    require(checkValue(value))
+    new MessageIdentifier(value)
+  }
+
+  def unapply(identifier: MessageIdentifier) : Option[Int] = Some(identifier.identifier)
+
+  implicit val messageIdentifierCodec = new MessageIdentifierCodec
 }
+
+class MessageIdentifierCodec extends Codec[MessageIdentifier] {
+
+  override def decode(bits: BitVector): \/[Err, (BitVector, MessageIdentifier)] =
+    uint16.decode(bits).map((bits : BitVector, int : Int) => (bits, new MessageIdentifier(int)))
+
+  override def encode(value: MessageIdentifier): \/[Err, BitVector] = uint16.encode(value.identifier)
+}
+

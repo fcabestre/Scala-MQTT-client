@@ -26,7 +26,7 @@ package object frames {
   type Topics = Vector[Topic]
 
   def headerDependentMessageIdentifierCodec(header : Header) : Codec[MessageIdentifier] =
-    if (header.qos != AtMostOnce) uint16.as[MessageIdentifier]
+    if (header.qos != AtMostOnce) MessageIdentifier.messageIdentifierCodec
     else provide(MessageIdentifier(0))
 
 

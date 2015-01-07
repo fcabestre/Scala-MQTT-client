@@ -80,6 +80,12 @@ object MessagesSpec extends Specification {
       MessageIdentifier(65535) should not (throwA[IllegalArgumentException])
       MessageIdentifier(65536) should throwA[IllegalArgumentException]
     }
+
+    "Allow pattern matching" in {
+      MessageIdentifier(42) match {
+        case MessageIdentifier(i) => i should_=== 42
+      }
+    }
   }
 
   "MQTTConnect" should {
