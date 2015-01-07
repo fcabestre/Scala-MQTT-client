@@ -90,6 +90,9 @@ object MessagesSpec extends Specification {
     }
 
     "Have a literal syntax" in {
+      val four = 4
+      val two = 2
+      mi"$four$two" should_=== MQTTMessageId(42)
       mi"42" should_=== MQTTMessageId(42)
       mi"-1" should throwA[IllegalArgumentException]
       mi"65536" should throwA[IllegalArgumentException]
