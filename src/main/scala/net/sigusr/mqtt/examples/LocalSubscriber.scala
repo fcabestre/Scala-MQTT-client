@@ -26,7 +26,7 @@ class LocalSubscriber(topics : Vector[String]) extends Actor {
   }
 
   def ready(mqttManager: ActorRef): Receive = {
-    case MQTTSubscribed(1, vQoS) =>
+    case MQTTSubscribed(vQoS, MQTTMessageId(1)) =>
       println("Successfully subscribed to topics:")
       println(topics.mkString(" ", ",\n ", ""))
     case MQTTMessage(`stopTopic`, _) =>

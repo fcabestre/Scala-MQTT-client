@@ -16,7 +16,6 @@
 
 package net.sigusr.mqtt.impl
 
-import scodec.Codec
 import scodec.bits._
 import scodec.codecs._
 
@@ -25,26 +24,8 @@ package object frames {
   type Topic = (String, QualityOfService)
   type Topics = Vector[Topic]
 
-  def headerDependentMessageIdentifierCodec(header : Header) : Codec[MessageIdentifier] =
-    if (header.qos != AtMostOnce) MessageIdentifier.messageIdentifierCodec
-    else provide(MessageIdentifier(0))
-
-
   val qualityOfServiceCodec = new CaseEnumCodec[QualityOfService](uint2)
   val remainingLengthCodec = new RemainingLengthCodec
   val stringCodec = variableSizeBytes(uint16, utf8)
   val zeroLength = bin"00000000"
-
-  implicit class MessageIdentifierLiteral(val sc: StringContext) extends AnyVal {
-    def mi(args: Any*): MessageIdentifier = {
-      val strings = sc.parts.iterator
-      val expressions = args.iterator
-      val buf = new StringBuffer(strings.next())
-      while (strings.hasNext) {
-        buf append expressions.next
-        buf append strings.next
-      }
-      MessageIdentifier(buf.toString.toInt)
-    }
-  }
 }

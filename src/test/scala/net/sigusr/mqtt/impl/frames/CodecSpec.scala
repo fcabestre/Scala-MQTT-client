@@ -155,45 +155,6 @@ object CodecSpec extends Specification {
     }
   }
 
-  "A message identifier codec" should {
-    "Perform encoding of valid inputs at QoS 0" in {
-      val header = Header(dup = false, AtMostOnce, retain = false)
-      val messageIdentifier = mi"10"
-      headerDependentMessageIdentifierCodec(header).encode(messageIdentifier) should succeedWith(bin"")
-    }
-
-    "Perform encoding of valid inputs at QoS 1" in {
-      val header = Header(dup = false, AtLeastOnce, retain = false)
-      val messageIdentifier = mi"10"
-      headerDependentMessageIdentifierCodec(header).encode(messageIdentifier) should succeedWith(bin"0000000000001010")
-    }
-
-    "Perform encoding of valid inputs at QoS 2" in {
-      val header = Header(dup = false, ExactlyOnce, retain = false)
-      val messageIdentifier = mi"10"
-      headerDependentMessageIdentifierCodec(header).encode(messageIdentifier) should succeedWith(bin"0000000000001010")
-    }
-
-    "Perform decoding of valid inputs at Qos 0" in {
-      val header = Header(dup = false, AtMostOnce, retain = false)
-      val res = mi"0"
-      headerDependentMessageIdentifierCodec(header).decode(bin"00000000000000110101") should succeedWith((bin"00000000000000110101", res))
-    }
-
-    "Perform decoding of valid inputs at Qos 1" in {
-      val header = Header(dup = false, AtLeastOnce, retain = false)
-      val res = mi"3"
-      headerDependentMessageIdentifierCodec(header).decode(bin"00000000000000110101") should succeedWith((bin"0101", res))
-    }
-
-    "Perform decoding of valid inputs at Qos 2" in {
-      val header = Header(dup = false, ExactlyOnce, retain = false)
-      val res = mi"3"
-      headerDependentMessageIdentifierCodec(header).decode(bin"00000000000000110101") should succeedWith((bin"0101", res))
-    }
-  }
-
-
   "A topics codec" should {
     "Perform round trip encoding/decoding of a valid input" in {
       import net.sigusr.mqtt.impl.frames.SubscribeFrame._
@@ -205,17 +166,15 @@ object CodecSpec extends Specification {
   "A subscribe codec" should {
     "Perform round trip encoding/decoding of a valid input" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
-      val variableHeader = mi"3"
       val topics = Vector(("topic0", AtMostOnce), ("topic1", AtLeastOnce), ("topic2", ExactlyOnce))
-      val subscribeFrame = SubscribeFrame(header, variableHeader, topics)
+      val subscribeFrame = SubscribeFrame(header, 3, topics)
       Codec[Frame].decode(Codec[Frame].encodeValid(subscribeFrame)) should succeedWith((bin"", subscribeFrame))
     }
 
     "Perform encoding and match a captured value" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
-      val variableHeader = mi"1"
       val topics = Vector(("topic", AtLeastOnce))
-      val subscribeFrame = SubscribeFrame(header, variableHeader, topics)
+      val subscribeFrame = SubscribeFrame(header, 1, topics)
       val capture = BitVector(0x82, 0x0a, 0x00, 0x01, 0x00, 0x05, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x01)
       Codec[Frame].encode(subscribeFrame) should succeedWith(capture)
     }
@@ -224,9 +183,8 @@ object CodecSpec extends Specification {
   "A suback codec" should {
     "Perform round trip encoding/decoding of a valid input" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
-      val variableHeader = mi"3"
       val qos = Vector(AtMostOnce, AtLeastOnce, ExactlyOnce)
-      val subackFrame = SubackFrame(header, variableHeader, qos)
+      val subackFrame = SubackFrame(header, 3, qos)
       Codec[Frame].decode(Codec[Frame].encodeValid(subackFrame)) should succeedWith((bin"", subackFrame))
     }
   }
@@ -234,9 +192,8 @@ object CodecSpec extends Specification {
   "An unsubscribe codec" should {
     "Perform round trip encoding/decoding of a valid input" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
-      val variableHeader = mi"${Random.nextInt(65536)}"
       val topics = Vector("topic0", "topic1")
-      val unsubscribeFrame = UnsubscribeFrame(header, variableHeader, topics)
+      val unsubscribeFrame = UnsubscribeFrame(header, Random.nextInt(65536), topics)
       Codec[Frame].decode(Codec[Frame].encodeValid(unsubscribeFrame)) should succeedWith((bin"", unsubscribeFrame))
     }
   }
@@ -244,8 +201,7 @@ object CodecSpec extends Specification {
   "An unsuback codec" should {
     "Perform round trip encoding/decoding of a valid input" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
-      val variableHeader = mi"${Random.nextInt(65536)}"
-      val unsubackFrame = UnsubackFrame(header, variableHeader)
+      val unsubackFrame = UnsubackFrame(header, Random.nextInt(65536))
       Codec[Frame].decode(Codec[Frame].encodeValid(unsubackFrame)) should succeedWith((bin"", unsubackFrame))
     }
   }
@@ -296,7 +252,7 @@ object CodecSpec extends Specification {
     "Perform round trip encoding/decoding of a valid input with a QoS greater than 0" in {
       val header = Header(dup = false, AtLeastOnce, retain = false)
       val topic = "a/b"
-      val publishFrame = PublishFrame(header, topic, mi"10", ByteVector("Hello world".getBytes))
+      val publishFrame = PublishFrame(header, topic, 10, ByteVector("Hello world".getBytes))
 
       Codec[Frame].decode(Codec[Frame].encodeValid(publishFrame)) should succeedWith((bin"", publishFrame))
     }
@@ -304,7 +260,7 @@ object CodecSpec extends Specification {
     "Perform round trip encoding/decoding of a valid input with a QoS equals to 0" in {
       val header = Header(dup = false, AtMostOnce, retain = false)
       val topic = "a/b"
-      val publishFrame = PublishFrame(header, topic, mi"0", ByteVector("Hello world".getBytes))
+      val publishFrame = PublishFrame(header, topic, 0, ByteVector("Hello world".getBytes))
 
       Codec[Frame].decode(Codec[Frame].encodeValid(publishFrame)) should succeedWith((bin"", publishFrame))
     }

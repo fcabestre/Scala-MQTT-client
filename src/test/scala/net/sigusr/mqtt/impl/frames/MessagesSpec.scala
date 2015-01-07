@@ -16,6 +16,8 @@ package net.sigusr.mqtt.impl.frames
  * limitations under the License.
  */
 
+import net.sigusr.mqtt.api.MQTTMessageId
+import net.sigusr.mqtt.api._
 import org.specs2.mutable._
 import scodec.Err
 
@@ -75,23 +77,30 @@ object MessagesSpec extends Specification {
 
   "MessageIdentifier" should {
     "Check the range of the integer provided to its constructor" in {
-      MessageIdentifier(-1) should throwA[IllegalArgumentException]
-      MessageIdentifier(0) should not (throwA[IllegalArgumentException])
-      MessageIdentifier(65535) should not (throwA[IllegalArgumentException])
-      MessageIdentifier(65536) should throwA[IllegalArgumentException]
+      MQTTMessageId(-1) should throwA[IllegalArgumentException]
+      MQTTMessageId(0) should not (throwA[IllegalArgumentException])
+      MQTTMessageId(65535) should not (throwA[IllegalArgumentException])
+      MQTTMessageId(65536) should throwA[IllegalArgumentException]
     }
 
     "Allow pattern matching" in {
-      MessageIdentifier(42) match {
-        case MessageIdentifier(i) => i should_=== 42
+      MQTTMessageId(42) match {
+        case MQTTMessageId(i) => i should_=== 42
       }
     }
 
     "Have a literal syntax" in {
-      mi"42" should_=== MessageIdentifier(42)
+      mi"42" should_=== MQTTMessageId(42)
       mi"-1" should throwA[IllegalArgumentException]
       mi"65536" should throwA[IllegalArgumentException]
       mi"fortytwo" should throwA[NumberFormatException]
+    }
+
+    "Have a implicit conversion from Int" in {
+      def id(messageIdentifier: MQTTMessageId) : MQTTMessageId = messageIdentifier
+      id(42) should_=== MQTTMessageId(42)
+      id(-1) should throwA[IllegalArgumentException]
+      id(65536) should throwA[IllegalArgumentException]
     }
   }
 

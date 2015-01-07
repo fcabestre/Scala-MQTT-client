@@ -34,13 +34,13 @@ trait Protocol {
       SendToNetwork(DisconnectFrame(header))
     case MQTTPublish(topic, payload, qos, messageId, retain, dup) if qos == AtMostOnce =>
       val header = Header(dup, qos, retain)
-      SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId.getOrElse(0)), ByteVector(payload)))
+      SendToNetwork(PublishFrame(header, topic, messageId.getOrElse(zeroId).identifier, ByteVector(payload)))
     case MQTTPublish(topic, payload, qos, Some(messageId), retain, dup) =>
       val header = Header(dup, qos, retain)
-      SendToNetwork(PublishFrame(header, topic, MessageIdentifier(messageId), ByteVector(payload)))
+      SendToNetwork(PublishFrame(header, topic, messageId.identifier, ByteVector(payload)))
     case MQTTSubscribe(topics, messageId) =>
       val header = Header(dup = false, AtLeastOnce, retain = false)
-      SendToNetwork(SubscribeFrame(header, MessageIdentifier(messageId), topics))
+      SendToNetwork(SubscribeFrame(header, messageId.identifier, topics))
     case m => SendToClient(MQTTWrongClientMessage(m))
   }
 
@@ -52,14 +52,14 @@ trait Protocol {
         SetPendingPingResponse(isPending = false)
       case PublishFrame(header, topic, messageIdentifier, payload) =>
         SendToClient(MQTTMessage(topic, payload.toArray.to[Vector]))
-      case PubackFrame(header, MessageIdentifier(messageId)) =>
+      case PubackFrame(header, messageId) =>
         SendToClient(MQTTPublished(messageId))
       case PubrecFrame(header, messageIdentifier) =>
         SendToNetwork(PubrelFrame(header, messageIdentifier))
-      case PubcompFrame(header, MessageIdentifier(messageId)) =>
+      case PubcompFrame(header, messageId) =>
         SendToClient(MQTTPublished(messageId))
       case SubackFrame(header, messageIdentifier, topicResults) =>
-        SendToClient(MQTTSubscribed(messageIdentifier.identifier, topicResults))
+        SendToClient(MQTTSubscribed(topicResults, messageIdentifier.identifier))
       case _ => Sequence()
     }
   }

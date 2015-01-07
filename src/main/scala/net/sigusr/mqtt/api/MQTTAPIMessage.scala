@@ -37,15 +37,15 @@ case class MQTTConnectionFailure(reason : MQTTConnectionFailureReason) extends M
 case object MQTTDisconnect extends MQTTAPIMessage
 case object MQTTDisconnected extends MQTTAPIMessage
 case class MQTTWrongClientMessage(message : MQTTAPIMessage) extends MQTTAPIMessage
-case class MQTTPublish(topic: String, payload: Vector[Byte], qos: QualityOfService = AtMostOnce, messageExchangeId: Option[Int] = None, dup : Boolean = false, retain: Boolean = false) extends MQTTAPIMessage {
+case class MQTTPublish(topic: String, payload: Vector[Byte], qos: QualityOfService = AtMostOnce, messageExchangeId: Option[MQTTMessageId] = None, dup : Boolean = false, retain: Boolean = false) extends MQTTAPIMessage {
   require(qos == AtMostOnce || messageExchangeId.isDefined)
 }
-case class MQTTPublished(messageExchangeId: Int) extends MQTTAPIMessage
-case class MQTTSubscribe(topics: Vector[(String, QualityOfService)], messageExchangeId: Int) extends MQTTAPIMessage
-case class MQTTSubscribed(messageExchangeId: Int, topicResults : Vector[QualityOfService]) extends MQTTAPIMessage
+case class MQTTPublished(messageExchangeId: MQTTMessageId) extends MQTTAPIMessage
+case class MQTTSubscribe(topics: Vector[(String, QualityOfService)], messageExchangeId: MQTTMessageId) extends MQTTAPIMessage
+case class MQTTSubscribed(topicResults: Vector[QualityOfService], messageExchangeId: MQTTMessageId) extends MQTTAPIMessage
+case class MQTTUnsubscribe(topics : Vector[String], messageExchangeId: MQTTMessageId)
+case class MQTTUnsubscribed(messageExchangeId: MQTTMessageId)
 case class MQTTMessage(topic: String, payload: Vector[Byte]) extends MQTTAPIMessage
-case class MQTTUnsubscribe(topics : Vector[String], messageExchangeId: Int)
-case class MQTTUnsubscribed(messageExchangeId: Int)
 
 sealed trait MQTTConnectionFailureReason
 case object BadProtocolVersion extends MQTTConnectionFailureReason

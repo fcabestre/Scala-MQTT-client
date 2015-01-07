@@ -19,14 +19,14 @@ package net.sigusr.mqtt.impl.protocol
 import net.sigusr.mqtt.api.MQTTAPIMessage
 import net.sigusr.mqtt.impl.frames.Frame
 
-sealed trait Action
+private [protocol] sealed trait Action
 
-case class Sequence(actions : Seq[Action] = Nil) extends Action
-case class SendToClient(message : MQTTAPIMessage) extends Action
-case class SendToNetwork(frame : Frame) extends Action
-case object CloseTransport extends Action
-case class SetKeepAliveValue(timeout : Long) extends Action
-case class StartTimer(timeout : Long) extends Action
-case class SetPendingPingResponse(isPending : Boolean) extends Action
+private [protocol] case class Sequence(actions : Seq[Action] = Nil) extends Action
+private [protocol] case class SendToClient(message : MQTTAPIMessage) extends Action
+private [protocol] case class SendToNetwork(frame : Frame) extends Action
+private [protocol] case object CloseTransport extends Action
+private [protocol] case class SetKeepAliveValue(timeout : Long) extends Action
+private [protocol] case class StartTimer(timeout : Long) extends Action
+private [protocol] case class SetPendingPingResponse(isPending : Boolean) extends Action
 
 

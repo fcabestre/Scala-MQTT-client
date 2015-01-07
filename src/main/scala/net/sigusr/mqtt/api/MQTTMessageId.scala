@@ -14,35 +14,19 @@
  * limitations under the License.
  */
 
-package net.sigusr.mqtt.impl.frames
+package net.sigusr.mqtt.api
 
-import scodec.{Err, Codec}
-import scodec.bits.BitVector
-import scodec.codecs._
+class MQTTMessageId(val identifier : Int) extends AnyVal
 
-import scalaz.\/
+object MQTTMessageId {
 
-class MessageIdentifier(val identifier : Int) extends AnyVal
-
-object MessageIdentifier {
   def checkValue(value : Int): Boolean = value >= 0 && value < 65536
 
-  def apply(value : Int): MessageIdentifier = {
+  def apply(value : Int): MQTTMessageId = {
     if (!checkValue(value))
       throw new IllegalArgumentException("The value of a message identifier must be in the range [0..65535]")
-    new MessageIdentifier(value)
+    new MQTTMessageId(value)
   }
 
-  def unapply(identifier: MessageIdentifier) : Option[Int] = Some(identifier.identifier)
-
-  implicit val messageIdentifierCodec = new MessageIdentifierCodec
+  def unapply(identifier: MQTTMessageId) : Option[Int] = Some(identifier.identifier)
 }
-
-class MessageIdentifierCodec extends Codec[MessageIdentifier] {
-
-  override def decode(bits: BitVector): \/[Err, (BitVector, MessageIdentifier)] =
-    uint16.decode(bits).map((bits : BitVector, int : Int) => (bits, new MessageIdentifier(int)))
-
-  override def encode(value: MessageIdentifier): \/[Err, BitVector] = uint16.encode(value.identifier)
-}
-

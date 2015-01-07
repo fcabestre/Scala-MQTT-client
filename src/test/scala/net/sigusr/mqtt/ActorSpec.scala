@@ -31,7 +31,7 @@ import scala.concurrent.duration._
 
 object ActorSpec extends Specification with NoTimeConversions {
 
-//  args(skipAll = true)
+  args(skipAll = true)
   sequential
 
   val brokerHost = "localhost"
@@ -104,7 +104,7 @@ object ActorSpec extends Specification with NoTimeConversions {
 
       mqttManager ! MQTTSubscribe(Vector(("topic0", AtMostOnce), ("topic1", AtLeastOnce), ("topic2", ExactlyOnce)), 42)
 
-      receiveOne(1 seconds) should be_==(MQTTSubscribed(42, Vector(AtMostOnce, AtLeastOnce, ExactlyOnce)))
+      receiveOne(1 seconds) should be_==(MQTTSubscribed(Vector(AtMostOnce, AtLeastOnce, ExactlyOnce), 42))
 
       mqttManager ! MQTTDisconnect
 

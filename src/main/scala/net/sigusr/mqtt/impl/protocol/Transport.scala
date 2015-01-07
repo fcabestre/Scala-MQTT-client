@@ -70,7 +70,7 @@ abstract class TCPTransport(mqttBrokerAddress: InetSocketAddress) extends Actor 
       context stop self
   }
 
-  def processAction(action: Action, clientActor : ActorRef, connectionActor : ActorRef) : Unit = {
+  private def processAction(action: Action, clientActor : ActorRef, connectionActor : ActorRef) : Unit = {
     action match {
       case Sequence(actions) => actions foreach { (action : Action) => processAction(action, clientActor, connectionActor) }
       case SetKeepAliveValue(duration) =>

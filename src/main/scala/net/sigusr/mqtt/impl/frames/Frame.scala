@@ -19,7 +19,6 @@ package net.sigusr.mqtt.impl.frames
 import net.sigusr.mqtt.impl.frames.ConnackVariableHeader._
 import net.sigusr.mqtt.impl.frames.ConnectVariableHeader._
 import net.sigusr.mqtt.impl.frames.Header._
-import net.sigusr.mqtt.impl.frames.MessageIdentifier._
 import scodec.Codec
 import scodec.bits.ByteVector
 import scodec.codecs._
@@ -36,15 +35,15 @@ case class ConnectFrame(header : Header, variableHeader: ConnectVariableHeader,
                         password: Option[String]) extends Frame
 
 case class ConnackFrame(header : Header, connackVariableHeader: ConnackVariableHeader) extends Frame
-case class PublishFrame(header: Header, topic: String, messageIdentifier: MessageIdentifier, payload: ByteVector) extends Frame
-case class PubackFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
-case class PubrecFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
-case class PubrelFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
-case class PubcompFrame(header: Header, messageIdentifier: MessageIdentifier) extends Frame
-case class SubscribeFrame(header : Header, messageIdentifier : MessageIdentifier, topics : Vector[(String, QualityOfService)]) extends Frame
-case class SubackFrame(header : Header, messageIdentifier : MessageIdentifier, topics : Vector[QualityOfService]) extends Frame
-case class UnsubscribeFrame(header : Header, messageIdentifier: MessageIdentifier, topics: Vector[String]) extends Frame
-case class UnsubackFrame(header : Header, messageIdentifier: MessageIdentifier) extends Frame
+case class PublishFrame(header: Header, topic: String, messageIdentifier: Int, payload: ByteVector) extends Frame
+case class PubackFrame(header: Header, messageIdentifier: Int) extends Frame
+case class PubrecFrame(header: Header, messageIdentifier: Int) extends Frame
+case class PubrelFrame(header: Header, messageIdentifier: Int) extends Frame
+case class PubcompFrame(header: Header, messageIdentifier: Int) extends Frame
+case class SubscribeFrame(header : Header, messageIdentifier : Int, topics : Vector[(String, QualityOfService)]) extends Frame
+case class SubackFrame(header : Header, messageIdentifier : Int, topics : Vector[QualityOfService]) extends Frame
+case class UnsubscribeFrame(header : Header, messageIdentifier: Int, topics: Vector[String]) extends Frame
+case class UnsubackFrame(header : Header, messageIdentifier: Int) extends Frame
 case class PingReqFrame(header : Header) extends Frame
 case class PingRespFrame(header : Header) extends Frame
 case class DisconnectFrame(header : Header) extends Frame
@@ -76,51 +75,51 @@ object ConnackFrame {
 object PublishFrame {
   implicit val discriminator : Discriminator[Frame, PublishFrame, Int] = Discriminator(3)
   implicit val codec: Codec[PublishFrame] = (headerCodec >>:~ {
-    (hdr : Header) => variableSizeBytes(remainingLengthCodec, stringCodec :: headerDependentMessageIdentifierCodec(hdr) :: bytes)
+    (hdr : Header) => variableSizeBytes(remainingLengthCodec, stringCodec :: (if (hdr.qos != AtMostOnce) uint16 else provide(0)) :: bytes)
   }).as[PublishFrame]
 }
 
 object PubackFrame {
   implicit val discriminator : Discriminator[Frame, PubackFrame, Int] = Discriminator(4)
-  implicit val codec: Codec[PubackFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec)).as[PubackFrame]
+  implicit val codec: Codec[PubackFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, uint16)).as[PubackFrame]
 }
 
 object PubrecFrame {
   implicit val discriminator: Discriminator[Frame, PubrecFrame, Int] = Discriminator(5)
-  implicit val codec: Codec[PubrecFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec)).as[PubrecFrame]
+  implicit val codec: Codec[PubrecFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, uint16)).as[PubrecFrame]
 }
 
 object PubrelFrame {
   implicit val discriminator: Discriminator[Frame, PubrelFrame, Int] = Discriminator(6)
-  implicit val codec: Codec[PubrelFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec)).as[PubrelFrame]
+  implicit val codec: Codec[PubrelFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, uint16)).as[PubrelFrame]
 }
 
 object PubcompFrame {
   implicit val discriminator: Discriminator[Frame, PubcompFrame, Int] = Discriminator(7)
-  implicit val codec: Codec[PubcompFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec)).as[PubcompFrame]
+  implicit val codec: Codec[PubcompFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, uint16)).as[PubcompFrame]
 }
 
 object SubscribeFrame {
   implicit val discriminator : Discriminator[Frame, SubscribeFrame, Int] = Discriminator(8)
   val topicCodec : Codec[Topic] = (stringCodec :: ignore(6) :: qualityOfServiceCodec).dropUnits.as[Topic]
   implicit val topicsCodec : Codec[Topics] = vector(topicCodec)
-  implicit val codec : Codec[SubscribeFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec :: topicsCodec)).as[SubscribeFrame]
+  implicit val codec : Codec[SubscribeFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, uint16 :: topicsCodec)).as[SubscribeFrame]
 }
 
 object SubackFrame {
   implicit val discriminator : Discriminator[Frame, SubackFrame, Int] = Discriminator(9)
   implicit val qosCodec : Codec[Vector[QualityOfService]] = vector(ignore(6).dropLeft(qualityOfServiceCodec))
-  implicit val codec : Codec[SubackFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec :: qosCodec)).as[SubackFrame]
+  implicit val codec : Codec[SubackFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, uint16 :: qosCodec)).as[SubackFrame]
 }
 
 object UnsubscribeFrame {
   implicit val discriminator : Discriminator[Frame, UnsubscribeFrame, Int] = Discriminator(10)
-  implicit val codec : Codec[UnsubscribeFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec :: vector(stringCodec))).as[UnsubscribeFrame]
+  implicit val codec : Codec[UnsubscribeFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, uint16 :: vector(stringCodec))).as[UnsubscribeFrame]
 }
 
 object UnsubackFrame {
   implicit val discriminator : Discriminator[Frame, UnsubackFrame, Int] = Discriminator(11)
-  implicit val codec : Codec[UnsubackFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdentifierCodec)).as[UnsubackFrame]
+  implicit val codec : Codec[UnsubackFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, uint16)).as[UnsubackFrame]
 }
 
 object PingReqFrame {
