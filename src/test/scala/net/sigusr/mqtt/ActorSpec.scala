@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 
 object ActorSpec extends Specification with NoTimeConversions {
 
-//  args(skipAll = true)
+  args(skipAll = true)
   sequential
 
   val brokerHost = "localhost"
