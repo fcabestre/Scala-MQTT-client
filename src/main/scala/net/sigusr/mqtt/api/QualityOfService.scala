@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package net.sigusr.mqtt.impl.frames
-
-import scodec.Err
+package net.sigusr.mqtt.api
 
 import scala.annotation.switch
-import scalaz.\/
 
 sealed trait QualityOfService extends CaseEnum
 
@@ -28,14 +25,11 @@ object AtLeastOnce extends QualityOfService { val enum = 1 }
 object ExactlyOnce extends QualityOfService { val enum = 2 }
 
 object QualityOfService {
-
-  import scala.language.implicitConversions
-
-  implicit def fromEnum(enum : Int): \/[Err, QualityOfService] =
+  def fromEnum(enum : Int): QualityOfService =
     (enum: @switch) match {
-      case 0 => \/.right(AtMostOnce)
-      case 1 => \/.right(AtLeastOnce)
-      case 2 => \/.right(ExactlyOnce)
-      case _ => \/.left(Err("Quality of service encoded value should be in the range [0..2]"))
+      case 0 => AtMostOnce
+      case 1 => AtLeastOnce
+      case 2 => ExactlyOnce
+      case _ => throw new IllegalArgumentException("Quality of service encoded value should be in the range [0..2]")
     }
 }

@@ -16,10 +16,8 @@ package net.sigusr.mqtt.impl.frames
  * limitations under the License.
  */
 
-import net.sigusr.mqtt.api.MQTTMessageId
-import net.sigusr.mqtt.api._
+import net.sigusr.mqtt.api.{MQTTMessageId, _}
 import org.specs2.mutable._
-import scodec.Err
 
 object MessagesSpec extends Specification {
 
@@ -31,47 +29,45 @@ object MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import net.sigusr.mqtt.SpecUtils._
-      import net.sigusr.mqtt.impl.frames.QualityOfService._
+      import net.sigusr.mqtt.api.QualityOfService._
 
-      fromEnum(-1) should failWith(Err("Quality of service encoded value should be in the range [0..2]"))
-      fromEnum(0) should succeedWith(AtMostOnce)
-      fromEnum(1) should succeedWith(AtLeastOnce)
-      fromEnum(2) should succeedWith(ExactlyOnce)
-      fromEnum(3) should failWith(Err("Quality of service encoded value should be in the range [0..2]"))
+      fromEnum(-1) should throwA[IllegalArgumentException]
+      fromEnum(0) should_=== AtMostOnce
+      fromEnum(1) should_=== AtLeastOnce
+      fromEnum(2) should_=== ExactlyOnce
+      fromEnum(3) should throwA[IllegalArgumentException]
     }
   }
 
   "Connect variable header" should {
     "Have a valid keep alive timer" in {
-      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce, willRetain = false, passwordFlag = false, userNameFlag = true, keepAliveTimer = -1)  should throwA[IllegalArgumentException]
-      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce, willRetain = false, passwordFlag = false, userNameFlag = true, keepAliveTimer = 65536)  should throwA[IllegalArgumentException]
+      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce.enum, willRetain = false, passwordFlag = false, userNameFlag = true, keepAliveTimer = -1)  should throwA[IllegalArgumentException]
+      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce.enum, willRetain = false, passwordFlag = false, userNameFlag = true, keepAliveTimer = 65536)  should throwA[IllegalArgumentException]
     }
     "Have a valid combination of username and password flags" in {
-      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce, willRetain = false, passwordFlag = true, userNameFlag = false, keepAliveTimer = 0)  should throwA[IllegalArgumentException]
+      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce.enum, willRetain = false, passwordFlag = true, userNameFlag = false, keepAliveTimer = 0)  should throwA[IllegalArgumentException]
     }
   }
 
-  "Connack return code" should {
+  "Connect failure reason" should {
     "Provide their «enum» value" in {
-      ConnectionAccepted.enum should be_==(0)
-      ConnectionRefused2.enum should be_==(2)
-      ConnectionRefused4.enum should be_==(4)
-      ConnectionRefused5.enum should be_==(5)
+      BadProtocolVersion.enum should be_==(1)
+      IdentifierRejected.enum should be_==(2)
+      ServerUnavailable.enum should be_==(3)
+      BadUserNameOrPassword.enum should be_==(4)
+      NotAuthorized.enum should be_==(5)
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import net.sigusr.mqtt.SpecUtils._
-      import net.sigusr.mqtt.impl.frames.ConnectReturnCode._
+      import net.sigusr.mqtt.api.MQTTConnectionFailureReason._
 
-      fromEnum(-1) should failWith(Err("Connect return code encoded value should be in the range [0..5]"))
-      fromEnum(0) should succeedWith(ConnectionAccepted)
-      fromEnum(1) should succeedWith(ConnectionRefused1)
-      fromEnum(2) should succeedWith(ConnectionRefused2)
-      fromEnum(3) should succeedWith(ConnectionRefused3)
-      fromEnum(4) should succeedWith(ConnectionRefused4)
-      fromEnum(5) should succeedWith(ConnectionRefused5)
-      fromEnum(6) should failWith(Err("Connect return code encoded value should be in the range [0..5]"))
+      fromEnum(0) should throwA[IllegalArgumentException]
+      fromEnum(1) should_=== BadProtocolVersion
+      fromEnum(2) should_=== IdentifierRejected
+      fromEnum(3) should_=== ServerUnavailable
+      fromEnum(4) should_=== BadUserNameOrPassword
+      fromEnum(5) should_=== NotAuthorized
+      fromEnum(6) should throwA[IllegalArgumentException]
     }
   }
 

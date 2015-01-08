@@ -6,7 +6,6 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
 import net.sigusr.mqtt.api._
-import net.sigusr.mqtt.impl.frames.AtMostOnce
 
 class LocalSubscriber(topics : Vector[String]) extends Actor {
 

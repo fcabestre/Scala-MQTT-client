@@ -22,7 +22,7 @@ import scodec.codecs._
 case class ConnectVariableHeader(userNameFlag: Boolean,
                                  passwordFlag: Boolean,
                                  willRetain: Boolean,
-                                 willQoS: QualityOfService,
+                                 willQoS: Int,
                                  willFlag: Boolean,
                                  cleanSession: Boolean,
                                  keepAliveTimer: Int) {
@@ -40,7 +40,7 @@ object ConnectVariableHeader {
       bool ::
       bool ::
       bool ::
-      qualityOfServiceCodec ::
+      uint2 ::
       bool ::
       bool ::
       ignore(1) :~>:

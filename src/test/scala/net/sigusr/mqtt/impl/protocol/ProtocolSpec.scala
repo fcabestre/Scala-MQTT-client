@@ -55,8 +55,8 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val user = Some("user")
       val password = Some("password")
       val input = MQTTConnect(clientId, keepAlive, cleanSession, topic, message, user, password)
-      val header = Header(dup = false, AtMostOnce, retain = false)
-      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce, willFlag = false, cleanSession, keepAlive)
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = false, cleanSession, keepAlive)
       val result =Sequence(Seq(
         SetKeepAliveValue(keepAlive * 1000),
         SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
@@ -65,18 +65,19 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
     "Define the action to perform to handle a MQTTDisconnect API message" in {
       val input = MQTTDisconnect
-      val header = Header(dup = false, AtMostOnce, retain = false)
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
       SendToNetwork(DisconnectFrame(header))
       val result = SendToNetwork(DisconnectFrame(header))
       handleApiMessages(input) should_== result
     }
 
     "Define the action to perform to handle a MQTTSubscribe API message" in {
-      val topics = Vector(("topic0", AtMostOnce), ("topic1", ExactlyOnce), ("topic2", AtLeastOnce))
+      val topicsInput = Vector(("topic0", AtMostOnce), ("topic1", ExactlyOnce), ("topic2", AtLeastOnce))
       val messageId = Random.nextInt(65535)
-      val input = MQTTSubscribe(topics, messageId)
-      val header = Header(dup = false, AtLeastOnce, retain = false)
-      val result = SendToNetwork(SubscribeFrame(header, messageId, topics))
+      val input = MQTTSubscribe(topicsInput, messageId)
+      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val topicsResult = Vector(("topic0", AtMostOnce.enum), ("topic1", ExactlyOnce.enum), ("topic2", AtLeastOnce.enum))
+      val result = SendToNetwork(SubscribeFrame(header, messageId, topicsResult))
       handleApiMessages(input) should_== result
     }
 
@@ -87,7 +88,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val payload = makeRandomByteVector(48)
       val messageId = Random.nextInt(65535)
       val input = MQTTPublish(topic, payload, qos, Some(messageId), retain, retain = true)
-      val header = Header(dup = true, qos, retain)
+      val header = Header(dup = true, qos.enum, retain)
       val result = SendToNetwork(PublishFrame(header, topic, messageId, ByteVector(payload)))
       handleApiMessages(input) should_== result
     }
@@ -99,7 +100,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val payload = makeRandomByteVector(32)
       val messageId = Random.nextInt(65535)
       val input = MQTTPublish(topic, payload, qos, Some(messageId), retain)
-      val header = Header(dup = false, qos, retain)
+      val header = Header(dup = false, qos.enum, retain)
       val result = SendToNetwork(PublishFrame(header, topic, messageId, ByteVector(payload)))
       handleApiMessages(input) should_== result
     }
@@ -121,7 +122,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val result = Sequence(Seq(
         SetPendingPingResponse(isPending = true),
         StartTimer(30000),
-        SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce, retain = false)))))
+        SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))))
       timerSignal(120029001, 30000, 120000000, isPingResponsePending = false) should_== result
     }
 
@@ -134,29 +135,36 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
   "The handleNetworkFrames() function" should {
 
     "Provide no actions when the frame should not be handled" in {
-      val header = Header(dup = false, AtLeastOnce, retain = false)
+      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val input = PingReqFrame(header)
       val result = Sequence()
       handleNetworkFrames(input, 30000) should_== result
     }
 
-    "Define the actions to perform to handle a ConnackFrame" in {
-      val header = Header(dup = false, AtLeastOnce, retain = false)
-      val connackVariableHeader = ConnackVariableHeader(ConnectionRefused4)
-      val input = ConnackFrame(header, connackVariableHeader)
+    "Define the actions to perform to handle a ConnackFrame (successful connection)" in {
+      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val input = ConnackFrame(header, 0)
       val result = Sequence(Seq(StartTimer(30000), SendToClient(MQTTConnected)))
       handleNetworkFrames(input, 30000) should_== result
     }
 
+    "Define the actions to perform to handle a ConnackFrame (failed connection)" in {
+      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val reason = BadUserNameOrPassword
+      val input = ConnackFrame(header, reason.enum)
+      val result = SendToClient(MQTTConnectionFailure(reason))
+      handleNetworkFrames(input, 30000) should_== result
+    }
+
     "Define the actions to perform to handle a PingRespFrame" in {
-      val header = Header(dup = false, AtLeastOnce, retain = false)
+      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val input = PingRespFrame(header)
       val result = SetPendingPingResponse(isPending = false)
       handleNetworkFrames(input, 30000) should_== result
     }
 
     "Define the actions to perform to handle a PublishFrame" in {
-      val header = Header(dup = false, AtLeastOnce, retain = false)
+      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val topic = "topic"
       val payload = makeRandomByteVector(64)
       val input = PublishFrame(header, topic, Random.nextInt(65535), ByteVector(payload))
@@ -165,7 +173,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
     }
 
     "Define the actions to perform to handle a PubackFrame" in {
-      val header = Header(dup = false, AtMostOnce, retain = false)
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val messageId = Random.nextInt(65535)
       val input = PubackFrame(header, messageId)
       val result = SendToClient(MQTTPublished(messageId))
@@ -173,7 +181,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
     }
 
     "Define the actions to perform to handle a PubrecFrame" in {
-      val header = Header(dup = false, AtMostOnce, retain = false)
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val messageId = Random.nextInt(65535)
       val input = PubrecFrame(header, messageId)
       val result = SendToNetwork(PubrelFrame(header, messageId))
@@ -181,7 +189,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
     }
 
     "Define the actions to perform to handle a PubcompFrame" in {
-      val header = Header(dup = false, AtMostOnce, retain = false)
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val messageId = Random.nextInt(65535)
       val input = PubcompFrame(header, messageId)
       val result = SendToClient(MQTTPublished(messageId))
@@ -189,11 +197,12 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
     }
 
     "Define the actions to perform to handle a SubackFrame" in {
-      val header = Header(dup = false, AtMostOnce, retain = false)
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val messageId = Random.nextInt(65535)
-      val qos = Vector[QualityOfService](AtLeastOnce, ExactlyOnce)
-      val input = SubackFrame(header, messageId, qos)
-      val result = SendToClient(MQTTSubscribed(qos, messageId))
+      val qosInput = Vector(AtLeastOnce.enum, ExactlyOnce.enum)
+      val qosResult = Vector(AtLeastOnce, ExactlyOnce)
+      val input = SubackFrame(header, messageId, qosInput)
+      val result = SendToClient(MQTTSubscribed(qosResult, messageId))
       handleNetworkFrames(input, 30000) should_== result
     }
   }

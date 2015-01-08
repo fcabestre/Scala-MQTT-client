@@ -85,10 +85,6 @@ object TransportSpec extends Specification with NoTimeConversions {
             if (pingReqCount == 0) {
               sender() ! Received(pingRespFrame)
             }
-            else if (pingReqCount == 1) {
-              // What should be the sender here ?
-//              sender() ! TimerSignal
-            }
             pingReqCount += 1
           }
       }
