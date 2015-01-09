@@ -1,5 +1,3 @@
-package net.sigusr.mqtt.impl.frames
-
 /*
  * Copyright 2014 Frédéric Cabestre
  *
@@ -15,6 +13,8 @@ package net.sigusr.mqtt.impl.frames
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package net.sigusr.mqtt.impl.frames
 
 import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._

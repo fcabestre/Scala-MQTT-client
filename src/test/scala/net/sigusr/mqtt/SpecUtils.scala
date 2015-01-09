@@ -1,5 +1,3 @@
-package net.sigusr.mqtt
-
 /*
  * Copyright 2014 Frédéric Cabestre
  *
@@ -15,6 +13,8 @@ package net.sigusr.mqtt
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package net.sigusr.mqtt
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}

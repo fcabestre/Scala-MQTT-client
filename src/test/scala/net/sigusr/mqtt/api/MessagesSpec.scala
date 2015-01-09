@@ -1,5 +1,3 @@
-package net.sigusr.mqtt.impl.frames
-
 /*
  * Copyright 2014 Frédéric Cabestre
  *
@@ -16,7 +14,8 @@ package net.sigusr.mqtt.impl.frames
  * limitations under the License.
  */
 
-import net.sigusr.mqtt.api._
+package net.sigusr.mqtt.api
+
 import org.specs2.mutable._
 
 object MessagesSpec extends Specification {
@@ -36,16 +35,6 @@ object MessagesSpec extends Specification {
       fromEnum(1) should_=== AtLeastOnce
       fromEnum(2) should_=== ExactlyOnce
       fromEnum(3) should throwA[IllegalArgumentException]
-    }
-  }
-
-  "Connect variable header" should {
-    "Have a valid keep alive timer" in {
-      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce.enum, willRetain = false, passwordFlag = false, userNameFlag = true, keepAliveTimer = -1)  should throwA[IllegalArgumentException]
-      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce.enum, willRetain = false, passwordFlag = false, userNameFlag = true, keepAliveTimer = 65536)  should throwA[IllegalArgumentException]
-    }
-    "Have a valid combination of username and password flags" in {
-      ConnectVariableHeader(cleanSession = true, willFlag = true, willQoS = AtMostOnce.enum, willRetain = false, passwordFlag = true, userNameFlag = false, keepAliveTimer = 0)  should throwA[IllegalArgumentException]
     }
   }
 
@@ -103,9 +92,8 @@ object MessagesSpec extends Specification {
     }
   }
 
-  "MQTTConnect" should {
+  "Connect" should {
     "Check the range of the keep alive value provided to its constructor" in {
-      import net.sigusr.mqtt.api.Connect
       Connect("Client", keepAlive = -1) should throwA[IllegalArgumentException]
       Connect("Client", keepAlive = 0) should not throwA()
       Connect("Client", keepAlive = 65635) should not throwA()
@@ -113,9 +101,8 @@ object MessagesSpec extends Specification {
     }
   }
 
-  "MQTTPublish" should {
+  "Publish" should {
     "Have a valid combination of QoS and message identifier" in {
-      import net.sigusr.mqtt.api.Publish
       Publish("topic", Vector(0x00), AtMostOnce) should not throwA()
       Publish("topic", Vector(0x00), AtLeastOnce) should throwA[IllegalArgumentException]
       Publish("topic", Vector(0x00), AtLeastOnce, Some(1)) should not throwA()
