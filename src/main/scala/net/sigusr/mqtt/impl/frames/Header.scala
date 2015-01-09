@@ -16,7 +16,6 @@
 
 package net.sigusr.mqtt.impl.frames
 
-import net.sigusr.mqtt.api.QualityOfService
 import scodec.codecs._
 
 case class Header(dup : Boolean, qos : Int, retain : Boolean)

@@ -138,14 +138,22 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val input = PingReqFrame(header)
       val result = Sequence()
-      handleNetworkFrames(input, 30000) should_== result
+      handleNetworkFrames(input, keepAliveValue = 30000) should_== result
     }
 
-    "Define the actions to perform to handle a ConnackFrame (successful connection)" in {
+    "Define the actions to perform to handle a ConnackFrame on a successful connection with keep alive greater than 0" in {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val input = ConnackFrame(header, 0)
-      val result = Sequence(Seq(StartTimer(30000), SendToClient(MQTTConnected)))
-      handleNetworkFrames(input, 30000) should_== result
+      val keepAliveValue = 30000
+      val result = Sequence(Seq(StartTimer(keepAliveValue), SendToClient(MQTTConnected)))
+      handleNetworkFrames(input, keepAliveValue) should_== result
+    }
+
+    "Define the actions to perform to handle a ConnackFrame on a successful connection with keep alive equal to 0" in {
+      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val input = ConnackFrame(header, 0)
+      val result = SendToClient(MQTTConnected)
+      handleNetworkFrames(input, 0) should_== result
     }
 
     "Define the actions to perform to handle a ConnackFrame (failed connection)" in {

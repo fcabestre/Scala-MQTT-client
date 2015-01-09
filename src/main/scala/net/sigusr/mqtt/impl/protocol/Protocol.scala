@@ -47,7 +47,8 @@ trait Protocol {
   private[protocol] def handleNetworkFrames(frame : Frame, keepAliveValue : Long) : Action = {
     frame match {
       case ConnackFrame(header, 0) =>
-        Sequence(Seq(StartTimer(keepAliveValue), SendToClient(MQTTConnected)))
+        if (keepAliveValue == 0) SendToClient(MQTTConnected)
+        else Sequence(Seq(StartTimer(keepAliveValue), SendToClient(MQTTConnected)))
       case ConnackFrame(header, returnCode) => SendToClient(MQTTConnectionFailure(MQTTConnectionFailureReason.fromEnum(returnCode)))
       case PingRespFrame(header) =>
         SetPendingPingResponse(isPending = false)

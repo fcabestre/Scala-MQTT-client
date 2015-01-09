@@ -47,6 +47,11 @@ case class PingReqFrame(header : Header) extends Frame
 case class PingRespFrame(header : Header) extends Frame
 case class DisconnectFrame(header : Header) extends Frame
 
+object Frame {
+  implicit val discriminated : Discriminated[Frame, Int] = Discriminated(uint4)
+  implicit val frameCodec = Codec.coproduct[Frame].auto
+}
+
 object ConnectFrame {
   implicit val discriminator : Discriminator[Frame, ConnectFrame, Int] = Discriminator(1)
   implicit val codec: Codec[ConnectFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec,
@@ -58,11 +63,6 @@ object ConnectFrame {
         conditional(hdr.passwordFlag, stringCodec)
     })).as[ConnectFrame]
 
-}
-
-object Frame {
-  implicit val discriminated : Discriminated[Frame, Int] = Discriminated(uint4)
-  implicit val frameCodec = Codec.coproduct[Frame].auto
 }
 
 object ConnackFrame {
