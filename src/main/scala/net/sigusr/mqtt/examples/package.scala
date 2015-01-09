@@ -17,5 +17,6 @@
 package net.sigusr.mqtt
 
 package object examples {
-  val actorName: String = "Local-Subscriber"
+  val localSubscriber: String = "Local-Subscriber"
+  val localPublisher: String = "Local-Publisher"
 }

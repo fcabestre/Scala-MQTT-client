@@ -22,43 +22,44 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
 import net.sigusr.mqtt.api._
 
-class LocalSubscriber(topics : Vector[String]) extends Actor {
+import scala.concurrent.duration.{FiniteDuration, _}
+import scala.util.Random
 
-  val stopTopic: String = s"$localSubscriber/stop"
+class LocalPublisher(toPublish : Vector[String]) extends Actor {
+
+  import context.dispatcher
 
   context.actorOf(Manager.props(new InetSocketAddress(1883)))
+
+  val length = toPublish.length
+
+  def scheduleRandomMessage() = {
+    val message = toPublish(Random.nextInt(length))
+    context.system.scheduler.scheduleOnce(FiniteDuration(Random.nextInt(2000) + 1000, MILLISECONDS), self, message)
+  }
 
   def receive: Receive = {
     case Ready =>
       sender() ! Connect(localSubscriber)
     case Connected =>
       println("Successfully connected to localhost:1883")
-      sender() ! Subscribe((stopTopic +: topics) zip Vector.fill(topics.length + 1) {AtMostOnce}, 1)
+      println(s"Ready to publish to topic [ $localPublisher ]")
+      scheduleRandomMessage()
       context become ready(sender())
     case ConnectionFailure(reason) =>
       println(s"Connection to localhost:1883 failed [$reason]")
   }
 
   def ready(mqttManager: ActorRef): Receive = {
-    case Subscribed(vQoS, MessageId(1)) =>
-      println("Successfully subscribed to topics:")
-      println(topics.mkString(" ", ",\n ", ""))
-    case Message(`stopTopic`, _) =>
-      mqttManager ! Disconnect
-      context become disconnecting
-    case Message(topic, payload) =>
-      val message = new String(payload.to[Array], "UTF-8")
-      println(s"[$topic] $message")
+    case m : String =>
+      println(s"Publishing [ $m ]")
+      mqttManager ! Publish(localPublisher, m.getBytes("UTF-8").to[Vector])
+      scheduleRandomMessage()
   }
 
-  def disconnecting(): Receive = {
-    case Disconnected =>
-      println("Disconnected from localhost:1883")
-      LocalSubscriber.shutdown()
-  }
 }
 
-object LocalSubscriber {
+object LocalPublisher {
 
   val config =
     """akka {
@@ -72,16 +73,19 @@ object LocalSubscriber {
          }
        }
     """
-  val system = ActorSystem(localSubscriber, ConfigFactory.parseString(config))
+
+  val system = ActorSystem(localPublisher, ConfigFactory.parseString(config))
 
   def shutdown(): Unit = {
     system.shutdown()
-    println(s"<$localSubscriber> stopped")
+    println(s"<$localPublisher> stopped")
   }
 
   def main(args : Array[String]) = {
-    system.actorOf(Props(classOf[LocalSubscriber], args.to[Vector]))
+    system.actorOf(Props(classOf[LocalPublisher], args.to[Vector]))
     sys.addShutdownHook { shutdown() }
-    println(s"<$localSubscriber> started")
+    println(s"<$localPublisher> started")
   }
 }
+
+
