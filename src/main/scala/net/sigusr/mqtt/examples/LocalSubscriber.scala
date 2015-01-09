@@ -11,33 +11,33 @@ class LocalSubscriber(topics : Vector[String]) extends Actor {
 
   val stopTopic: String = s"$actorName/stop"
 
-  context.actorOf(MQTTManager.props(new InetSocketAddress(1883)))
+  context.actorOf(Manager.props(new InetSocketAddress(1883)))
 
   def receive: Receive = {
-    case MQTTReady =>
-      sender() ! MQTTConnect(actorName)
-    case MQTTConnected =>
+    case Ready =>
+      sender() ! Connect(actorName)
+    case Connected =>
       println("Successfully connected to localhost:1883")
-      sender() ! MQTTSubscribe((stopTopic +: topics) zip Vector.fill(topics.length + 1) {AtMostOnce}, 1)
+      sender() ! Subscribe((stopTopic +: topics) zip Vector.fill(topics.length + 1) {AtMostOnce}, 1)
       context become ready(sender())
-    case MQTTConnectionFailure(reason) =>
+    case ConnectionFailure(reason) =>
       println(s"Connection to localhost:1883 failed [$reason]")
   }
 
   def ready(mqttManager: ActorRef): Receive = {
-    case MQTTSubscribed(vQoS, MQTTMessageId(1)) =>
+    case Subscribed(vQoS, MessageId(1)) =>
       println("Successfully subscribed to topics:")
       println(topics.mkString(" ", ",\n ", ""))
-    case MQTTMessage(`stopTopic`, _) =>
-      mqttManager ! MQTTDisconnect
+    case Message(`stopTopic`, _) =>
+      mqttManager ! Disconnect
       context become disconnecting
-    case MQTTMessage(topic, payload) =>
+    case Message(topic, payload) =>
       val message = new String(payload.to[Array], "UTF-8")
       println(s"[$topic] $message")
   }
 
   def disconnecting(): Receive = {
-    case MQTTDisconnected =>
+    case Disconnected =>
       println("Disconnected from localhost:1883")
       LocalSubscriber.shutdown()
   }

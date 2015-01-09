@@ -19,7 +19,7 @@ package net.sigusr.mqtt.impl.protocol
 import java.net.InetSocketAddress
 
 import akka.actor._
-import akka.io.Tcp._
+import akka.io.Tcp.{Aborted => TCPAborted, Close => TCPClose, Closed => TCPClosed, CommandFailed => TCPCommandFailed, Connect => TCPConnect, Connected => TCPConnected, Received => TCPReceived, Register => TCPRegister, Write => TCPWrite}
 import akka.testkit.{ImplicitSender, TestProbe}
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecUtils.SpecsTestKit
@@ -49,41 +49,41 @@ object TransportSpec extends Specification with NoTimeConversions {
 
     def expectConnect(): Unit = {
       expectMsgPF() {
-        case Connect(remote, _, _, _, _) =>
+        case TCPConnect(remote, _, _, _, _) =>
           remote should be_==(fakeBrokerAddress)
-          sender() ! Connected(fakeBrokerAddress, fakeLocalAddress)
+          sender() ! TCPConnected(fakeBrokerAddress, fakeLocalAddress)
       }
     }
 
     def expectConnectThenFail(): Unit = {
       expectMsgPF() {
-        case c @ Connect(remote, _, _, _, _) =>
+        case c @ TCPConnect(remote, _, _, _, _) =>
           remote should be_==(fakeBrokerAddress)
-          sender() ! CommandFailed(c)
+          sender() ! TCPCommandFailed(c)
       }
     }
 
     def expectRegister(): Unit = {
       expectMsgPF() {
-        case Register(_, _, _) =>
+        case TCPRegister(_, _, _) =>
       }
     }
 
     def expectWriteConnectFrame(): Unit = {
       expectMsgPF() {
-        case Write(byteString, _) =>
+        case TCPWrite(byteString, _) =>
           if (byteString(0) == 0x10) {
-            sender() ! Received(connackFrame)
+            sender() ! TCPReceived(connackFrame)
           }
       }
     }
 
     def expectWritePingReqFrame(): Unit = {
       expectMsgPF() {
-        case Write(byteString, _) =>
+        case TCPWrite(byteString, _) =>
           if (byteString(0) == -64) {
             if (pingReqCount == 0) {
-              sender() ! Received(pingRespFrame)
+              sender() ! TCPReceived(pingRespFrame)
             }
             pingReqCount += 1
           }
@@ -92,18 +92,18 @@ object TransportSpec extends Specification with NoTimeConversions {
 
     def expectWriteDisconnectFrame(): Unit = {
       expectMsgPF() {
-        case Write(byteString, _) =>
+        case TCPWrite(byteString, _) =>
           // Why when I write 0xe0 instead of -32
           // here things go really wrong ?
           if (byteString(0) == -32) {
-            sender() ! Closed
+            sender() ! TCPClosed
           }
       }
     }
 
     def expectClose(): Unit = {
       expectMsgPF() {
-        case Close => sender() ! Aborted
+        case TCPClose => sender() ! TCPAborted
       }
     }
   }
@@ -124,7 +124,7 @@ object TransportSpec extends Specification with NoTimeConversions {
 
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
-      expectMsg(MQTTReady)
+      expectMsg(Ready)
     }
 
     "Exchange messages during a failed initialisation" in new SpecsTestKit {
@@ -132,7 +132,7 @@ object TransportSpec extends Specification with NoTimeConversions {
       val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-1", fakeTCPManagerActor.ref)))
 
       fakeTCPManagerActor.expectConnectThenFail()
-      expectMsg(MQTTNotReady)
+      expectMsg(NotReady)
     }
 
     "After a successful initialisation connect and then disconnect" in new SpecsTestKit {
@@ -141,13 +141,13 @@ object TransportSpec extends Specification with NoTimeConversions {
 
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
-      expectMsg(MQTTReady)
-      mqttManagerActor ! MQTTConnect("test", 30, cleanSession = false, Some("test/topic"), Some("test death"), None, None)
+      expectMsg(Ready)
+      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some("test/topic"), Some("test death"), None, None)
       fakeTCPManagerActor.expectWriteConnectFrame()
-      expectMsg(MQTTConnected)
-      mqttManagerActor ! MQTTDisconnect
+      expectMsg(Connected)
+      mqttManagerActor ! Disconnect
       fakeTCPManagerActor.expectWriteDisconnectFrame()
-      expectMsg(MQTTDisconnected)
+      expectMsg(Disconnected)
     }
 
     "After a successful initialisation connect, ping the server and disconnect when the server stops replying" in new SpecsTestKit {
@@ -156,14 +156,14 @@ object TransportSpec extends Specification with NoTimeConversions {
 
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
-      expectMsg(MQTTReady)
-      mqttManagerActor ! MQTTConnect("test", 1, cleanSession = false, Some("test/topic"), Some("test death"), None, None)
+      expectMsg(Ready)
+      mqttManagerActor ! Connect("test", 1, cleanSession = false, Some("test/topic"), Some("test death"), None, None)
       fakeTCPManagerActor.expectWriteConnectFrame()
-      expectMsg(MQTTConnected)
+      expectMsg(Connected)
       fakeTCPManagerActor.expectWritePingReqFrame()
       fakeTCPManagerActor.expectWritePingReqFrame()
       fakeTCPManagerActor.expectClose()
-      expectMsg(MQTTDisconnected)
+      expectMsg(Disconnected)
     }
   }
 }

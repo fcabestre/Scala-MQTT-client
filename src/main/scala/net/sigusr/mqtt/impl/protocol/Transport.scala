@@ -58,7 +58,7 @@ abstract class TCPTransport(mqttBrokerAddress: InetSocketAddress) extends Actor 
   }
 
   def connected(clientActor : ActorRef, connectionActor : ActorRef): Receive = LoggingReceive {
-    case message : MQTTAPIMessage =>
+    case message : APIMessage =>
       processAction(handleApiMessages(message), clientActor, connectionActor)
     case TimerSignal =>
       processAction(timerSignal(System.currentTimeMillis(), keepAliveValue, lastSentMessageTimestamp, isPingResponsePending), clientActor, connectionActor)

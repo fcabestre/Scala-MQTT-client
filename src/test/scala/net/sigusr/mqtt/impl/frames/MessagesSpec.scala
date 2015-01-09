@@ -16,7 +16,7 @@ package net.sigusr.mqtt.impl.frames
  * limitations under the License.
  */
 
-import net.sigusr.mqtt.api.{MQTTMessageId, _}
+import net.sigusr.mqtt.api._
 import org.specs2.mutable._
 
 object MessagesSpec extends Specification {
@@ -59,7 +59,7 @@ object MessagesSpec extends Specification {
     }
 
     "Be constructable from their corresponding «enum» value" in {
-      import net.sigusr.mqtt.api.MQTTConnectionFailureReason._
+      import net.sigusr.mqtt.api.ConnectionFailureReason._
 
       fromEnum(0) should throwA[IllegalArgumentException]
       fromEnum(1) should_=== BadProtocolVersion
@@ -73,31 +73,31 @@ object MessagesSpec extends Specification {
 
   "MessageIdentifier" should {
     "Check the range of the integer provided to its constructor" in {
-      MQTTMessageId(-1) should throwA[IllegalArgumentException]
-      MQTTMessageId(0) should not (throwA[IllegalArgumentException])
-      MQTTMessageId(65535) should not (throwA[IllegalArgumentException])
-      MQTTMessageId(65536) should throwA[IllegalArgumentException]
+      MessageId(-1) should throwA[IllegalArgumentException]
+      MessageId(0) should not (throwA[IllegalArgumentException])
+      MessageId(65535) should not (throwA[IllegalArgumentException])
+      MessageId(65536) should throwA[IllegalArgumentException]
     }
 
     "Allow pattern matching" in {
-      MQTTMessageId(42) match {
-        case MQTTMessageId(i) => i should_=== 42
+      MessageId(42) match {
+        case MessageId(i) => i should_=== 42
       }
     }
 
     "Have a literal syntax" in {
       val four = 4
       val two = 2
-      mi"$four$two" should_=== MQTTMessageId(42)
-      mi"42" should_=== MQTTMessageId(42)
+      mi"$four$two" should_=== MessageId(42)
+      mi"42" should_=== MessageId(42)
       mi"-1" should throwA[IllegalArgumentException]
       mi"65536" should throwA[IllegalArgumentException]
       mi"fortytwo" should throwA[NumberFormatException]
     }
 
     "Have a implicit conversion from Int" in {
-      def id(messageIdentifier: MQTTMessageId) : MQTTMessageId = messageIdentifier
-      id(42) should_=== MQTTMessageId(42)
+      def id(messageIdentifier: MessageId) : MessageId = messageIdentifier
+      id(42) should_=== MessageId(42)
       id(-1) should throwA[IllegalArgumentException]
       id(65536) should throwA[IllegalArgumentException]
     }
@@ -105,22 +105,22 @@ object MessagesSpec extends Specification {
 
   "MQTTConnect" should {
     "Check the range of the keep alive value provided to its constructor" in {
-      import net.sigusr.mqtt.api.MQTTConnect
-      MQTTConnect("Client", keepAlive = -1) should throwA[IllegalArgumentException]
-      MQTTConnect("Client", keepAlive = 0) should not throwA()
-      MQTTConnect("Client", keepAlive = 65635) should not throwA()
-      MQTTConnect("Client", keepAlive = 65636) should throwA[IllegalArgumentException]
+      import net.sigusr.mqtt.api.Connect
+      Connect("Client", keepAlive = -1) should throwA[IllegalArgumentException]
+      Connect("Client", keepAlive = 0) should not throwA()
+      Connect("Client", keepAlive = 65635) should not throwA()
+      Connect("Client", keepAlive = 65636) should throwA[IllegalArgumentException]
     }
   }
 
   "MQTTPublish" should {
     "Have a valid combination of QoS and message identifier" in {
-      import net.sigusr.mqtt.api.MQTTPublish
-      MQTTPublish("topic", Vector(0x00), AtMostOnce) should not throwA()
-      MQTTPublish("topic", Vector(0x00), AtLeastOnce) should throwA[IllegalArgumentException]
-      MQTTPublish("topic", Vector(0x00), AtLeastOnce, Some(1)) should not throwA()
-      MQTTPublish("topic", Vector(0x00), ExactlyOnce) should throwA[IllegalArgumentException]
-      MQTTPublish("topic", Vector(0x00), ExactlyOnce, Some(1)) should not throwA()
+      import net.sigusr.mqtt.api.Publish
+      Publish("topic", Vector(0x00), AtMostOnce) should not throwA()
+      Publish("topic", Vector(0x00), AtLeastOnce) should throwA[IllegalArgumentException]
+      Publish("topic", Vector(0x00), AtLeastOnce, Some(1)) should not throwA()
+      Publish("topic", Vector(0x00), ExactlyOnce) should throwA[IllegalArgumentException]
+      Publish("topic", Vector(0x00), ExactlyOnce, Some(1)) should not throwA()
     }
   }
 }

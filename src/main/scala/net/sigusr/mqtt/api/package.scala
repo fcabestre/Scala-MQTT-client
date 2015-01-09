@@ -9,12 +9,12 @@ package object api {
    */
   val DEFAULT_KEEP_ALIVE : Int = 30
 
-  val zeroId = MQTTMessageId(0)
+  val zeroId = MessageId(0)
 
-  implicit def asMessageIdentifier(int : Int) : MQTTMessageId = MQTTMessageId(int)
+  implicit def asMessageIdentifier(int : Int) : MessageId = MessageId(int)
 
   implicit class MessageIdentifierLiteral(val sc: StringContext) extends AnyVal {
-    def mi(args: Any*): MQTTMessageId = {
+    def mi(args: Any*): MessageId = {
       val strings = sc.parts.iterator
       val expressions = args.iterator
       val buf = new StringBuffer(strings.next())
@@ -22,7 +22,7 @@ package object api {
         buf append expressions.next
         buf append strings.next
       }
-      MQTTMessageId(buf.toString.toInt)
+      MessageId(buf.toString.toInt)
     }
   }
 }

@@ -22,46 +22,46 @@ import scodec.bits.ByteVector
 
 trait Protocol {
 
-  private[protocol] def handleApiMessages(apiMessage : MQTTAPIMessage) : Action = apiMessage match {
-    case MQTTConnect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
+  private[protocol] def handleApiMessages(apiMessage : APIMessage) : Action = apiMessage match {
+    case Connect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = false, cleanSession, keepAlive)
       Sequence(
         Seq(SetKeepAliveValue(keepAlive * 1000),
         SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
-    case MQTTDisconnect =>
+    case Disconnect =>
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       SendToNetwork(DisconnectFrame(header))
-    case MQTTPublish(topic, payload, qos, messageId, retain, dup) if qos == AtMostOnce =>
-      val header = Header(dup, qos.enum, retain)
+    case Publish(topic, payload, qos, messageId, retain) if qos == AtMostOnce =>
+      val header = Header(dup = false, qos.enum, retain = retain)
       SendToNetwork(PublishFrame(header, topic, messageId.getOrElse(zeroId).identifier, ByteVector(payload)))
-    case MQTTPublish(topic, payload, qos, Some(messageId), retain, dup) =>
-      val header = Header(dup, qos.enum, retain)
+    case Publish(topic, payload, qos, Some(messageId), retain) =>
+      val header = Header(dup = false, qos.enum, retain = retain)
       SendToNetwork(PublishFrame(header, topic, messageId.identifier, ByteVector(payload)))
-    case MQTTSubscribe(topics, messageId) =>
+    case Subscribe(topics, messageId) =>
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       SendToNetwork(SubscribeFrame(header, messageId.identifier, topics.map((v:(String, QualityOfService)) => (v._1, v._2.enum))))
-    case m => SendToClient(MQTTWrongClientMessage(m))
+    case m => SendToClient(WrongClientMessage(m))
   }
 
   private[protocol] def handleNetworkFrames(frame : Frame, keepAliveValue : Long) : Action = {
     frame match {
       case ConnackFrame(header, 0) =>
-        if (keepAliveValue == 0) SendToClient(MQTTConnected)
-        else Sequence(Seq(StartTimer(keepAliveValue), SendToClient(MQTTConnected)))
-      case ConnackFrame(header, returnCode) => SendToClient(MQTTConnectionFailure(MQTTConnectionFailureReason.fromEnum(returnCode)))
+        if (keepAliveValue == 0) SendToClient(Connected)
+        else Sequence(Seq(StartTimer(keepAliveValue), SendToClient(Connected)))
+      case ConnackFrame(header, returnCode) => SendToClient(ConnectionFailure(ConnectionFailureReason.fromEnum(returnCode)))
       case PingRespFrame(header) =>
         SetPendingPingResponse(isPending = false)
       case PublishFrame(header, topic, messageIdentifier, payload) =>
-        SendToClient(MQTTMessage(topic, payload.toArray.to[Vector]))
+        SendToClient(Message(topic, payload.toArray.to[Vector]))
       case PubackFrame(header, messageId) =>
-        SendToClient(MQTTPublished(messageId))
+        SendToClient(Published(messageId))
       case PubrecFrame(header, messageIdentifier) =>
         SendToNetwork(PubrelFrame(header, messageIdentifier))
       case PubcompFrame(header, messageId) =>
-        SendToClient(MQTTPublished(messageId))
+        SendToClient(Published(messageId))
       case SubackFrame(header, messageIdentifier, topicResults) =>
-        SendToClient(MQTTSubscribed(topicResults.map(QualityOfService.fromEnum), messageIdentifier.identifier))
+        SendToClient(Subscribed(topicResults.map(QualityOfService.fromEnum), messageIdentifier.identifier))
       case _ => Sequence()
     }
   }
@@ -80,10 +80,10 @@ trait Protocol {
           StartTimer(timeout)
     }
 
-  private[protocol] def connectionClosed() : Action = SendToClient(MQTTDisconnected)
+  private[protocol] def connectionClosed() : Action = SendToClient(Disconnected)
 
-  private[protocol] def transportReady() : Action = SendToClient(MQTTReady)
+  private[protocol] def transportReady() : Action = SendToClient(Ready)
 
-  private[protocol] def transportNotReady() : Action = SendToClient(MQTTNotReady)
+  private[protocol] def transportNotReady() : Action = SendToClient(NotReady)
 }
 

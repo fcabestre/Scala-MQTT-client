@@ -18,15 +18,15 @@ package net.sigusr.mqtt.api
 
 import scala.annotation.switch
 
-sealed trait MQTTConnectionFailureReason extends CaseEnum
-case object BadProtocolVersion extends MQTTConnectionFailureReason { val enum = 1 }
-case object IdentifierRejected extends MQTTConnectionFailureReason { val enum = 2 }
-case object ServerUnavailable extends MQTTConnectionFailureReason { val enum = 3 }
-case object BadUserNameOrPassword extends MQTTConnectionFailureReason { val enum = 4 }
-case object NotAuthorized extends MQTTConnectionFailureReason { val enum = 5 }
+sealed trait ConnectionFailureReason extends CaseEnum
+case object BadProtocolVersion extends ConnectionFailureReason { val enum = 1 }
+case object IdentifierRejected extends ConnectionFailureReason { val enum = 2 }
+case object ServerUnavailable extends ConnectionFailureReason { val enum = 3 }
+case object BadUserNameOrPassword extends ConnectionFailureReason { val enum = 4 }
+case object NotAuthorized extends ConnectionFailureReason { val enum = 5 }
 
-object MQTTConnectionFailureReason {
-  def fromEnum(enum: Int): MQTTConnectionFailureReason =
+object ConnectionFailureReason {
+  def fromEnum(enum: Int): ConnectionFailureReason =
     (enum: @switch) match {
       case 1 => BadProtocolVersion
       case 2 => IdentifierRejected

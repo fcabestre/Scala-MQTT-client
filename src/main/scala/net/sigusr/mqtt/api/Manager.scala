@@ -16,17 +16,18 @@
 
 package net.sigusr.mqtt.api
 
-class MQTTMessageId(val identifier : Int) extends AnyVal
+import java.net.InetSocketAddress
 
-object MQTTMessageId {
+import akka.actor.Props
+import akka.io.{IO, Tcp}
+import net.sigusr.mqtt.impl.protocol.{Protocol, TCPTransport}
 
-  def checkValue(value : Int): Boolean = value >= 0 && value < 65536
-
-  def apply(value : Int): MQTTMessageId = {
-    if (!checkValue(value))
-      throw new IllegalArgumentException("The value of a message identifier must be in the range [0..65535]")
-    new MQTTMessageId(value)
-  }
-
-  def unapply(identifier: MQTTMessageId) : Option[Int] = Some(identifier.identifier)
+class Manager(remote: InetSocketAddress) extends TCPTransport(remote) with Protocol {
+  import context.system
+  override def tcpManagerActor = IO(Tcp)
 }
+
+object Manager {
+  def props(remote: InetSocketAddress) = Props(classOf[Manager], remote)
+}
+
