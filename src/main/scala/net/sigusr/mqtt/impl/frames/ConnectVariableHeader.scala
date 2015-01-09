@@ -28,22 +28,24 @@ case class ConnectVariableHeader(userNameFlag: Boolean,
                                  keepAliveTimer: Int) {
 
   require((userNameFlag || !passwordFlag) && keepAliveTimer >= 0 && keepAliveTimer <= 65535)
-
-  val protocolName = "MQIsdp"
-  val protocolVersion = 0x03
 }
 
 object ConnectVariableHeader {
+
+  /**
+   * This is the, once for all encoded, protocol name [MQIsdp] and protocol version [3]
+   */
   val connectVariableHeaderFixedBytes: BitVector = BitVector(hex"00064D514973647003")
+
   implicit val connectVariableHeaderCodec = (
     constant(connectVariableHeaderFixedBytes) :~>:
       bool ::
       bool ::
       bool ::
-      uint2 ::
+      qosCodec ::
       bool ::
       bool ::
       ignore(1) :~>:
-      uint16
+      keepAliveCodec
     ).as[ConnectVariableHeader]
 }

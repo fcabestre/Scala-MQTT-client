@@ -146,7 +146,7 @@ object CodecSpec extends Specification {
     "Perform round trip encoding/decoding of a valid input" in {
       import net.sigusr.mqtt.impl.frames.SubscribeFrame._
       val topics = Vector(("topic0", AtMostOnce.enum), ("topic1", AtLeastOnce.enum), ("topic2", ExactlyOnce.enum))
-      Codec[Topics].decode(Codec[Topics].encodeValid(topics)) should succeedWith((bin"", topics))
+      Codec[Vector[(String, Int)]].decode(Codec[Vector[(String, Int)]].encodeValid(topics)) should succeedWith((bin"", topics))
     }
   }
 

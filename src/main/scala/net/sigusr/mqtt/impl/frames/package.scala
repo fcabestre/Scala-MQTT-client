@@ -21,10 +21,12 @@ import scodec.codecs._
 
 package object frames {
 
-  type Topic = (String, Int)
-  type Topics = Vector[Topic]
+  val qosCodec = uint2
+  val returnCodeCodec = uint8
+  val messageIdCodec = uint16
+  val keepAliveCodec = uint16
 
   val remainingLengthCodec = new RemainingLengthCodec
   val stringCodec = variableSizeBytes(uint16, utf8)
-  val zeroLength = bin"00000000"
+  val bytePaddingCodec = constant(bin"00000000")
 }
