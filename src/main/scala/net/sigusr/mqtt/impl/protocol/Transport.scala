@@ -30,22 +30,20 @@ import scala.concurrent.duration.{FiniteDuration, _}
 
 private[protocol] case object TimerSignal
 
-trait Transport {
-  def tcpManagerActor: ActorRef
-}
-
-abstract class TCPTransport(mqttBrokerAddress: InetSocketAddress) extends Actor with Transport with ActorLogging { this: Protocol =>
+abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor with ActorLogging { this: Protocol =>
 
   import akka.io.Tcp._
   import context.dispatcher
 
   var lastSentMessageTimestamp: Long = 0
   var isPingResponsePending = false
-  var keepAliveValue : Long = DEFAULT_KEEP_ALIVE
+  var keepAliveValue : Long = DEFAULT_KEEP_ALIVE.toLong
   var timerTask: Option[Cancellable] = None
 
   tcpManagerActor ! Connect(mqttBrokerAddress)
 
+  def tcpManagerActor : ActorRef
+  
   def receive = LoggingReceive {
     case CommandFailed(_ : Connect) =>
       processAction(transportNotReady(), context.parent, sender())

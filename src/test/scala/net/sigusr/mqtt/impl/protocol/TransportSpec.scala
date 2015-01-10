@@ -37,7 +37,7 @@ object TransportSpec extends Specification with NoTimeConversions {
   private val fakeBrokerAddress : InetSocketAddress = new InetSocketAddress(0)
   private val fakeLocalAddress : InetSocketAddress = new InetSocketAddress(0)
 
-  class TestMQTTManager(_tcpManagerActor: ActorRef) extends TCPTransport(fakeBrokerAddress) with Protocol {
+  class TestMQTTManager(_tcpManagerActor: ActorRef) extends Transport(fakeBrokerAddress) with Protocol {
     override def tcpManagerActor: ActorRef = _tcpManagerActor
   }
 

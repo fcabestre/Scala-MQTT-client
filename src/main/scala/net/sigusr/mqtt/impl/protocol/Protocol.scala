@@ -27,7 +27,7 @@ trait Protocol {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = false, cleanSession, keepAlive)
       Sequence(
-        Seq(SetKeepAliveValue(keepAlive * 1000),
+        Seq(SetKeepAliveValue(keepAlive.toLong * 1000),
         SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
     case Disconnect =>
       val header = Header(dup = false, AtMostOnce.enum, retain = false)

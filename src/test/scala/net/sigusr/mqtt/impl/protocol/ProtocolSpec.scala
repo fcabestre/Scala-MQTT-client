@@ -58,7 +58,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = false, cleanSession, keepAlive)
       val result =Sequence(Seq(
-        SetKeepAliveValue(keepAlive * 1000),
+        SetKeepAliveValue(keepAlive.toLong * 1000),
         SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
       handleApiMessages(input) should_== result
     }
@@ -144,7 +144,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
     "Define the actions to perform to handle a ConnackFrame on a successful connection with keep alive greater than 0" in {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val input = ConnackFrame(header, 0)
-      val keepAliveValue = 30000
+      val keepAliveValue = 30000.toLong
       val result = Sequence(Seq(StartTimer(keepAliveValue), SendToClient(Connected)))
       handleNetworkFrames(input, keepAliveValue) should_== result
     }

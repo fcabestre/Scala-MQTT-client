@@ -33,9 +33,10 @@ class LocalPublisher(toPublish : Vector[String]) extends Actor {
 
   val length = toPublish.length
 
-  def scheduleRandomMessage() = {
+  def scheduleRandomMessage() : Unit = {
     val message = toPublish(Random.nextInt(length))
-    context.system.scheduler.scheduleOnce(FiniteDuration(Random.nextInt(2000) + 1000, MILLISECONDS), self, message)
+    context.system.scheduler.scheduleOnce(FiniteDuration(Random.nextInt(2000).toLong + 1000, MILLISECONDS), self, message)
+    ()
   }
 
   def receive: Receive = {
@@ -56,7 +57,6 @@ class LocalPublisher(toPublish : Vector[String]) extends Actor {
       mqttManager ! Publish(localPublisher, m.getBytes("UTF-8").to[Vector])
       scheduleRandomMessage()
   }
-
 }
 
 object LocalPublisher {

@@ -15,7 +15,24 @@ libraryDependencies ++= Seq(
 
 scalacOptions in Test ++= Seq("-Yrangepos")
 
-scalacOptions ++= Seq("-language:implicitConversions", "-unchecked", "-feature", "-deprecation", "-Xfatal-warnings", "-Xlint:_")
+scalacOptions ++= Seq(
+  "-language:implicitConversions",
+  "-unchecked",
+  "-feature",
+  "-deprecation",
+  "-encoding", "UTF-8",
+  "-language:existentials",
+  "-language:higherKinds",
+  "-language:implicitConversions",
+  "-Xfatal-warnings",
+  "-Xlint:_",
+  "-Xfuture",
+  "-Yno-adapted-args",
+  "-Ywarn-dead-code",
+  "-Ywarn-numeric-widen",
+  "-Ywarn-value-discard",
+  "-Ywarn-unused-import"
+)
 
 net.virtualvoid.sbt.graph.Plugin.graphSettings
 
