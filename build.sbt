@@ -4,6 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.11.4"
 
+licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0"))
+
 resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 
 libraryDependencies ++= Seq(
@@ -39,3 +41,5 @@ net.virtualvoid.sbt.graph.Plugin.graphSettings
 CoverallsPlugin.CoverallsKeys.coverallsToken := Some("4c62CwXnosg5iwouVOrCa46frQwqtBlzk")
 
 ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages := ".*examples.*"
+
+seq(bintraySettings:_*)
