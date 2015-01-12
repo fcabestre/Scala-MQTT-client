@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package net.sigusr.mqtt
+package net.sigusr.mqtt.impl
 
 import java.net.InetSocketAddress
 
