@@ -19,7 +19,7 @@ package net.sigusr.mqtt.impl.protocol
 import java.net.InetSocketAddress
 
 import akka.actor._
-import akka.io.Tcp.{Aborted => TCPAborted, Close => TCPClose, Closed => TCPClosed, CommandFailed => TCPCommandFailed, Connect => TCPConnect, Connected => TCPConnected, Received => TCPReceived, Register => TCPRegister, Write => TCPWrite}
+import akka.io.Tcp.{Closed => TCPClosed, CommandFailed => TCPCommandFailed, Abort => TCPAbort, Aborted => TCPAborted, Connect => TCPConnect, Connected => TCPConnected, Received => TCPReceived, Register => TCPRegister, Write => TCPWrite}
 import akka.testkit.{ImplicitSender, TestProbe}
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecUtils.SpecsTestKit
@@ -103,7 +103,7 @@ object TransportSpec extends Specification with NoTimeConversions {
 
     def expectClose(): Unit = {
       expectMsgPF() {
-        case TCPClose => sender() ! TCPAborted
+        case TCPAbort => sender() ! TCPAborted
       }
     }
   }

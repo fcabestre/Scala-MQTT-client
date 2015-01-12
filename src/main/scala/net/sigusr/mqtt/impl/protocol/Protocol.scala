@@ -68,7 +68,7 @@ trait Protocol {
 
   private[protocol] def timerSignal(currentTime: Long, keepAliveValue: Long, lastSentMessageTimestamp: Long, isPingResponsePending: Boolean): Action =
     if (isPingResponsePending)
-      CloseTransport
+      ForciblyCloseTransport
     else {
       val timeout = keepAliveValue - currentTime + lastSentMessageTimestamp
       if (timeout < 1000)

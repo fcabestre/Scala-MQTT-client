@@ -83,8 +83,8 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
         lastSentMessageTimestamp = System.currentTimeMillis()
         val encodedFrame = Codec[Frame].encodeValid(frame)
         connectionActor ! Write(ByteString(encodedFrame.toByteArray))
-      case CloseTransport =>
-        connectionActor ! Close
+      case ForciblyCloseTransport =>
+        connectionActor ! Abort
     }
   }
 

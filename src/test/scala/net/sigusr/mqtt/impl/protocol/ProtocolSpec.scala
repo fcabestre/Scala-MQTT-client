@@ -127,7 +127,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
     }
 
     "Define the action to perform to handle a SendKeepAlive internal API message while waiting for a ping response" in {
-      val result = CloseTransport
+      val result = ForciblyCloseTransport
       timerSignal(120029999, 30000, 120000000, isPingResponsePending = true) should_== result
     }
   }
