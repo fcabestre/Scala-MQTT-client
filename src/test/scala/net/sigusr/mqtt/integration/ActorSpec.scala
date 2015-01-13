@@ -68,6 +68,52 @@ object ActorSpec extends Specification with NoTimeConversions {
        receiveOne(1 seconds) should be_==(Disconnected)
      }
 
+     "Allow to connect to a broker with user and password and then disconnect" in new SpecsTestKit {
+
+       import net.sigusr.mqtt.api.{Connect, Connected, Disconnect, Disconnected, Ready}
+
+       val endpoint = new InetSocketAddress(brokerHost, 1883)
+       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
+
+       expectMsg(1 second, Ready)
+
+       mqttManager ! Connect("Test", user = Some("user"), password = Some("pass"))
+
+       receiveOne(1 seconds) should be_==(Connected)
+
+       mqttManager ! Disconnect
+
+       receiveOne(1 seconds) should be_==(Disconnected)
+     }
+
+     "Disallow to connect to a broker with a wrong user" in new SpecsTestKit {
+
+       import net.sigusr.mqtt.api.{Connect, Ready}
+
+       val endpoint = new InetSocketAddress(brokerHost, 1883)
+       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
+
+       expectMsg(1 second, Ready)
+
+       mqttManager ! Connect("Test", user = Some("wrong"), password = Some("pass"))
+
+       receiveOne(1 seconds) should be_==(ConnectionFailure(IdentifierRejected))
+     }
+
+     "Disallow to connect to a broker with a wrong password" in new SpecsTestKit {
+
+       import net.sigusr.mqtt.api.{Connect, Ready}
+
+       val endpoint = new InetSocketAddress(brokerHost, 1883)
+       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
+
+       expectMsg(1 second, Ready)
+
+       mqttManager ! Connect("Test", user = Some("user"), password = Some("wrong"))
+
+       receiveOne(1 seconds) should be_==(ConnectionFailure(IdentifierRejected))
+     }
+
      "Allow to connect to a broker and keep connected even when idle" in new SpecsTestKit {
 
        import net.sigusr.mqtt.api.{Connect, Connected, Ready}
