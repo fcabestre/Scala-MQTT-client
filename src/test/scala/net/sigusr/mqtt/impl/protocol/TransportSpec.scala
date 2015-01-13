@@ -19,7 +19,7 @@ package net.sigusr.mqtt.impl.protocol
 import java.net.InetSocketAddress
 
 import akka.actor._
-import akka.io.Tcp.{Closed => TCPClosed, CommandFailed => TCPCommandFailed, Abort => TCPAbort, Aborted => TCPAborted, Connect => TCPConnect, Connected => TCPConnected, Received => TCPReceived, Register => TCPRegister, Write => TCPWrite}
+import akka.io.Tcp.{Abort => TCPAbort, Aborted => TCPAborted, Closed => TCPClosed, CommandFailed => TCPCommandFailed, Connect => TCPConnect, Connected => TCPConnected, Received => TCPReceived, Register => TCPRegister, Write => TCPWrite}
 import akka.testkit.{ImplicitSender, TestProbe}
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecUtils.SpecsTestKit

@@ -3,11 +3,19 @@ import Keys._
 
 object CustomBuild extends Build
 {
-  lazy val root =
-    Project("root", file("."))
-      .configs( IntegrationTest )
-      .settings( Defaults.itSettings : _*)
-      .settings( libraryDependencies += specs )
+  lazy val specs2 = "org.specs2" %% "specs2" % "2.4.15"
+  lazy val IntegrationTest = config("it") extend Test
 
-  lazy val specs =   "org.specs2" %% "specs2" % "2.4.15" % "it,test"
+  def itFilter(name: String): Boolean = name startsWith  "net.sigusr.mqtt.integration"
+  def unitFilter(name: String): Boolean = !itFilter(name)
+
+  lazy val root = (project in file(".")).
+    configs(IntegrationTest).
+    settings(inConfig(IntegrationTest)(Defaults.testTasks): _*).
+    settings(
+      libraryDependencies += specs2 % IntegrationTest,
+      testOptions in Test := Seq(Tests.Filter(unitFilter)),
+      testOptions in IntegrationTest := Seq(Tests.Filter(itFilter))
+    )
 }
+
