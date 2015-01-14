@@ -142,7 +142,7 @@ object TransportSpec extends Specification with NoTimeConversions {
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
       expectMsg(Ready)
-      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some("test/topic"), Some("test death"), None, None)
+      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
       fakeTCPManagerActor.expectWriteConnectFrame()
       expectMsg(Connected)
       mqttManagerActor ! Disconnect
@@ -157,7 +157,7 @@ object TransportSpec extends Specification with NoTimeConversions {
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
       expectMsg(Ready)
-      mqttManagerActor ! Connect("test", 1, cleanSession = false, Some("test/topic"), Some("test death"), None, None)
+      mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
       fakeTCPManagerActor.expectWriteConnectFrame()
       expectMsg(Connected)
       fakeTCPManagerActor.expectWritePingReqFrame()

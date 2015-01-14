@@ -52,11 +52,12 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val cleanSession = false
       val topic = Some("topic")
       val message = Some("message")
+      val will = Will(retain = false, AtLeastOnce, "topic", "message")
       val user = Some("user")
       val password = Some("password")
-      val input = Connect(clientId, keepAlive, cleanSession, topic, message, user, password)
+      val input = Connect(clientId, keepAlive, cleanSession, Some(will), user, password)
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = false, cleanSession, keepAlive)
+      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = true, cleanSession, keepAlive)
       val result =Sequence(Seq(
         SetKeepAlive(keepAlive.toLong * 1000),
         SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
@@ -73,7 +74,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
     "Define the action to perform to handle a MQTTSubscribe API message" in {
       val topicsInput = Vector(("topic0", AtMostOnce), ("topic1", ExactlyOnce), ("topic2", AtLeastOnce))
-      val messageId = Random.nextInt(65535)
+      val messageId = Random.nextInt(65536)
       val input = Subscribe(topicsInput, messageId)
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val topicsResult = Vector(("topic0", AtMostOnce.enum), ("topic1", ExactlyOnce.enum), ("topic2", AtLeastOnce.enum))
@@ -86,7 +87,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val qos = AtMostOnce
       val retain = true
       val payload = makeRandomByteVector(48)
-      val messageId = Random.nextInt(65535)
+      val messageId = Random.nextInt(65536)
       val input = Publish(topic, payload, qos, Some(messageId), retain)
       val header = Header(dup = false, qos.enum, retain)
       val result = SendToNetwork(PublishFrame(header, topic, messageId, ByteVector(payload)))
@@ -98,7 +99,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val qos = AtLeastOnce
       val retain = true
       val payload = makeRandomByteVector(32)
-      val messageId = Random.nextInt(65535)
+      val messageId = Random.nextInt(65536)
       val input = Publish(topic, payload, qos, Some(messageId), retain)
       val header = Header(dup = false, qos.enum, retain)
       val result = SendToNetwork(PublishFrame(header, topic, messageId, ByteVector(payload)))
@@ -182,7 +183,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val topic = "topic"
       val payload = makeRandomByteVector(64)
-      val input = PublishFrame(header, topic, Random.nextInt(65535), ByteVector(payload))
+      val input = PublishFrame(header, topic, Random.nextInt(65536), ByteVector(payload))
       val state = State(keepAlive = 30000)
       val result = SendToClient(Message(topic, payload))
       handleNetworkFrames(input, state) should_== result
@@ -192,7 +193,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val topic = "topic"
       val payload = makeRandomByteVector(64)
-      val messageId = Random.nextInt(65535)
+      val messageId = Random.nextInt(65536)
       val input = PublishFrame(header, topic, messageId, ByteVector(payload))
       val state = State(keepAlive = 30000)
       val result = Sequence(Seq(
@@ -206,7 +207,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val header = Header(dup = false, ExactlyOnce.enum, retain = false)
       val topic = "topic"
       val payload = makeRandomByteVector(64)
-      val messageId = Random.nextInt(65535)
+      val messageId = Random.nextInt(65536)
       val input = PublishFrame(header, topic, messageId, ByteVector(payload))
       val state = State(keepAlive = 30000)
       val result = Sequence(Seq(
@@ -218,7 +219,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
     "Define the actions to perform to handle a PubackFrame" in {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val messageId = Random.nextInt(65535)
+      val messageId = Random.nextInt(65536)
       val input = PubackFrame(header, messageId)
       val state = State(keepAlive = 30000)
       val result = SendToClient(Published(messageId))
@@ -227,7 +228,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
     "Define the actions to perform to handle a PubrecFrame" in {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val messageId = Random.nextInt(65535)
+      val messageId = Random.nextInt(65536)
       val input = PubrecFrame(header, messageId)
       val state = State(keepAlive = 30000)
       val result = SendToNetwork(PubrelFrame(header.copy(qos = 1), messageId))
@@ -236,7 +237,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
     "Define the actions to perform to handle a PubcompFrame" in {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val messageId = Random.nextInt(65535)
+      val messageId = Random.nextInt(65536)
       val input = PubcompFrame(header, messageId)
       val state = State(keepAlive = 30000)
       val result = SendToClient(Published(messageId))
@@ -245,7 +246,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
     "Define the actions to perform to handle a SubackFrame" in {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val messageId = Random.nextInt(65535)
+      val messageId = Random.nextInt(65536)
       val qosInput = Vector(AtLeastOnce.enum, ExactlyOnce.enum)
       val qosResult = Vector(AtLeastOnce, ExactlyOnce)
       val input = SubackFrame(header, messageId, qosInput)

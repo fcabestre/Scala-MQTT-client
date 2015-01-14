@@ -25,9 +25,13 @@ trait Protocol {
   private val zeroId = MessageId(0)
 
   private[protocol] def handleApiMessages(apiMessage : APIMessage) : Action = apiMessage match {
-    case Connect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
+    case Connect(clientId, keepAlive, cleanSession, will, user, password) =>
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = false, cleanSession, keepAlive)
+      val retain = will.fold(false)(_.retain)
+      val qos = will.fold(AtMostOnce.enum)(_.qos.enum)
+      val topic = will.map(_.topic)
+      val message = will.map(_.message)
+      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = retain, qos, willFlag = will.isDefined, cleanSession, keepAlive)
       Sequence(
         Seq(SetKeepAlive(keepAlive.toLong * 1000),
         SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))

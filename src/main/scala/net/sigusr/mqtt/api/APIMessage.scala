@@ -20,11 +20,13 @@ sealed trait APIMessage
 
 case object NotReady extends APIMessage
 case object Ready extends APIMessage
+
+case class Will(retain : Boolean, qos : QualityOfService, topic : String, message : String)
+
 case class Connect(clientId : String,
                    keepAlive : Int = DEFAULT_KEEP_ALIVE,
                    cleanSession : Boolean = true,
-                   topic : Option[String] = None,
-                   message : Option[String] = None,
+                   will : Option[Will] = None,
                    user : Option[String] = None,
                    password : Option[String] = None) extends APIMessage {
   require(keepAlive >= 0 && keepAlive < 65636)
