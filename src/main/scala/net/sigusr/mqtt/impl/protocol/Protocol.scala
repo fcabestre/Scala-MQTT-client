@@ -22,12 +22,14 @@ import scodec.bits.ByteVector
 
 trait Protocol {
 
+  private val zeroId = MessageId(0)
+
   private[protocol] def handleApiMessages(apiMessage : APIMessage) : Action = apiMessage match {
     case Connect(clientId, keepAlive, cleanSession, topic, message, user, password) =>
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = false, cleanSession, keepAlive)
       Sequence(
-        Seq(SetKeepAliveValue(keepAlive.toLong * 1000),
+        Seq(SetKeepAlive(keepAlive.toLong * 1000),
         SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
     case Disconnect =>
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
@@ -37,6 +39,7 @@ trait Protocol {
       SendToNetwork(PublishFrame(header, topic, messageId.getOrElse(zeroId).identifier, ByteVector(payload)))
     case Publish(topic, payload, qos, Some(messageId), retain) =>
       val header = Header(dup = false, qos.enum, retain = retain)
+      // TODO handle storage and timeouts
       SendToNetwork(PublishFrame(header, topic, messageId.identifier, ByteVector(payload)))
     case Subscribe(topics, messageId) =>
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
@@ -44,21 +47,38 @@ trait Protocol {
     case m => SendToClient(WrongClientMessage(m))
   }
 
-  private[protocol] def handleNetworkFrames(frame : Frame, keepAliveValue : Long) : Action = {
+  private[protocol] def handleNetworkFrames(frame : Frame, state : State) : Action = {
     frame match {
       case ConnackFrame(header, 0) =>
-        if (keepAliveValue == 0) SendToClient(Connected)
-        else Sequence(Seq(StartTimer(keepAliveValue), SendToClient(Connected)))
+        if (state.keepAlive == 0) SendToClient(Connected)
+        else Sequence(Seq(StartPingRespTimer(state.keepAlive), SendToClient(Connected)))
       case ConnackFrame(header, returnCode) => SendToClient(ConnectionFailure(ConnectionFailureReason.fromEnum(returnCode)))
       case PingRespFrame(header) =>
         SetPendingPingResponse(isPending = false)
       case PublishFrame(header, topic, messageIdentifier, payload) =>
-        SendToClient(Message(topic, payload.toArray.to[Vector]))
+        val toClient = SendToClient(Message(topic, payload.toArray.to[Vector]))
+        header.qos match {
+          case AtMostOnce.enum =>
+            toClient
+          case AtLeastOnce.enum =>
+            Sequence(Seq(
+              toClient,
+              SendToNetwork(PubackFrame(Header(), messageIdentifier))
+            ))
+          case ExactlyOnce.enum =>
+            Sequence(Seq(
+              toClient,
+              SendToNetwork(PubrecFrame(Header(), messageIdentifier))
+            ))
+        }
       case PubackFrame(header, messageId) =>
+        // TODO handle storage
         SendToClient(Published(messageId))
       case PubrecFrame(header, messageIdentifier) =>
-        SendToNetwork(PubrelFrame(header, messageIdentifier))
+        // TODO handle storage and timeouts
+        SendToNetwork(PubrelFrame(header.copy(qos = 1), messageIdentifier))
       case PubcompFrame(header, messageId) =>
+        // TODO handle storage
         SendToClient(Published(messageId))
       case SubackFrame(header, messageIdentifier, topicResults) =>
         SendToClient(Subscribed(topicResults.map(QualityOfService.fromEnum), messageIdentifier.identifier))
@@ -66,18 +86,18 @@ trait Protocol {
     }
   }
 
-  private[protocol] def timerSignal(currentTime: Long, keepAliveValue: Long, lastSentMessageTimestamp: Long, isPingResponsePending: Boolean): Action =
-    if (isPingResponsePending)
+  private[protocol] def timerSignal(currentTime: Long, state: State): Action =
+    if (state.isPingResponsePending)
       ForciblyCloseTransport
     else {
-      val timeout = keepAliveValue - currentTime + lastSentMessageTimestamp
+      val timeout = state.keepAlive - currentTime + state.lastSentMessageTimestamp
       if (timeout < 1000)
         Sequence(Seq(
           SetPendingPingResponse(isPending = true),
-          StartTimer(keepAliveValue),
+          StartPingRespTimer(state.keepAlive),
           SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))))
       else
-          StartTimer(timeout)
+          StartPingRespTimer(timeout)
     }
 
   private[protocol] def connectionClosed() : Action = SendToClient(Disconnected)

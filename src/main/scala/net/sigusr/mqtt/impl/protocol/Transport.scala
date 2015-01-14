@@ -39,6 +39,7 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   var isPingResponsePending = false
   var keepAliveValue : Long = DEFAULT_KEEP_ALIVE.toLong
   var timerTask: Option[Cancellable] = None
+  var state : State = State()
 
   tcpManagerActor ! Connect(mqttBrokerAddress)
 
@@ -59,10 +60,10 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
     case message : APIMessage =>
       processAction(handleApiMessages(message), clientActor, connectionActor)
     case TimerSignal =>
-      processAction(timerSignal(System.currentTimeMillis(), keepAliveValue, lastSentMessageTimestamp, isPingResponsePending), clientActor, connectionActor)
+      processAction(timerSignal(System.currentTimeMillis(), state), clientActor, connectionActor)
     case Received(encodedResponse) ⇒
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
-      processAction(handleNetworkFrames(frame, keepAliveValue), clientActor, connectionActor)
+      processAction(handleNetworkFrames(frame, state), clientActor, connectionActor)
     case _: ConnectionClosed ⇒
       processAction(connectionClosed(), clientActor, connectionActor)
       context stop self
@@ -71,16 +72,16 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   private def processAction(action: Action, clientActor : ActorRef, connectionActor : ActorRef) : Unit = {
     action match {
       case Sequence(actions) => actions foreach { (action : Action) => processAction(action, clientActor, connectionActor) }
-      case SetKeepAliveValue(duration) =>
-        keepAliveValue = duration
-      case StartTimer(timeout) =>
-        timerTask = Some(context.system.scheduler.scheduleOnce(FiniteDuration(timeout, MILLISECONDS), self, TimerSignal))
+      case SetKeepAlive(keepAlive) =>
+        state = state.setTimeOut(keepAlive)
+      case StartPingRespTimer(timeout) =>
+        state = state.setTimerTask(context.system.scheduler.scheduleOnce(FiniteDuration(timeout, MILLISECONDS), self, TimerSignal))
       case SetPendingPingResponse(isPending) =>
-        isPingResponsePending = isPending
+        state = state.setPingResponsePending(isPending)
       case SendToClient(message) =>
         clientActor ! message
       case SendToNetwork(frame) =>
-        lastSentMessageTimestamp = System.currentTimeMillis()
+        state = state.setLastSentMessageTimestamp(System.currentTimeMillis())
         val encodedFrame = Codec[Frame].encodeValid(frame)
         connectionActor ! Write(ByteString(encodedFrame.toByteArray))
       case ForciblyCloseTransport =>
@@ -89,7 +90,7 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   }
 
   override def postStop(): Unit = {
-    timerTask foreach { _.cancel() }
+    state.timerTask foreach { _.cancel() }
   }
 }
 

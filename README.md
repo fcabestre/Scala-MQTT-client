@@ -11,15 +11,16 @@ I thought: "Could be fun to implement the MQTT protocol directly with [Akka IO](
 Its [specification](http://public.dhe.ibm.com/software/dw/webservices/ws-mqtt/mqtt-v3r1.html) is rather short
 (around 42 printed pages)".
 
-But quickly, when I came to look at how to encode/decode MQTT protocol frames, I stumbled upon
+And quickly, when I came to look at how to encode/decode MQTT protocol frames, I stumbled upon
 [Scodec](http://typelevel.org/projects/scodec). This seemed to be the encoding/decoding framework I was waiting for
 a long time. So I decided to give it a try...
 
 ## And now
 
 I have a basic and far from complete implementation of the thing. Frame encoding and decoding works pretty well, and
-it's possible to write some code to talk to [Mosquitto](http://mosquitto.org). See for example this [local subscriber]
-(https://github.com/fcabestre/Scala-MQTT-client/blob/master/src/main/scala/net/sigusr/mqtt/examples/LocalSubscriber.scala)
+it's possible to write some code to talk to [Mosquitto](http://mosquitto.org). For examples you can have a look to the [local subscriber]
+(https://github.com/fcabestre/Scala-MQTT-client/blob/master/src/main/scala/net/sigusr/mqtt/examples/LocalSubscriber.scala) or the
+[local publisher](https://github.com/fcabestre/Scala-MQTT-client/blob/master/src/main/scala/net/sigusr/mqtt/examples/LocalPublisher.scala).
 I'm starting to take it a bit more seriously. I mean, thinking of doing something that could be useful to others. But
 there is still a lot of work to be done:
 
@@ -27,6 +28,7 @@ there is still a lot of work to be done:
   * Properly handling quality of services of 1 and 2 with timeouts and
     error messages
   * Managing communication back pressure with [Akka IO](http://doc.akka.io/docs/akka/snapshot/scala/io.html)
+  * Suppoting both MQTT v3.1 and v3.1.1
   * If I dare, passing [Paho](http://www.eclipse.org/paho/clients/testing/) conformance tests
   * And many, many, many more I can't foresee...
 
