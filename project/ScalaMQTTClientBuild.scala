@@ -47,8 +47,8 @@ object ScalaMQTTClientBuild extends Build {
       testOptions in IntegrationTest := Seq(Tests.Filter(itFilter))).
       settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*).
       settings(
-        CoverallsPlugin.CoverallsKeys.coverallsToken in Test := Some("4c62CwXnosg5iwouVOrCa46frQwqtBlzk"),
-        ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages in Test := ".*examples.*").
+        CoverallsPlugin.CoverallsKeys.coverallsToken := Some("4c62CwXnosg5iwouVOrCa46frQwqtBlzk"),
+        ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages := ".*examples.*").
         settings(bintraySettings: _*)
 }
 
