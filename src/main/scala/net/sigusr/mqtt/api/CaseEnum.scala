@@ -16,4 +16,4 @@
 
 package net.sigusr.mqtt.api
 
-trait CaseEnum { def enum : Int }
+trait CaseEnum { def enum: Int }

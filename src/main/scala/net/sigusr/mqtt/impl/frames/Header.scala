@@ -19,7 +19,7 @@ package net.sigusr.mqtt.impl.frames
 import net.sigusr.mqtt.api.AtMostOnce
 import scodec.codecs._
 
-case class Header(dup : Boolean = false, qos : Int = AtMostOnce.enum, retain : Boolean = false)
+case class Header(dup: Boolean = false, qos: Int = AtMostOnce.enum, retain: Boolean = false)
 
 object Header {
   implicit val headerCodec = (bool :: qosCodec :: bool).as[Header]

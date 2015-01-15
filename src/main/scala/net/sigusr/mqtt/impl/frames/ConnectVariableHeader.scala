@@ -16,16 +16,16 @@
 
 package net.sigusr.mqtt.impl.frames
 
-import scodec.bits.{BitVector, _}
+import scodec.bits.{ BitVector, _ }
 import scodec.codecs._
 
 case class ConnectVariableHeader(userNameFlag: Boolean,
-                                 passwordFlag: Boolean,
-                                 willRetain: Boolean,
-                                 willQoS: Int,
-                                 willFlag: Boolean,
-                                 cleanSession: Boolean,
-                                 keepAliveTimer: Int) {
+  passwordFlag: Boolean,
+  willRetain: Boolean,
+  willQoS: Int,
+  willFlag: Boolean,
+  cleanSession: Boolean,
+  keepAliveTimer: Int) {
 
   require((userNameFlag || !passwordFlag) && keepAliveTimer >= 0 && keepAliveTimer <= 65535)
 }
@@ -39,13 +39,12 @@ object ConnectVariableHeader {
 
   implicit val connectVariableHeaderCodec = (
     constant(connectVariableHeaderFixedBytes) :~>:
-      bool ::
-      bool ::
-      bool ::
-      qosCodec ::
-      bool ::
-      bool ::
-      ignore(1) :~>:
-      keepAliveCodec
-    ).as[ConnectVariableHeader]
+    bool ::
+    bool ::
+    bool ::
+    qosCodec ::
+    bool ::
+    bool ::
+    ignore(1) :~>:
+    keepAliveCodec).as[ConnectVariableHeader]
 }

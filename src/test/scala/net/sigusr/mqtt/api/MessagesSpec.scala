@@ -63,14 +63,14 @@ object MessagesSpec extends Specification {
   "MessageIdentifier" should {
     "Check the range of the integer provided to its constructor" in {
       MessageId(-1) should throwA[IllegalArgumentException]
-      MessageId(0) should not (throwA[IllegalArgumentException])
-      MessageId(65535) should not (throwA[IllegalArgumentException])
+      MessageId(0) should not(throwA[IllegalArgumentException])
+      MessageId(65535) should not(throwA[IllegalArgumentException])
       MessageId(65536) should throwA[IllegalArgumentException]
     }
 
     "Allow pattern matching" in {
       MessageId(42) match {
-        case MessageId(i) => i should_=== 42
+        case MessageId(i) ⇒ i should_=== 42
       }
     }
 
@@ -85,7 +85,7 @@ object MessagesSpec extends Specification {
     }
 
     "Have a implicit conversion from Int" in {
-      def id(messageIdentifier: MessageId) : MessageId = messageIdentifier
+      def id(messageIdentifier: MessageId): MessageId = messageIdentifier
       id(42) should_=== MessageId(42)
       id(-1) should throwA[IllegalArgumentException]
       id(65536) should throwA[IllegalArgumentException]
@@ -95,19 +95,19 @@ object MessagesSpec extends Specification {
   "Connect" should {
     "Check the range of the keep alive value provided to its constructor" in {
       Connect("Client", keepAlive = -1) should throwA[IllegalArgumentException]
-      Connect("Client", keepAlive = 0) should not throwA()
-      Connect("Client", keepAlive = 65635) should not throwA()
+      Connect("Client", keepAlive = 0) should not throwA ()
+      Connect("Client", keepAlive = 65635) should not throwA ()
       Connect("Client", keepAlive = 65636) should throwA[IllegalArgumentException]
     }
   }
 
   "Publish" should {
     "Have a valid combination of QoS and message identifier" in {
-      Publish("topic", Vector(0x00), AtMostOnce) should not throwA()
+      Publish("topic", Vector(0x00), AtMostOnce) should not throwA ()
       Publish("topic", Vector(0x00), AtLeastOnce) should throwA[IllegalArgumentException]
-      Publish("topic", Vector(0x00), AtLeastOnce, Some(1)) should not throwA()
+      Publish("topic", Vector(0x00), AtLeastOnce, Some(1)) should not throwA ()
       Publish("topic", Vector(0x00), ExactlyOnce) should throwA[IllegalArgumentException]
-      Publish("topic", Vector(0x00), ExactlyOnce, Some(1)) should not throwA()
+      Publish("topic", Vector(0x00), ExactlyOnce, Some(1)) should not throwA ()
     }
   }
 }

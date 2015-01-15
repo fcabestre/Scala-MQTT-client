@@ -18,14 +18,14 @@ package net.sigusr.mqtt.examples
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
 import com.typesafe.config.ConfigFactory
 import net.sigusr.mqtt.api._
 
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.util.Random
 
-class LocalPublisher(toPublish : Vector[String]) extends Actor {
+class LocalPublisher(toPublish: Vector[String]) extends Actor {
 
   import context.dispatcher
 
@@ -33,26 +33,26 @@ class LocalPublisher(toPublish : Vector[String]) extends Actor {
 
   val length = toPublish.length
 
-  def scheduleRandomMessage() : Unit = {
+  def scheduleRandomMessage(): Unit = {
     val message = toPublish(Random.nextInt(length))
     context.system.scheduler.scheduleOnce(FiniteDuration(Random.nextInt(2000).toLong + 1000, MILLISECONDS), self, message)
     ()
   }
 
   def receive: Receive = {
-    case Ready =>
+    case Ready ⇒
       sender() ! Connect(localSubscriber)
-    case Connected =>
+    case Connected ⇒
       println("Successfully connected to localhost:1883")
       println(s"Ready to publish to topic [ $localPublisher ]")
       scheduleRandomMessage()
       context become ready(sender())
-    case ConnectionFailure(reason) =>
+    case ConnectionFailure(reason) ⇒
       println(s"Connection to localhost:1883 failed [$reason]")
   }
 
   def ready(mqttManager: ActorRef): Receive = {
-    case m : String =>
+    case m: String ⇒
       println(s"Publishing [ $m ]")
       mqttManager ! Publish(localPublisher, m.getBytes("UTF-8").to[Vector])
       scheduleRandomMessage()
@@ -81,11 +81,10 @@ object LocalPublisher {
     println(s"<$localPublisher> stopped")
   }
 
-  def main(args : Array[String]) = {
+  def main(args: Array[String]) = {
     system.actorOf(Props(classOf[LocalPublisher], args.to[Vector]))
     sys.addShutdownHook { shutdown() }
     println(s"<$localPublisher> started")
   }
 }
-
 

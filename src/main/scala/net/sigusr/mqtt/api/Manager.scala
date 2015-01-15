@@ -19,8 +19,8 @@ package net.sigusr.mqtt.api
 import java.net.InetSocketAddress
 
 import akka.actor.Props
-import akka.io.{IO, Tcp}
-import net.sigusr.mqtt.impl.protocol.{Protocol, Transport}
+import akka.io.{ IO, Tcp }
+import net.sigusr.mqtt.impl.protocol.{ Protocol, Transport }
 
 class Manager(remote: InetSocketAddress) extends Transport(remote) with Protocol {
   import context.system

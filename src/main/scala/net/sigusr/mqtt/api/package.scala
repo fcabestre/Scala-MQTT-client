@@ -23,7 +23,7 @@ package object api {
    * means the client doesn't send any message to the broker during this period. This
    * duration is expressed in seconds.
    */
-  val DEFAULT_KEEP_ALIVE : Int = 30
+  val DEFAULT_KEEP_ALIVE: Int = 30
 
   /**
    * Implicit conversion from an [[Int]] to a [[MessageId]]. A sample use could be:
@@ -33,7 +33,7 @@ package object api {
    * @param int The integer to convert from.
    * @return The resulting [[MessageId]].
    */
-  implicit def asMessageIdentifier(int : Int) : MessageId = MessageId(int)
+  implicit def asMessageIdentifier(int: Int): MessageId = MessageId(int)
 
   /**
    * Implicit class defining an custom [[String]] interpolator which produces

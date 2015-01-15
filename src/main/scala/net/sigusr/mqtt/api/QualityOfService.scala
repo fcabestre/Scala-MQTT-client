@@ -25,7 +25,7 @@ object AtLeastOnce extends QualityOfService { val enum = 1 }
 object ExactlyOnce extends QualityOfService { val enum = 2 }
 
 object QualityOfService {
-  def fromEnum(enum : Int): QualityOfService =
+  def fromEnum(enum: Int): QualityOfService =
     (enum: @switch) match {
       case 0 => AtMostOnce
       case 1 => AtLeastOnce

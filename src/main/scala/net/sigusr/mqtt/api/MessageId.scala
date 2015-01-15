@@ -16,17 +16,17 @@
 
 package net.sigusr.mqtt.api
 
-class MessageId(val identifier : Int) extends AnyVal
+class MessageId(val identifier: Int) extends AnyVal
 
 object MessageId {
 
-  def checkValue(value : Int): Boolean = value >= 0 && value < 65536
+  def checkValue(value: Int): Boolean = value >= 0 && value < 65536
 
-  def apply(value : Int): MessageId = {
+  def apply(value: Int): MessageId = {
     if (!checkValue(value))
       throw new IllegalArgumentException("The value of a message identifier must be in the range [0..65535]")
     new MessageId(value)
   }
 
-  def unapply(identifier: MessageId) : Option[Int] = Some(identifier.identifier)
+  def unapply(identifier: MessageId): Option[Int] = Some(identifier.identifier)
 }

@@ -28,11 +28,11 @@ case object NotAuthorized extends ConnectionFailureReason { val enum = 5 }
 object ConnectionFailureReason {
   def fromEnum(enum: Int): ConnectionFailureReason =
     (enum: @switch) match {
-      case 1 => BadProtocolVersion
-      case 2 => IdentifierRejected
-      case 3 => ServerUnavailable
-      case 4 => BadUserNameOrPassword
-      case 5 => NotAuthorized
-      case _ => throw new IllegalArgumentException("Connect failure reason encoded value should be in the range [1..5]")
+      case 1 ⇒ BadProtocolVersion
+      case 2 ⇒ IdentifierRejected
+      case 3 ⇒ ServerUnavailable
+      case 4 ⇒ BadUserNameOrPassword
+      case 5 ⇒ NotAuthorized
+      case _ ⇒ throw new IllegalArgumentException("Connect failure reason encoded value should be in the range [1..5]")
     }
 }

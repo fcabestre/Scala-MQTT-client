@@ -21,32 +21,32 @@ sealed trait APIMessage
 case object NotReady extends APIMessage
 case object Ready extends APIMessage
 
-case class Will(retain : Boolean, qos : QualityOfService, topic : String, message : String)
+case class Will(retain: Boolean, qos: QualityOfService, topic: String, message: String)
 
-case class Connect(clientId : String,
-                   keepAlive : Int = DEFAULT_KEEP_ALIVE,
-                   cleanSession : Boolean = true,
-                   will : Option[Will] = None,
-                   user : Option[String] = None,
-                   password : Option[String] = None) extends APIMessage {
+case class Connect(clientId: String,
+  keepAlive: Int = DEFAULT_KEEP_ALIVE,
+  cleanSession: Boolean = true,
+  will: Option[Will] = None,
+  user: Option[String] = None,
+  password: Option[String] = None) extends APIMessage {
   require(keepAlive >= 0 && keepAlive < 65636)
 }
 
 case object Connected extends APIMessage
-case class ConnectionFailure(reason : ConnectionFailureReason) extends APIMessage
+case class ConnectionFailure(reason: ConnectionFailureReason) extends APIMessage
 case object Disconnect extends APIMessage
 case object Disconnected extends APIMessage
-case class WrongClientMessage(message : APIMessage) extends APIMessage
-case class Publish(topic: String, 
-                   payload: Vector[Byte], 
-                   qos: QualityOfService = AtMostOnce, 
-                   messageId: Option[MessageId] = None, 
-                   retain: Boolean = false) extends APIMessage {
+case class WrongClientMessage(message: APIMessage) extends APIMessage
+case class Publish(topic: String,
+  payload: Vector[Byte],
+  qos: QualityOfService = AtMostOnce,
+  messageId: Option[MessageId] = None,
+  retain: Boolean = false) extends APIMessage {
   require(qos == AtMostOnce || messageId.isDefined)
 }
 case class Published(messageId: MessageId) extends APIMessage
 case class Subscribe(topics: Vector[(String, QualityOfService)], messageId: MessageId) extends APIMessage
 case class Subscribed(topicResults: Vector[QualityOfService], messageId: MessageId) extends APIMessage
-case class Unsubscribe(topics : Vector[String], messageId: MessageId)
+case class Unsubscribe(topics: Vector[String], messageId: MessageId)
 case class Unsubscribed(messageId: MessageId)
 case class Message(topic: String, payload: Vector[Byte]) extends APIMessage

@@ -58,7 +58,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val input = Connect(clientId, keepAlive, cleanSession, Some(will), user, password)
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = true, cleanSession, keepAlive)
-      val result =Sequence(Seq(
+      val result = Sequence(Seq(
         SetKeepAlive(keepAlive.toLong * 1000),
         SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
       handleApiMessages(input) should_== result
@@ -198,8 +198,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val state = State(keepAlive = 30000)
       val result = Sequence(Seq(
         SendToClient(Message(topic, payload)),
-        SendToNetwork(PubackFrame(header.copy(qos = 0), messageId))
-      ))
+        SendToNetwork(PubackFrame(header.copy(qos = 0), messageId))))
       handleNetworkFrames(input, state) should_== result
     }
 
@@ -212,8 +211,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val state = State(keepAlive = 30000)
       val result = Sequence(Seq(
         SendToClient(Message(topic, payload)),
-        SendToNetwork(PubrecFrame(header.copy(qos = 0), messageId))
-      ))
+        SendToNetwork(PubrecFrame(header.copy(qos = 0), messageId))))
       handleNetworkFrames(input, state) should_== result
     }
 

@@ -17,10 +17,10 @@
 package net.sigusr.mqtt
 
 import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestKit}
+import akka.testkit.{ ImplicitSender, TestKit }
 import com.typesafe.config.ConfigFactory
-import org.specs2.matcher.{Expectable, Matcher}
-import org.specs2.specification.{AfterExample, Scope}
+import org.specs2.matcher.{ Expectable, Matcher }
+import org.specs2.specification.{ AfterExample, Scope }
 import scodec.Err
 
 import scala.util.Random
@@ -79,7 +79,7 @@ object SpecUtils {
     def clientActor = testActor
   }
 
-  def makeRandomByteVector(size : Int) = {
+  def makeRandomByteVector(size: Int) = {
     val bytes = new Array[Byte](64)
     Random.nextBytes(bytes)
     bytes.to[Vector]
