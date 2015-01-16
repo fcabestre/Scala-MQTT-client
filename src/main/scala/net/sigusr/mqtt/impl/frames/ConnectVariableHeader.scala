@@ -26,8 +26,6 @@ case class ConnectVariableHeader(userNameFlag: Boolean,
   willFlag: Boolean,
   cleanSession: Boolean,
   keepAliveTimer: Int) {
-
-  require((userNameFlag || !passwordFlag) && keepAliveTimer >= 0 && keepAliveTimer <= 65535)
 }
 
 object ConnectVariableHeader {

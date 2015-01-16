@@ -18,7 +18,7 @@ package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor.{ Actor, ActorLogging, ActorRef, Cancellable }
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.event.LoggingReceive
 import akka.util.ByteString
 import net.sigusr.mqtt.api._
@@ -26,7 +26,7 @@ import net.sigusr.mqtt.impl.frames.Frame
 import scodec.Codec
 import scodec.bits.BitVector
 
-import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.duration.{FiniteDuration, _}
 
 private[protocol] case object TimerSignal
 
@@ -35,10 +35,6 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   import akka.io.Tcp._
   import context.dispatcher
 
-  var lastSentMessageTimestamp: Long = 0
-  var isPingResponsePending = false
-  var keepAliveValue: Long = DEFAULT_KEEP_ALIVE.toLong
-  var timerTask: Option[Cancellable] = None
   var state: State = State()
 
   tcpManagerActor ! Connect(mqttBrokerAddress)

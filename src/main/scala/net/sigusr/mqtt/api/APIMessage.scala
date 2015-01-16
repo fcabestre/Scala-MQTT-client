@@ -29,7 +29,8 @@ case class Connect(clientId: String,
   will: Option[Will] = None,
   user: Option[String] = None,
   password: Option[String] = None) extends APIMessage {
-  require(keepAlive >= 0 && keepAlive < 65636)
+  assert(keepAlive >= 0 && keepAlive < 65636, "Keep alive value should be in the range [0..65535]")
+  assert(user.isDefined || !password.isDefined, "A password cannot be provided without user")
 }
 
 case object Connected extends APIMessage
@@ -42,7 +43,7 @@ case class Publish(topic: String,
   qos: QualityOfService = AtMostOnce,
   messageId: Option[MessageId] = None,
   retain: Boolean = false) extends APIMessage {
-  require(qos == AtMostOnce || messageId.isDefined)
+  assert(qos == AtMostOnce || messageId.isDefined, "A message identifier must be provided when QoS is greater than 0")
 }
 case class Published(messageId: MessageId) extends APIMessage
 case class Subscribe(topics: Vector[(String, QualityOfService)], messageId: MessageId) extends APIMessage

@@ -99,6 +99,12 @@ object MessagesSpec extends Specification {
       Connect("Client", keepAlive = 65635) should not throwA ()
       Connect("Client", keepAlive = 65636) should throwA[IllegalArgumentException]
     }
+
+    "Check a user is provided when a password is set" in {
+      Connect("Client", password = Some("pass")) should throwA[IllegalArgumentException]
+      Connect("Client", user = Some("user"), password = Some("pass")) should not throwA ()
+
+    }
   }
 
   "Publish" should {

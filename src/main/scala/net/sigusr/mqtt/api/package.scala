@@ -57,4 +57,9 @@ package object api {
       MessageId(buf.toString.toInt)
     }
   }
+
+  @inline final def assert(requirement: Boolean, message: ⇒ Any): Unit = {
+    if (!requirement)
+      throw new IllegalArgumentException(message.toString)
+  }
 }
