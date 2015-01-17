@@ -28,7 +28,7 @@ package object api {
   /**
    * Implicit conversion from an [[Int]] to a [[MessageId]]. A sample use could be:
    * {{{
-   *   val m : MessageIdentifier = 235
+   * val m : MessageIdentifier = 235
    * }}}
    * @param int The integer to convert from.
    * @return The resulting [[MessageId]].
@@ -39,9 +39,9 @@ package object api {
    * Implicit class defining an custom [[String]] interpolator which produces
    * [[MessageId]]. This allows to write:
    * {{{
-   *   val i = 2
-   *   val s = "4"
-   *   val m : MessageIdentifier = mi"${s}i"
+   * val i = 2
+   * val s = "4"
+   * val m : MessageIdentifier = mi"${s}i"
    * }}}
    * @param sc The string context of this custom interpolator.
    */

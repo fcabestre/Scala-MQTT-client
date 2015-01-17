@@ -27,9 +27,9 @@ object ExactlyOnce extends QualityOfService { val enum = 2 }
 object QualityOfService {
   def fromEnum(enum: Int): QualityOfService =
     (enum: @switch) match {
-      case 0 => AtMostOnce
-      case 1 => AtLeastOnce
-      case 2 => ExactlyOnce
-      case _ => throw new IllegalArgumentException("Quality of service encoded value should be in the range [0..2]")
+      case 0 ⇒ AtMostOnce
+      case 1 ⇒ AtLeastOnce
+      case 2 ⇒ ExactlyOnce
+      case _ ⇒ throw new IllegalArgumentException("Quality of service encoded value should be in the range [0..2]")
     }
 }

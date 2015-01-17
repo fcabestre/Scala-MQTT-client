@@ -18,7 +18,7 @@ package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorLogging, ActorRef}
+import akka.actor.{ Actor, ActorLogging, ActorRef }
 import akka.event.LoggingReceive
 import akka.util.ByteString
 import net.sigusr.mqtt.api._
@@ -26,7 +26,7 @@ import net.sigusr.mqtt.impl.frames.Frame
 import scodec.Codec
 import scodec.bits.BitVector
 
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration.{ FiniteDuration, _ }
 
 private[protocol] case object TimerSignal
 

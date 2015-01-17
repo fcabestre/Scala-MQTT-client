@@ -19,13 +19,14 @@ package net.sigusr.mqtt.impl.frames
 import scodec.bits.{ BitVector, _ }
 import scodec.codecs._
 
-case class ConnectVariableHeader(userNameFlag: Boolean,
-  passwordFlag: Boolean,
-  willRetain: Boolean,
-  willQoS: Int,
-  willFlag: Boolean,
-  cleanSession: Boolean,
-  keepAliveTimer: Int) {
+case class ConnectVariableHeader(
+    userNameFlag: Boolean,
+    passwordFlag: Boolean,
+    willRetain: Boolean,
+    willQoS: Int,
+    willFlag: Boolean,
+    cleanSession: Boolean,
+    keepAliveTimer: Int) {
 }
 
 object ConnectVariableHeader {

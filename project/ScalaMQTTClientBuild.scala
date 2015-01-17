@@ -4,6 +4,7 @@ import sbt.Keys._
 import sbt._
 import scoverage.ScoverageSbtPlugin
 
+
 object ScalaMQTTClientBuild extends Build {
   lazy val specs2 = "org.specs2" %% "specs2" % "2.4.15"
   lazy val IntegrationTest = config("it") extend Test

@@ -23,12 +23,13 @@ case object Ready extends APIMessage
 
 case class Will(retain: Boolean, qos: QualityOfService, topic: String, message: String)
 
-case class Connect(clientId: String,
-  keepAlive: Int = DEFAULT_KEEP_ALIVE,
-  cleanSession: Boolean = true,
-  will: Option[Will] = None,
-  user: Option[String] = None,
-  password: Option[String] = None) extends APIMessage {
+case class Connect(
+    clientId: String,
+    keepAlive: Int = DEFAULT_KEEP_ALIVE,
+    cleanSession: Boolean = true,
+    will: Option[Will] = None,
+    user: Option[String] = None,
+    password: Option[String] = None) extends APIMessage {
   assert(keepAlive >= 0 && keepAlive < 65636, "Keep alive value should be in the range [0..65535]")
   assert(user.isDefined || !password.isDefined, "A password cannot be provided without user")
 }
@@ -38,11 +39,12 @@ case class ConnectionFailure(reason: ConnectionFailureReason) extends APIMessage
 case object Disconnect extends APIMessage
 case object Disconnected extends APIMessage
 case class WrongClientMessage(message: APIMessage) extends APIMessage
-case class Publish(topic: String,
-  payload: Vector[Byte],
-  qos: QualityOfService = AtMostOnce,
-  messageId: Option[MessageId] = None,
-  retain: Boolean = false) extends APIMessage {
+case class Publish(
+    topic: String,
+    payload: Vector[Byte],
+    qos: QualityOfService = AtMostOnce,
+    messageId: Option[MessageId] = None,
+    retain: Boolean = false) extends APIMessage {
   assert(qos == AtMostOnce || messageId.isDefined, "A message identifier must be provided when QoS is greater than 0")
 }
 case class Published(messageId: MessageId) extends APIMessage

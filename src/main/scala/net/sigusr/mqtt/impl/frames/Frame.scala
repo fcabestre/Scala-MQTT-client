@@ -26,7 +26,9 @@ sealed trait Frame {
   def header: Header
 }
 
-case class ConnectFrame(header: Header, variableHeader: ConnectVariableHeader,
+case class ConnectFrame(
+  header: Header,
+  variableHeader: ConnectVariableHeader,
   clientId: String,
   topic: Option[String],
   message: Option[String],
