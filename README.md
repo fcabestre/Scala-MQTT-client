@@ -34,8 +34,8 @@ there is still a lot of work to be done:
 
 ## Dependencies
 
-  * Scala 2.11.4
-  * Akka 2.3.8
+  * Scala 2.11.5
+  * Akka 2.3.9
   * scodec-core 1.6.0
 
 ## License

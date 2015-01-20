@@ -42,8 +42,8 @@ object ActorSpec extends Specification with NoTimeConversions {
   class FakeMQTTManagerParent(testMQTTManagerName: String, remote: InetSocketAddress)(implicit testActor: ActorRef) extends Actor {
     val child = context.actorOf(Props(new TestMQTTManager(remote)), testMQTTManagerName)
     def receive = {
-      case x if sender == child => testActor forward x
-      case x => child forward x
+      case x if sender == child ⇒ testActor forward x
+      case x ⇒ child forward x
     }
   }
 

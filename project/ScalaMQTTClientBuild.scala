@@ -7,7 +7,6 @@ import scoverage.ScoverageSbtPlugin
 
 
 object ScalaMQTTClientBuild extends Build {
-  lazy val specs2 = "org.specs2" %% "specs2" % "2.4.15"
   lazy val IntegrationTest = config("it") extend Test
 
   def itFilter(name: String): Boolean = name startsWith "net.sigusr.mqtt.integration"
@@ -19,13 +18,13 @@ object ScalaMQTTClientBuild extends Build {
     settings(
       name := """Scala-MQTT-client""",
       version := "0.1",
-      scalaVersion := "2.11.4",
+      scalaVersion := "2.11.5",
       licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
       resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
       libraryDependencies ++= Seq(
         "org.specs2" %% "specs2" % "2.4.15" % "test",
-        "com.typesafe.akka" %% "akka-actor" % "2.3.8",
-        "com.typesafe.akka" %% "akka-testkit" % "2.3.8",
+        "com.typesafe.akka" %% "akka-actor" % "2.3.9",
+        "com.typesafe.akka" %% "akka-testkit" % "2.3.9",
         "org.typelevel" %% "scodec-core" % "1.6.0"),
       scalacOptions in Test ++= Seq("-Yrangepos"),
       scalacOptions ++= Seq(
