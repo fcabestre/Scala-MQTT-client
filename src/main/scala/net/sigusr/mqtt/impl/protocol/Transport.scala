@@ -35,39 +35,40 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   import akka.io.Tcp._
   import context.dispatcher
 
-  var state: State = State()
+  var state: State = State(client = context.parent, tcpManager = tcpManagerActor)
 
   tcpManagerActor ! Connect(mqttBrokerAddress)
-
   def tcpManagerActor: ActorRef
 
   def receive = LoggingReceive {
     case CommandFailed(_: Connect) ⇒
-      processAction(transportNotReady(), context.parent, sender())
+      state = state.setTCPManager(sender())
+      processAction(transportNotReady())
       context stop self
     case Connected(_, _) ⇒
       val connectionActor: ActorRef = sender()
+      state = state.setTCPManager(connectionActor)
       connectionActor ! Register(self)
-      processAction(transportReady(), context.parent, connectionActor)
-      context become connected(context.parent, connectionActor)
+      processAction(transportReady())
+      context become connected
   }
 
-  def connected(clientActor: ActorRef, connectionActor: ActorRef): Receive = LoggingReceive {
+  def connected: Receive = LoggingReceive {
     case message: APIMessage ⇒
-      processAction(handleApiMessages(message), clientActor, connectionActor)
+      processAction(handleApiMessages(message))
     case TimerSignal ⇒
-      processAction(timerSignal(System.currentTimeMillis(), state), clientActor, connectionActor)
+      processAction(timerSignal(System.currentTimeMillis(), state))
     case Received(encodedResponse) ⇒
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
-      processAction(handleNetworkFrames(frame, state), clientActor, connectionActor)
+      processAction(handleNetworkFrames(frame, state))
     case _: ConnectionClosed ⇒
-      processAction(connectionClosed(), clientActor, connectionActor)
+      processAction(connectionClosed())
       context stop self
   }
 
-  private def processAction(action: Action, clientActor: ActorRef, connectionActor: ActorRef): Unit = {
+  private def processAction(action: Action): Unit = {
     action match {
-      case Sequence(actions) ⇒ actions foreach { (action: Action) ⇒ processAction(action, clientActor, connectionActor) }
+      case Sequence(actions) ⇒ actions foreach { (action: Action) ⇒ processAction(action) }
       case SetKeepAlive(keepAlive) ⇒
         state = state.setTimeOut(keepAlive)
       case StartPingRespTimer(timeout) ⇒
@@ -75,13 +76,13 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
       case SetPendingPingResponse(isPending) ⇒
         state = state.setPingResponsePending(isPending)
       case SendToClient(message) ⇒
-        clientActor ! message
+        state.client ! message
       case SendToNetwork(frame) ⇒
         state = state.setLastSentMessageTimestamp(System.currentTimeMillis())
         val encodedFrame = Codec[Frame].encodeValid(frame)
-        connectionActor ! Write(ByteString(encodedFrame.toByteArray))
+        state.tcpManager ! Write(ByteString(encodedFrame.toByteArray))
       case ForciblyCloseTransport ⇒
-        connectionActor ! Abort
+        state.tcpManager ! Abort
     }
   }
 

@@ -1,12 +1,15 @@
 package net.sigusr.mqtt.impl.protocol
 
-import akka.actor.Cancellable
+import akka.actor.{ ActorRef, Cancellable }
 import net.sigusr.mqtt.api._
 
-case class State(lastSentMessageTimestamp: Long = 0,
+case class State(
+    lastSentMessageTimestamp: Long = 0,
     isPingResponsePending: Boolean = false,
     keepAlive: Long = DEFAULT_KEEP_ALIVE.toLong,
-    timerTask: Option[Cancellable] = None) {
+    timerTask: Option[Cancellable] = None,
+    client: ActorRef = null,
+    tcpManager: ActorRef = null) {
 
   def setLastSentMessageTimestamp(lastMessageTimeStamp: Long): State = this.copy(lastSentMessageTimestamp = lastSentMessageTimestamp)
 
@@ -16,5 +19,6 @@ case class State(lastSentMessageTimestamp: Long = 0,
 
   def setTimerTask(timerTask: Cancellable): State = this.copy(timerTask = Some(timerTask))
 
+  def setTCPManager(tcpManager: ActorRef): State = this.copy(tcpManager = tcpManager)
 }
 
