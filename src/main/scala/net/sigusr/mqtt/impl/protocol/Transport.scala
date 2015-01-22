@@ -18,7 +18,7 @@ package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor.{ Actor, ActorLogging, ActorRef }
+import akka.actor.{ Terminated, Actor, ActorLogging, ActorRef }
 import akka.event.LoggingReceive
 import akka.util.ByteString
 import net.sigusr.mqtt.api._
@@ -50,6 +50,7 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
       state = state.setTCPManager(connectionActor)
       connectionActor ! Register(self)
       processAction(transportReady())
+      context watch connectionActor
       context become connected
   }
 
@@ -61,6 +62,10 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
     case Received(encodedResponse) ⇒
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
       processAction(handleNetworkFrames(frame, state))
+    case Terminated(_) ⇒
+      context unwatch state.tcpManager
+      processAction(connectionClosed())
+      context stop self
     case _: ConnectionClosed ⇒
       processAction(connectionClosed())
       context stop self

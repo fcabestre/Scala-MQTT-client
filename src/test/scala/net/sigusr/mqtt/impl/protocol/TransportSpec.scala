@@ -116,7 +116,7 @@ object TransportSpec extends Specification with NoTimeConversions {
     }
   }
 
-  "The TCPTransport" should {
+  "The Transport" should {
 
     "Exchange messages during a successful initialisation" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
@@ -147,6 +147,20 @@ object TransportSpec extends Specification with NoTimeConversions {
       expectMsg(Connected)
       mqttManagerActor ! Disconnect
       fakeTCPManagerActor.expectWriteDisconnectFrame()
+      expectMsg(Disconnected)
+    }
+
+    "After a successful initialisation get disconnected when the connection actor dies" in new SpecsTestKit {
+      val fakeTCPManagerActor = new FakeTCPManagerActor
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-2", fakeTCPManagerActor.ref)))
+
+      fakeTCPManagerActor.expectConnect()
+      fakeTCPManagerActor.expectRegister()
+      expectMsg(Ready)
+      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
+      fakeTCPManagerActor.expectWriteConnectFrame()
+      expectMsg(Connected)
+      fakeTCPManagerActor.ref ! PoisonPill
       expectMsg(Disconnected)
     }
 
