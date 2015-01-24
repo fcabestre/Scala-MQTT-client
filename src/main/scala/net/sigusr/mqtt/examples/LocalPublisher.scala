@@ -29,7 +29,7 @@ class LocalPublisher(toPublish: Vector[String]) extends Actor {
 
   import context.dispatcher
 
-  context.actorOf(Manager.props(new InetSocketAddress(1883)))
+  context.actorOf(Manager.props(new InetSocketAddress(1883))) ! Connect(localSubscriber)
 
   val length = toPublish.length
 
@@ -40,8 +40,6 @@ class LocalPublisher(toPublish: Vector[String]) extends Actor {
   }
 
   def receive: Receive = {
-    case Ready ⇒
-      sender() ! Connect(localSubscriber)
     case Connected ⇒
       println("Successfully connected to localhost:1883")
       println(s"Ready to publish to topic [ $localPublisher ]")

@@ -118,65 +118,81 @@ object TransportSpec extends Specification with NoTimeConversions {
 
   "The Transport" should {
 
-    "Exchange messages during a successful initialisation" in new SpecsTestKit {
+    "Manage successful connection" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
       val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-0", fakeTCPManagerActor.ref)))
 
+      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
+
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
-      expectMsg(Ready)
+      fakeTCPManagerActor.expectWriteConnectFrame()
+
+      expectMsg(Connected)
     }
 
-    "Exchange messages during a failed initialisation" in new SpecsTestKit {
+    "Manage unsuccessful connection" in new SpecsTestKit {
+      val fakeTCPManagerActor = new FakeTCPManagerActor
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-0", fakeTCPManagerActor.ref)))
+
+      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
+
+      fakeTCPManagerActor.expectConnectThenFail()
+
+      expectMsg(Disconnected)
+    }
+
+    "Allow graceful disconnection" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
       val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-1", fakeTCPManagerActor.ref)))
 
-      fakeTCPManagerActor.expectConnectThenFail()
-      expectMsg(NotReady)
-    }
-
-    "After a successful initialisation connect and then disconnect" in new SpecsTestKit {
-      val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-2", fakeTCPManagerActor.ref)))
+      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
-      expectMsg(Ready)
-      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
       fakeTCPManagerActor.expectWriteConnectFrame()
+
       expectMsg(Connected)
+
       mqttManagerActor ! Disconnect
       fakeTCPManagerActor.expectWriteDisconnectFrame()
+
       expectMsg(Disconnected)
     }
 
-    "After a successful initialisation get disconnected when the connection actor dies" in new SpecsTestKit {
+    "Manage the connection actor death" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
       val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-2", fakeTCPManagerActor.ref)))
 
+      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
+
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
-      expectMsg(Ready)
-      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
       fakeTCPManagerActor.expectWriteConnectFrame()
+
       expectMsg(Connected)
+
       fakeTCPManagerActor.ref ! PoisonPill
+
       expectMsg(Disconnected)
     }
 
-    "After a successful initialisation connect, ping the server and disconnect when the server stops replying" in new SpecsTestKit {
+    "Keep an idle connection alive or disconnect" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
       val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-3", fakeTCPManagerActor.ref)))
 
+      mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
+
       fakeTCPManagerActor.expectConnect()
       fakeTCPManagerActor.expectRegister()
-      expectMsg(Ready)
-      mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
       fakeTCPManagerActor.expectWriteConnectFrame()
+
       expectMsg(Connected)
+
       fakeTCPManagerActor.expectWritePingReqFrame()
       fakeTCPManagerActor.expectWritePingReqFrame()
       fakeTCPManagerActor.expectClose()
+
       expectMsg(Disconnected)
     }
   }

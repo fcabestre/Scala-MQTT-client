@@ -29,13 +29,7 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
 
   "The transportNotReady() function" should {
     "Define the action to perform when the transport is not ready" in {
-      transportNotReady() shouldEqual SendToClient(NotReady)
-    }
-  }
-
-  "The transportReady() function" should {
-    "Define the action to perform when the transport is ready" in {
-      transportReady() shouldEqual SendToClient(Ready)
+      transportNotReady() shouldEqual SendToClient(Disconnected)
     }
   }
 

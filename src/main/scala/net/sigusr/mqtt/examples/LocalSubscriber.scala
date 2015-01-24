@@ -26,11 +26,9 @@ class LocalSubscriber(topics: Vector[String]) extends Actor {
 
   val stopTopic: String = s"$localSubscriber/stop"
 
-  context.actorOf(Manager.props(new InetSocketAddress(1883)))
+  context.actorOf(Manager.props(new InetSocketAddress(1883))) ! Connect(localSubscriber)
 
   def receive: Receive = {
-    case Ready ⇒
-      sender() ! Connect(localSubscriber)
     case Connected ⇒
       println("Successfully connected to localhost:1883")
       sender() ! Subscribe((stopTopic +: topics) zip Vector.fill(topics.length + 1) { AtMostOnce }, 1)

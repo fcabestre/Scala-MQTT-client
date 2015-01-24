@@ -32,29 +32,36 @@ private[protocol] case object TimerSignal
 
 abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor with ActorLogging { this: Protocol ⇒
 
-  import akka.io.Tcp._
+  import akka.io.Tcp.{ Connect ⇒ TcpConnect, _ }
   import context.dispatcher
 
   var state: State = State(client = context.parent, tcpManager = tcpManagerActor)
 
-  tcpManagerActor ! Connect(mqttBrokerAddress)
   def tcpManagerActor: ActorRef
 
-  def receive = LoggingReceive {
-    case CommandFailed(_: Connect) ⇒
+  def receive: Receive = notConnected
+
+  private def notConnected: Receive = LoggingReceive {
+    case c: Connect ⇒
+      tcpManagerActor ! TcpConnect(mqttBrokerAddress)
+      context become connecting(handleApiMessages(c))
+  }
+
+  private def connecting(pendingActions: Action): Receive = LoggingReceive {
+    case CommandFailed(_: TcpConnect) ⇒
       state = state.setTCPManager(sender())
       processAction(transportNotReady())
-      context stop self
+      context become notConnected
     case Connected(_, _) ⇒
       val connectionActor: ActorRef = sender()
       state = state.setTCPManager(connectionActor)
       connectionActor ! Register(self)
-      processAction(transportReady())
+      processAction(pendingActions)
       context watch connectionActor
       context become connected
   }
 
-  def connected: Receive = LoggingReceive {
+  private def connected: Receive = LoggingReceive {
     case message: APIMessage ⇒
       processAction(handleApiMessages(message))
     case TimerSignal ⇒
@@ -65,10 +72,10 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
     case Terminated(_) ⇒
       context unwatch state.tcpManager
       processAction(connectionClosed())
-      context stop self
+      context become notConnected
     case _: ConnectionClosed ⇒
       processAction(connectionClosed())
-      context stop self
+      context become notConnected
   }
 
   private def processAction(action: Action): Unit = {

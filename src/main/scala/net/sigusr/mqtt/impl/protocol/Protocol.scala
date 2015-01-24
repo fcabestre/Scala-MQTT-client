@@ -104,8 +104,6 @@ trait Protocol {
 
   private[protocol] def connectionClosed(): Action = SendToClient(Disconnected)
 
-  private[protocol] def transportReady(): Action = SendToClient(Ready)
-
-  private[protocol] def transportNotReady(): Action = SendToClient(NotReady)
+  private[protocol] def transportNotReady(): Action = SendToClient(Disconnected)
 }
 

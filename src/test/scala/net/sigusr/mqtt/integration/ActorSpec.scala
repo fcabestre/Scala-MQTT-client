@@ -51,12 +51,10 @@ object ActorSpec extends Specification with NoTimeConversions {
 
     "Allow to connect to a broker and then disconnect" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{ Connect, Connected, Disconnect, Disconnected, Ready }
+      import net.sigusr.mqtt.api.{ Connect, Connected, Disconnect, Disconnected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      expectMsg(1 second, Ready)
 
       mqttManager ! Connect("Test")
 
@@ -69,12 +67,10 @@ object ActorSpec extends Specification with NoTimeConversions {
 
     "Allow to connect to a broker with user and password and then disconnect" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{ Connect, Connected, Disconnect, Disconnected, Ready }
+      import net.sigusr.mqtt.api.{ Connect, Connected, Disconnect, Disconnected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      expectMsg(1 second, Ready)
 
       mqttManager ! Connect("Test", user = Some("user"), password = Some("pass"))
 
@@ -87,12 +83,10 @@ object ActorSpec extends Specification with NoTimeConversions {
 
     "Disallow to connect to a broker with a wrong user" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{ Connect, Ready }
+      import net.sigusr.mqtt.api.Connect
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      expectMsg(1 second, Ready)
 
       mqttManager ! Connect("Test", user = Some("wrong"), password = Some("pass"))
 
@@ -101,12 +95,10 @@ object ActorSpec extends Specification with NoTimeConversions {
 
     "Disallow to connect to a broker with a wrong password" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{ Connect, Ready }
+      import net.sigusr.mqtt.api.Connect
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      expectMsg(1 second, Ready)
 
       mqttManager ! Connect("Test", user = Some("user"), password = Some("wrong"))
 
@@ -115,12 +107,10 @@ object ActorSpec extends Specification with NoTimeConversions {
 
     "Allow to connect to a broker and keep connected even when idle" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{ Connect, Connected, Ready }
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      expectMsg(1 second, Ready)
 
       mqttManager ! Connect("Test", keepAlive = 2)
 
@@ -135,12 +125,10 @@ object ActorSpec extends Specification with NoTimeConversions {
 
     "Allow to subscribe to topics and receive a subscription acknowledgement" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{ Connect, Connected, Ready }
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      expectMsg(1 second, Ready)
 
       mqttManager ! Connect("Test")
 
@@ -157,29 +145,25 @@ object ActorSpec extends Specification with NoTimeConversions {
 
     "Disallow to send a server side message" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{ Connect, Connected, Ready }
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      expectMsg(1 second, Ready)
 
       mqttManager ! Connect("Test")
 
       receiveOne(1 seconds) should be_==(Connected)
 
-      mqttManager ! Ready
+      mqttManager ! Connected
 
-      receiveOne(1 seconds) should be_==(WrongClientMessage(Ready))
+      receiveOne(1 seconds) should be_==(WrongClientMessage(Connected))
     }
 
     "Allow to publish a message with QOS 0" in new SpecsTestKit {
-      import net.sigusr.mqtt.api.{ Connect, Connected, Ready }
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      expectMsg(1 second, Ready)
 
       mqttManager ! Connect("TestPubAck")
 
@@ -189,12 +173,10 @@ object ActorSpec extends Specification with NoTimeConversions {
     }
 
     "Allow to publish a message with QOS 1 and receive a Puback response" in new SpecsTestKit {
-      import net.sigusr.mqtt.api.{ Connect, Connected, Ready }
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      expectMsg(1 second, Ready)
 
       mqttManager ! Connect("TestPubAck")
 
@@ -206,12 +188,10 @@ object ActorSpec extends Specification with NoTimeConversions {
     }
 
     "Allow to publish a message with QOS 2 and complete the handshake" in new SpecsTestKit {
-      import net.sigusr.mqtt.api.{ Connect, Connected, Ready }
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      expectMsg(1 second, Ready)
 
       mqttManager ! Connect("TestPubAck")
 
