@@ -42,12 +42,16 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   def receive: Receive = notConnected
 
   private def notConnected: Receive = LoggingReceive {
+    case Status ⇒
+      processAction(SendToClient(Disconnected))
     case c: Connect ⇒
       tcpManagerActor ! TcpConnect(mqttBrokerAddress)
       context become connecting(handleApiMessages(c))
   }
 
   private def connecting(pendingActions: Action): Receive = LoggingReceive {
+    case Status ⇒
+      processAction(SendToClient(Disconnected))
     case CommandFailed(_: TcpConnect) ⇒
       state = state.setTCPManager(sender())
       processAction(transportNotReady())

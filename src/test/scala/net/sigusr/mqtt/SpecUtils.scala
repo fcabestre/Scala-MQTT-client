@@ -74,7 +74,7 @@ object SpecUtils {
        }
     """
 
-  class SpecsTestKit extends TestKit(ActorSystem("MQTTClient-system", ConfigFactory.parseString(config))) with ImplicitSender with Scope with AfterExample {
+  class SpecsTestKit extends TestKit(ActorSystem("MQTTClient-system", ConfigFactory.parseString(configDebug))) with ImplicitSender with Scope with AfterExample {
     def after = system.shutdown()
     def clientActor = testActor
   }

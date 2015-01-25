@@ -36,9 +36,11 @@ case class Connect(
 
 case object Connected extends APIMessage
 case class ConnectionFailure(reason: ConnectionFailureReason) extends APIMessage
+case object Status extends APIMessage
+
 case object Disconnect extends APIMessage
 case object Disconnected extends APIMessage
-case class WrongClientMessage(message: APIMessage) extends APIMessage
+
 case class Publish(
     topic: String,
     payload: Vector[Byte],
@@ -48,8 +50,13 @@ case class Publish(
   assert(qos == AtMostOnce || messageId.isDefined, "A message identifier must be provided when QoS is greater than 0")
 }
 case class Published(messageId: MessageId) extends APIMessage
+case class Message(topic: String, payload: Vector[Byte]) extends APIMessage
+
 case class Subscribe(topics: Vector[(String, QualityOfService)], messageId: MessageId) extends APIMessage
 case class Subscribed(topicResults: Vector[QualityOfService], messageId: MessageId) extends APIMessage
+
 case class Unsubscribe(topics: Vector[String], messageId: MessageId)
 case class Unsubscribed(messageId: MessageId)
-case class Message(topic: String, payload: Vector[Byte]) extends APIMessage
+
+case class WrongClientMessage(message: APIMessage) extends APIMessage
+case object Stop extends APIMessage

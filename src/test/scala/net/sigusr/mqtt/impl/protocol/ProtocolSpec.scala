@@ -61,8 +61,14 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
     "Define the action to perform to handle a MQTTDisconnect API message" in {
       val input = Disconnect
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      SendToNetwork(DisconnectFrame(header))
       val result = SendToNetwork(DisconnectFrame(header))
+      handleApiMessages(input) should_== result
+    }
+
+    "Define the action to perform to handle a Status API message" in {
+      val input = Status
+      SendToClient(Connected)
+      val result = SendToClient(Connected)
       handleApiMessages(input) should_== result
     }
 

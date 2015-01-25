@@ -48,6 +48,8 @@ trait Protocol {
     case Subscribe(topics, messageId) ⇒
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       SendToNetwork(SubscribeFrame(header, messageId.identifier, topics.map((v: (String, QualityOfService)) ⇒ (v._1, v._2.enum))))
+    case Status ⇒
+      SendToClient(Connected)
     case m ⇒ SendToClient(WrongClientMessage(m))
   }
 

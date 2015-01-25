@@ -18,7 +18,7 @@ package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor._
+import akka.actor.{ Status ⇒ ActorStatus, _ }
 import akka.io.Tcp.{ Abort ⇒ TCPAbort, Aborted ⇒ TCPAborted, Closed ⇒ TCPClosed, CommandFailed ⇒ TCPCommandFailed, Connect ⇒ TCPConnect, Connected ⇒ TCPConnected, Received ⇒ TCPReceived, Register ⇒ TCPRegister, Write ⇒ TCPWrite }
 import akka.testkit.{ ImplicitSender, TestProbe }
 import akka.util.ByteString
@@ -120,7 +120,7 @@ object TransportSpec extends Specification with NoTimeConversions {
 
     "Manage successful connection" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-0", fakeTCPManagerActor.ref)))
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -133,7 +133,7 @@ object TransportSpec extends Specification with NoTimeConversions {
 
     "Manage unsuccessful connection" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-0", fakeTCPManagerActor.ref)))
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -142,9 +142,46 @@ object TransportSpec extends Specification with NoTimeConversions {
       expectMsg(Disconnected)
     }
 
+    "Provide the right connection status [0]" in new SpecsTestKit {
+      val fakeTCPManagerActor = new FakeTCPManagerActor
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+
+      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
+
+      fakeTCPManagerActor.expectConnect()
+      fakeTCPManagerActor.expectRegister()
+      fakeTCPManagerActor.expectWriteConnectFrame()
+
+      expectMsg(Connected)
+
+      mqttManagerActor ! Status
+
+      expectMsg(Connected)
+    }
+
+    "Provide the right connection status [1]" in new SpecsTestKit {
+      val fakeTCPManagerActor = new FakeTCPManagerActor
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+
+      mqttManagerActor ! Status
+
+      expectMsg(Disconnected)
+    }
+
+    "Provide the right connection status [2]" in new SpecsTestKit {
+      val fakeTCPManagerActor = new FakeTCPManagerActor
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+
+      mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
+
+      mqttManagerActor ! Status
+
+      expectMsg(Disconnected)
+    }
+
     "Allow graceful disconnection" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-1", fakeTCPManagerActor.ref)))
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -160,9 +197,9 @@ object TransportSpec extends Specification with NoTimeConversions {
       expectMsg(Disconnected)
     }
 
-    "Manage the connection actor death" in new SpecsTestKit {
+    "Manage the connection actor's death" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-2", fakeTCPManagerActor.ref)))
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -179,7 +216,7 @@ object TransportSpec extends Specification with NoTimeConversions {
 
     "Keep an idle connection alive or disconnect" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-3", fakeTCPManagerActor.ref)))
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
