@@ -107,8 +107,8 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
     }
 
     "Define the action to perform to handle an API message that should not be sent by the user" in {
-      val input = Ready
-      val result = SendToClient(WrongClientMessage(Ready))
+      val input = Disconnected
+      val result = SendToClient(WrongClientMessage(Disconnected))
       handleApiMessages(input) should_== result
     }
   }

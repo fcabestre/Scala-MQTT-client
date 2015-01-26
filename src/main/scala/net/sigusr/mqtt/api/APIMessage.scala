@@ -18,9 +18,6 @@ package net.sigusr.mqtt.api
 
 sealed trait APIMessage
 
-case object NotReady extends APIMessage
-case object Ready extends APIMessage
-
 case class Will(retain: Boolean, qos: QualityOfService, topic: String, message: String)
 
 case class Connect(
