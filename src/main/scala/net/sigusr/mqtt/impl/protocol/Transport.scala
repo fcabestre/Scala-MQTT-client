@@ -35,7 +35,7 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   import akka.io.Tcp.{ Connect ⇒ TcpConnect, _ }
   import context.dispatcher
 
-  var state: State = State(client = context.parent, tcpManager = tcpManagerActor)
+  var state: State = State(client = context.parent, tcpConnection = tcpManagerActor)
 
   def tcpManagerActor: ActorRef
 
@@ -74,10 +74,13 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
       processAction(handleNetworkFrames(frame, state))
     case Terminated(_) ⇒
-      context unwatch state.tcpManager
+      context unwatch state.tcpConnection
+      state = state.setTCPManager(tcpManagerActor)
       processAction(connectionClosed())
       context become notConnected
     case _: ConnectionClosed ⇒
+      context unwatch state.tcpConnection
+      state = state.setTCPManager(tcpManagerActor)
       processAction(connectionClosed())
       context become notConnected
   }
@@ -96,9 +99,9 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
       case SendToNetwork(frame) ⇒
         state = state.setLastSentMessageTimestamp(System.currentTimeMillis())
         val encodedFrame = Codec[Frame].encodeValid(frame)
-        state.tcpManager ! Write(ByteString(encodedFrame.toByteArray))
+        state.tcpConnection ! Write(ByteString(encodedFrame.toByteArray))
       case ForciblyCloseTransport ⇒
-        state.tcpManager ! Abort
+        state.tcpConnection ! Abort
     }
   }
 
