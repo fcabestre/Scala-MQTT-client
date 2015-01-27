@@ -105,12 +105,6 @@ object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
       val result = SendToNetwork(PublishFrame(header, topic, messageId, ByteVector(payload)))
       handleApiMessages(input) should_== result
     }
-
-    "Define the action to perform to handle an API message that should not be sent by the user" in {
-      val input = Disconnected
-      val result = SendToClient(WrongClientMessage(Disconnected))
-      handleApiMessages(input) should_== result
-    }
   }
 
   "The timerSignal() function" should {

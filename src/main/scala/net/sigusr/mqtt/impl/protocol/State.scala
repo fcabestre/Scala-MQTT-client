@@ -9,7 +9,7 @@ case class State(
     keepAlive: Long = DEFAULT_KEEP_ALIVE.toLong,
     timerTask: Option[Cancellable] = None,
     client: ActorRef = null,
-    tcpManager: ActorRef = null) {
+    tcpConnection: ActorRef = null) {
 
   def setLastSentMessageTimestamp(lastMessageTimeStamp: Long): State = this.copy(lastSentMessageTimestamp = lastSentMessageTimestamp)
 
@@ -19,6 +19,6 @@ case class State(
 
   def setTimerTask(timerTask: Cancellable): State = this.copy(timerTask = Some(timerTask))
 
-  def setTCPManager(tcpManager: ActorRef): State = this.copy(tcpManager = tcpManager)
+  def setTCPManager(tcpManager: ActorRef): State = this.copy(tcpConnection = tcpManager)
 }
 

@@ -143,22 +143,6 @@ object ActorSpec extends Specification with NoTimeConversions {
       receiveOne(1 seconds) should be_==(Disconnected)
     }
 
-    "Disallow to send a server side message" in new SpecsTestKit {
-
-      import net.sigusr.mqtt.api.{ Connect, Connected }
-
-      val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient-service", endpoint)))
-
-      mqttManager ! Connect("Test")
-
-      receiveOne(1 seconds) should be_==(Connected)
-
-      mqttManager ! Connected
-
-      receiveOne(1 seconds) should be_==(WrongClientMessage(Connected))
-    }
-
     "Allow to publish a message with QOS 0" in new SpecsTestKit {
       import net.sigusr.mqtt.api.{ Connect, Connected }
 
@@ -170,6 +154,10 @@ object ActorSpec extends Specification with NoTimeConversions {
       receiveOne(1 seconds) should be_==(Connected)
 
       mqttManager ! Publish("a/b", "Hello world".getBytes.to[Vector], AtMostOnce, Some(123))
+
+      mqttManager ! Disconnect
+
+      receiveOne(1 seconds) should be_==(Disconnected)
     }
 
     "Allow to publish a message with QOS 1 and receive a Puback response" in new SpecsTestKit {
@@ -185,6 +173,10 @@ object ActorSpec extends Specification with NoTimeConversions {
       mqttManager ! Publish("a/b", "Hello world".getBytes.to[Vector], AtLeastOnce, Some(123))
 
       receiveOne(1 seconds) should be_==(Published(123))
+
+      mqttManager ! Disconnect
+
+      receiveOne(1 seconds) should be_==(Disconnected)
     }
 
     "Allow to publish a message with QOS 2 and complete the handshake" in new SpecsTestKit {
@@ -200,6 +192,10 @@ object ActorSpec extends Specification with NoTimeConversions {
       mqttManager ! Publish("a/b", "Hello world".getBytes.to[Vector], ExactlyOnce, Some(123))
 
       receiveOne(2 seconds) should be_==(Published(123))
+
+      mqttManager ! Disconnect
+
+      receiveOne(1 seconds) should be_==(Disconnected)
     }
   }
 }

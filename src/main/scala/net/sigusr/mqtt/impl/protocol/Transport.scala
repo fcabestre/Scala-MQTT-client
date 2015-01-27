@@ -66,7 +66,7 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   }
 
   private def connected: Receive = LoggingReceive {
-    case message: APIMessage ⇒
+    case message: APICommand ⇒
       processAction(handleApiMessages(message))
     case TimerSignal ⇒
       processAction(timerSignal(System.currentTimeMillis(), state))

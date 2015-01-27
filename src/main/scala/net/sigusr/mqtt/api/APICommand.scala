@@ -16,7 +16,7 @@
 
 package net.sigusr.mqtt.api
 
-sealed trait APIMessage
+sealed trait APICommand
 
 case class Will(retain: Boolean, qos: QualityOfService, topic: String, message: String)
 
@@ -26,34 +26,24 @@ case class Connect(
     cleanSession: Boolean = true,
     will: Option[Will] = None,
     user: Option[String] = None,
-    password: Option[String] = None) extends APIMessage {
+    password: Option[String] = None) extends APICommand {
   assert(keepAlive >= 0 && keepAlive < 65636, "Keep alive value should be in the range [0..65535]")
   assert(user.isDefined || !password.isDefined, "A password cannot be provided without user")
 }
 
-case object Connected extends APIMessage
-case class ConnectionFailure(reason: ConnectionFailureReason) extends APIMessage
-case object Status extends APIMessage
+case object Status extends APICommand
 
-case object Disconnect extends APIMessage
-case object Disconnected extends APIMessage
+case object Disconnect extends APICommand
 
 case class Publish(
     topic: String,
     payload: Vector[Byte],
     qos: QualityOfService = AtMostOnce,
     messageId: Option[MessageId] = None,
-    retain: Boolean = false) extends APIMessage {
+    retain: Boolean = false) extends APICommand {
   assert(qos == AtMostOnce || messageId.isDefined, "A message identifier must be provided when QoS is greater than 0")
 }
-case class Published(messageId: MessageId) extends APIMessage
-case class Message(topic: String, payload: Vector[Byte]) extends APIMessage
 
-case class Subscribe(topics: Vector[(String, QualityOfService)], messageId: MessageId) extends APIMessage
-case class Subscribed(topicResults: Vector[QualityOfService], messageId: MessageId) extends APIMessage
+case class Subscribe(topics: Vector[(String, QualityOfService)], messageId: MessageId) extends APICommand
 
-case class Unsubscribe(topics: Vector[String], messageId: MessageId)
-case class Unsubscribed(messageId: MessageId)
-
-case class WrongClientMessage(message: APIMessage) extends APIMessage
-case object Stop extends APIMessage
+case class Unsubscribe(topics: Vector[String], messageId: MessageId) extends APICommand

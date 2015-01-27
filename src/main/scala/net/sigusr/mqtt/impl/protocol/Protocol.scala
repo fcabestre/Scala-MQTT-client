@@ -24,7 +24,7 @@ trait Protocol {
 
   private val zeroId = MessageId(0)
 
-  private[protocol] def handleApiMessages(apiMessage: APIMessage): Action = apiMessage match {
+  private[protocol] def handleApiMessages(apiCommand: APICommand): Action = apiCommand match {
     case Connect(clientId, keepAlive, cleanSession, will, user, password) ⇒
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val retain = will.fold(false)(_.retain)
@@ -50,7 +50,6 @@ trait Protocol {
       SendToNetwork(SubscribeFrame(header, messageId.identifier, topics.map((v: (String, QualityOfService)) ⇒ (v._1, v._2.enum))))
     case Status ⇒
       SendToClient(Connected)
-    case m ⇒ SendToClient(WrongClientMessage(m))
   }
 
   private[protocol] def handleNetworkFrames(frame: Frame, state: State): Action = {
