@@ -19,6 +19,11 @@ case class State(
 
   def setTimerTask(timerTask: Cancellable): State = this.copy(timerTask = Some(timerTask))
 
+  def resetTimerTask: State = {
+    this.timerTask foreach { _.cancel() }
+    this.copy(timerTask = None)
+  }
+
   def setTCPManager(tcpManager: ActorRef): State = this.copy(tcpConnection = tcpManager)
 }
 

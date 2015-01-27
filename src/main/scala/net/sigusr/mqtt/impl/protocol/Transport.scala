@@ -76,11 +76,13 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
     case Terminated(_) ⇒
       context unwatch state.tcpConnection
       state = state.setTCPManager(tcpManagerActor)
+      state = state.resetTimerTask
       processAction(connectionClosed())
       context become notConnected
     case _: ConnectionClosed ⇒
       context unwatch state.tcpConnection
       state = state.setTCPManager(tcpManagerActor)
+      state = state.resetTimerTask
       processAction(connectionClosed())
       context become notConnected
   }
@@ -103,10 +105,6 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
       case ForciblyCloseTransport ⇒
         state.tcpConnection ! Abort
     }
-  }
-
-  override def postStop(): Unit = {
-    state.timerTask foreach { _.cancel() }
   }
 }
 
