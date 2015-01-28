@@ -18,7 +18,7 @@ package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor.{ Terminated, Actor, ActorLogging, ActorRef }
+import akka.actor.{ Actor, ActorLogging, ActorRef, Terminated }
 import akka.event.LoggingReceive
 import akka.util.ByteString
 import net.sigusr.mqtt.api._
@@ -32,7 +32,7 @@ private[protocol] case object TimerSignal
 
 abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor with ActorLogging { this: Protocol ⇒
 
-  import akka.io.Tcp.{ Connect ⇒ TcpConnect, _ }
+  import akka.io.Tcp.{ Abort ⇒ TcpAbort, CommandFailed ⇒ TcpCommandFailed, Connect ⇒ TcpConnect, Connected ⇒ TcpConnected, ConnectionClosed ⇒ TcpConnectionClosed, Received ⇒ TcpReceived, Register ⇒ TcpRegister, Write ⇒ TcpWrite }
   import context.dispatcher
 
   var state: State = State(client = context.parent, tcpConnection = tcpManagerActor)
@@ -52,14 +52,14 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   private def connecting(pendingActions: Action): Receive = LoggingReceive {
     case Status ⇒
       processAction(SendToClient(Disconnected))
-    case CommandFailed(_: TcpConnect) ⇒
+    case TcpCommandFailed(_: TcpConnect) ⇒
       state = state.setTCPManager(sender())
       processAction(transportNotReady())
       context become notConnected
-    case Connected(_, _) ⇒
+    case TcpConnected(_, _) ⇒
       val connectionActor: ActorRef = sender()
       state = state.setTCPManager(connectionActor)
-      connectionActor ! Register(self)
+      connectionActor ! TcpRegister(self)
       processAction(pendingActions)
       context watch connectionActor
       context become connected
@@ -70,7 +70,7 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
       processAction(handleApiMessages(message))
     case TimerSignal ⇒
       processAction(timerSignal(System.currentTimeMillis(), state))
-    case Received(encodedResponse) ⇒
+    case TcpReceived(encodedResponse) ⇒
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
       processAction(handleNetworkFrames(frame, state))
     case Terminated(_) ⇒
@@ -79,7 +79,7 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
       state = state.resetTimerTask
       processAction(connectionClosed())
       context become notConnected
-    case _: ConnectionClosed ⇒
+    case _: TcpConnectionClosed ⇒
       context unwatch state.tcpConnection
       state = state.setTCPManager(tcpManagerActor)
       state = state.resetTimerTask
@@ -101,9 +101,9 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
       case SendToNetwork(frame) ⇒
         state = state.setLastSentMessageTimestamp(System.currentTimeMillis())
         val encodedFrame = Codec[Frame].encodeValid(frame)
-        state.tcpConnection ! Write(ByteString(encodedFrame.toByteArray))
+        state.tcpConnection ! TcpWrite(ByteString(encodedFrame.toByteArray))
       case ForciblyCloseTransport ⇒
-        state.tcpConnection ! Abort
+        state.tcpConnection ! TcpAbort
     }
   }
 }
