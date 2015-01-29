@@ -23,6 +23,7 @@ import akka.event.LoggingReceive
 import akka.util.ByteString
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.Frame
+import net.sigusr.mqtt.impl.protocol.State._
 import scodec.Codec
 import scodec.bits.BitVector
 
@@ -43,67 +44,63 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
 
   private def notConnected: Receive = LoggingReceive {
     case Status ⇒
-      processAction(SendToClient(Disconnected))
+      state = processAction(SendToClient(Disconnected), state)
     case c: Connect ⇒
-      tcpManagerActor ! TcpConnect(mqttBrokerAddress)
+      state.tcpConnection ! TcpConnect(mqttBrokerAddress)
       context become connecting(handleApiMessages(c))
   }
 
   private def connecting(pendingActions: Action): Receive = LoggingReceive {
     case Status ⇒
-      processAction(SendToClient(Disconnected))
+      state = processAction(SendToClient(Disconnected), state)
     case TcpCommandFailed(_: TcpConnect) ⇒
-      state = state.setTCPManager(sender())
-      processAction(transportNotReady())
+      state = setTCPManager(sender(), state)
+      state = processAction(transportNotReady(), state)
       context become notConnected
     case TcpConnected(_, _) ⇒
       val connectionActor: ActorRef = sender()
-      state = state.setTCPManager(connectionActor)
-      connectionActor ! TcpRegister(self)
-      processAction(pendingActions)
+      state = setTCPManager(connectionActor, state)
+      state.tcpConnection ! TcpRegister(self)
+      state = processAction(pendingActions, state)
       context watch connectionActor
       context become connected
   }
 
   private def connected: Receive = LoggingReceive {
     case message: APICommand ⇒
-      processAction(handleApiMessages(message))
+      state = processAction(handleApiMessages(message), state)
     case TimerSignal ⇒
-      processAction(timerSignal(System.currentTimeMillis(), state))
+      state = processAction(timerSignal(System.currentTimeMillis(), state), state)
     case TcpReceived(encodedResponse) ⇒
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
-      processAction(handleNetworkFrames(frame, state))
-    case Terminated(_) ⇒
+      state = processAction(handleNetworkFrames(frame, state), state)
+    case Terminated(_) | _: TcpConnectionClosed ⇒
       context unwatch state.tcpConnection
-      state = state.setTCPManager(tcpManagerActor)
-      state = state.resetTimerTask
-      processAction(connectionClosed())
-      context become notConnected
-    case _: TcpConnectionClosed ⇒
-      context unwatch state.tcpConnection
-      state = state.setTCPManager(tcpManagerActor)
-      state = state.resetTimerTask
-      processAction(connectionClosed())
+      state = setTCPManager(tcpManagerActor, state)
+      state = resetTimerTask(state)
+      state = processAction(connectionClosed(), state)
       context become notConnected
   }
 
-  private def processAction(action: Action): Unit = {
+  private def processAction(action: Action, state: State): State = {
     action match {
-      case Sequence(actions) ⇒ actions foreach { (action: Action) ⇒ processAction(action) }
+      case Sequence(actions) ⇒ actions.foldLeft(state)((state: State, action: Action) ⇒ processAction(action, state))
       case SetKeepAlive(keepAlive) ⇒
-        state = state.setTimeOut(keepAlive)
+        setTimeOut(keepAlive, state)
       case StartPingRespTimer(timeout) ⇒
-        state = state.setTimerTask(context.system.scheduler.scheduleOnce(FiniteDuration(timeout, MILLISECONDS), self, TimerSignal))
+        setTimerTask(context.system.scheduler.scheduleOnce(FiniteDuration(timeout, MILLISECONDS), self, TimerSignal), state)
       case SetPendingPingResponse(isPending) ⇒
-        state = state.setPingResponsePending(isPending)
+        setPingResponsePending(isPending, state)
       case SendToClient(message) ⇒
         state.client ! message
+        state
       case SendToNetwork(frame) ⇒
-        state = state.setLastSentMessageTimestamp(System.currentTimeMillis())
         val encodedFrame = Codec[Frame].encodeValid(frame)
         state.tcpConnection ! TcpWrite(ByteString(encodedFrame.toByteArray))
+        setLastSentMessageTimestamp(System.currentTimeMillis(), state)
       case ForciblyCloseTransport ⇒
         state.tcpConnection ! TcpAbort
+        state
     }
   }
 }

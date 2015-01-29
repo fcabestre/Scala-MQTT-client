@@ -10,20 +10,27 @@ case class State(
     timerTask: Option[Cancellable] = None,
     client: ActorRef = null,
     tcpConnection: ActorRef = null) {
+}
 
-  def setLastSentMessageTimestamp(lastMessageTimeStamp: Long): State = this.copy(lastSentMessageTimestamp = lastSentMessageTimestamp)
+object State {
+  def setLastSentMessageTimestamp(lastSentMessageTimeStamp: Long, state: State): State =
+    state.copy(lastSentMessageTimestamp = lastSentMessageTimeStamp)
 
-  def setTimeOut(keepAlive: Long): State = this.copy(keepAlive = keepAlive)
+  def setTimeOut(keepAlive: Long, state: State): State =
+    state.copy(keepAlive = keepAlive)
 
-  def setPingResponsePending(isPingResponsePending: Boolean): State = this.copy(isPingResponsePending = isPingResponsePending)
+  def setPingResponsePending(isPingResponsePending: Boolean, state: State): State =
+    state.copy(isPingResponsePending = isPingResponsePending)
 
-  def setTimerTask(timerTask: Cancellable): State = this.copy(timerTask = Some(timerTask))
+  def setTimerTask(timerTask: Cancellable, state: State): State =
+    state.copy(timerTask = Some(timerTask))
 
-  def resetTimerTask: State = {
-    this.timerTask foreach { _.cancel() }
-    this.copy(timerTask = None)
+  def resetTimerTask(state: State): State = {
+    state.timerTask foreach { _.cancel() }
+    state.copy(timerTask = None)
   }
 
-  def setTCPManager(tcpManager: ActorRef): State = this.copy(tcpConnection = tcpManager)
+  def setTCPManager(tcpManager: ActorRef, state: State): State =
+    state.copy(tcpConnection = tcpManager)
 }
 
