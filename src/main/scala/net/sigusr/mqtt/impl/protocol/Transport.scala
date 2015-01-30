@@ -36,7 +36,7 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   import akka.io.Tcp.{ Abort ⇒ TcpAbort, CommandFailed ⇒ TcpCommandFailed, Connect ⇒ TcpConnect, Connected ⇒ TcpConnected, ConnectionClosed ⇒ TcpConnectionClosed, Received ⇒ TcpReceived, Register ⇒ TcpRegister, Write ⇒ TcpWrite }
   import context.dispatcher
 
-  var state: State = State(client = context.parent, tcpConnection = tcpManagerActor)
+  implicit var state: State = State(client = context.parent, tcpConnection = tcpManagerActor)
 
   def tcpManagerActor: ActorRef
 
@@ -44,7 +44,7 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
 
   private def notConnected: Receive = LoggingReceive {
     case Status ⇒
-      state = processAction(SendToClient(Disconnected), state)
+      state = processAction(SendToClient(Disconnected))
     case c: Connect ⇒
       state.tcpConnection ! TcpConnect(mqttBrokerAddress)
       context become connecting(handleApiMessages(c))
@@ -52,52 +52,52 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
 
   private def connecting(pendingActions: Action): Receive = LoggingReceive {
     case Status ⇒
-      state = processAction(SendToClient(Disconnected), state)
+      state = processAction(SendToClient(Disconnected))
     case TcpCommandFailed(_: TcpConnect) ⇒
-      state = setTCPManager(sender(), state)
-      state = processAction(transportNotReady(), state)
+      state = setTCPManager(sender())
+      state = processAction(transportNotReady())
       context become notConnected
     case TcpConnected(_, _) ⇒
       val connectionActor: ActorRef = sender()
-      state = setTCPManager(connectionActor, state)
+      state = setTCPManager(connectionActor)
       state.tcpConnection ! TcpRegister(self)
-      state = processAction(pendingActions, state)
+      state = processAction(pendingActions)
       context watch connectionActor
       context become connected
   }
 
   private def connected: Receive = LoggingReceive {
     case message: APICommand ⇒
-      state = processAction(handleApiMessages(message), state)
+      state = processAction(handleApiMessages(message))
     case TimerSignal ⇒
-      state = processAction(timerSignal(System.currentTimeMillis(), state), state)
+      state = processAction(timerSignal(System.currentTimeMillis()))
     case TcpReceived(encodedResponse) ⇒
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
-      state = processAction(handleNetworkFrames(frame, state), state)
+      state = processAction(handleNetworkFrames(frame))
     case Terminated(_) | _: TcpConnectionClosed ⇒
       context unwatch state.tcpConnection
-      state = setTCPManager(tcpManagerActor, state)
-      state = resetTimerTask(state)
-      state = processAction(connectionClosed(), state)
+      state = setTCPManager(tcpManagerActor)
+      state = resetTimerTask
+      state = processAction(connectionClosed())
       context become notConnected
   }
 
-  private def processAction(action: Action, state: State): State = {
+  private def processAction(action: Action)(implicit state: State): State = {
     action match {
-      case Sequence(actions) ⇒ actions.foldLeft(state)((state: State, action: Action) ⇒ processAction(action, state))
+      case Sequence(actions) ⇒ actions.foldLeft(state)((state: State, action: Action) ⇒ processAction(action)(state))
       case SetKeepAlive(keepAlive) ⇒
-        setTimeOut(keepAlive, state)
+        setTimeOut(keepAlive)
       case StartPingRespTimer(timeout) ⇒
-        setTimerTask(context.system.scheduler.scheduleOnce(FiniteDuration(timeout, MILLISECONDS), self, TimerSignal), state)
+        setTimerTask(context.system.scheduler.scheduleOnce(FiniteDuration(timeout, MILLISECONDS), self, TimerSignal))
       case SetPendingPingResponse(isPending) ⇒
-        setPingResponsePending(isPending, state)
+        setPingResponsePending(isPending)
       case SendToClient(message) ⇒
         state.client ! message
         state
       case SendToNetwork(frame) ⇒
         val encodedFrame = Codec[Frame].encodeValid(frame)
         state.tcpConnection ! TcpWrite(ByteString(encodedFrame.toByteArray))
-        setLastSentMessageTimestamp(System.currentTimeMillis(), state)
+        setLastSentMessageTimestamp(System.currentTimeMillis())
       case ForciblyCloseTransport ⇒
         state.tcpConnection ! TcpAbort
         state

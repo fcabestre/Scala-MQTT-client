@@ -52,7 +52,7 @@ trait Protocol {
       SendToClient(Connected)
   }
 
-  private[protocol] def handleNetworkFrames(frame: Frame, state: State): Action = {
+  private[protocol] def handleNetworkFrames(frame: Frame)(implicit state: State): Action = {
     frame match {
       case ConnackFrame(header, 0) ⇒
         if (state.keepAlive == 0) SendToClient(Connected)
@@ -89,7 +89,7 @@ trait Protocol {
     }
   }
 
-  private[protocol] def timerSignal(currentTime: Long, state: State): Action =
+  private[protocol] def timerSignal(currentTime: Long)(implicit state: State): Action =
     if (state.isPingResponsePending)
       ForciblyCloseTransport
     else {

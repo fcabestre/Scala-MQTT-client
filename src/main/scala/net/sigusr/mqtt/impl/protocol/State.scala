@@ -13,24 +13,24 @@ case class State(
 }
 
 object State {
-  def setLastSentMessageTimestamp(lastSentMessageTimeStamp: Long, state: State): State =
+  def setLastSentMessageTimestamp(lastSentMessageTimeStamp: Long)(implicit state: State): State =
     state.copy(lastSentMessageTimestamp = lastSentMessageTimeStamp)
 
-  def setTimeOut(keepAlive: Long, state: State): State =
+  def setTimeOut(keepAlive: Long)(implicit state: State): State =
     state.copy(keepAlive = keepAlive)
 
-  def setPingResponsePending(isPingResponsePending: Boolean, state: State): State =
+  def setPingResponsePending(isPingResponsePending: Boolean)(implicit state: State): State =
     state.copy(isPingResponsePending = isPingResponsePending)
 
-  def setTimerTask(timerTask: Cancellable, state: State): State =
+  def setTimerTask(timerTask: Cancellable)(implicit state: State): State =
     state.copy(timerTask = Some(timerTask))
 
-  def resetTimerTask(state: State): State = {
+  def resetTimerTask(implicit state: State): State = {
     state.timerTask foreach { _.cancel() }
     state.copy(timerTask = None)
   }
 
-  def setTCPManager(tcpManager: ActorRef, state: State): State =
+  def setTCPManager(tcpManager: ActorRef)(implicit state: State): State =
     state.copy(tcpConnection = tcpManager)
 }
 
