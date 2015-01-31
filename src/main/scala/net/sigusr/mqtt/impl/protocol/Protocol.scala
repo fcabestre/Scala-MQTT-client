@@ -18,7 +18,10 @@ package net.sigusr.mqtt.impl.protocol
 
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames._
+import net.sigusr.mqtt.impl.protocol.Registers.RegistersState
 import scodec.bits.ByteVector
+
+import scalaz.State._
 
 trait Protocol {
 
@@ -52,11 +55,11 @@ trait Protocol {
       SendToClient(Connected)
   }
 
-  private[protocol] def handleNetworkFrames(frame: Frame)(implicit state: State): Action = {
+  private[protocol] def handleNetworkFrames(frame: Frame): RegistersState[Action] = gets { registers ⇒
     frame match {
       case ConnackFrame(header, 0) ⇒
-        if (state.keepAlive == 0) SendToClient(Connected)
-        else Sequence(Seq(StartPingRespTimer(state.keepAlive), SendToClient(Connected)))
+        if (registers.keepAlive == 0) SendToClient(Connected)
+        else Sequence(Seq(StartPingRespTimer(registers.keepAlive), SendToClient(Connected)))
       case ConnackFrame(header, returnCode) ⇒ SendToClient(ConnectionFailure(ConnectionFailureReason.fromEnum(returnCode)))
       case PingRespFrame(header) ⇒
         SetPendingPingResponse(isPending = false)
@@ -89,19 +92,20 @@ trait Protocol {
     }
   }
 
-  private[protocol] def timerSignal(currentTime: Long)(implicit state: State): Action =
-    if (state.isPingResponsePending)
+  private[protocol] def timerSignal(currentTime: Long): RegistersState[Action] = gets { registers ⇒
+    if (registers.isPingResponsePending)
       ForciblyCloseTransport
     else {
-      val timeout = state.keepAlive - currentTime + state.lastSentMessageTimestamp
+      val timeout = registers.keepAlive - currentTime + registers.lastSentMessageTimestamp
       if (timeout < 1000)
         Sequence(Seq(
           SetPendingPingResponse(isPending = true),
-          StartPingRespTimer(state.keepAlive),
+          StartPingRespTimer(registers.keepAlive),
           SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))))
       else
         StartPingRespTimer(timeout)
     }
+  }
 
   private[protocol] def connectionClosed(): Action = SendToClient(Disconnected)
 

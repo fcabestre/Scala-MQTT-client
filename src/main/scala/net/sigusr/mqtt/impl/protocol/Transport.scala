@@ -23,11 +23,12 @@ import akka.event.LoggingReceive
 import akka.util.ByteString
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.Frame
-import net.sigusr.mqtt.impl.protocol.State._
+import net.sigusr.mqtt.impl.protocol.Registers._
 import scodec.Codec
 import scodec.bits.BitVector
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
+import scalaz.State
 
 private[protocol] case object TimerSignal
 
@@ -36,7 +37,7 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
   import akka.io.Tcp.{ Abort ⇒ TcpAbort, CommandFailed ⇒ TcpCommandFailed, Connect ⇒ TcpConnect, Connected ⇒ TcpConnected, ConnectionClosed ⇒ TcpConnectionClosed, Received ⇒ TcpReceived, Register ⇒ TcpRegister, Write ⇒ TcpWrite }
   import context.dispatcher
 
-  implicit var state: State = State(client = context.parent, tcpConnection = tcpManagerActor)
+  var registers: Registers = Registers(client = context.parent, tcpManager = tcpManagerActor)
 
   def tcpManagerActor: ActorRef
 
@@ -44,47 +45,63 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
 
   private def notConnected: Receive = LoggingReceive {
     case Status ⇒
-      state = processAction(SendToClient(Disconnected))
+      registers = sendToClient(Disconnected).exec(registers)
     case c: Connect ⇒
-      state.tcpConnection ! TcpConnect(mqttBrokerAddress)
+      registers = sendToTcpManager(TcpConnect(mqttBrokerAddress)).exec(registers)
       context become connecting(handleApiMessages(c))
   }
 
   private def connecting(pendingActions: Action): Receive = LoggingReceive {
     case Status ⇒
-      state = processAction(SendToClient(Disconnected))
+      registers = sendToClient(Disconnected).exec(registers)
     case TcpCommandFailed(_: TcpConnect) ⇒
-      state = setTCPManager(sender())
-      state = processAction(transportNotReady())
+      registers = (for {
+        _ ← setTCPManager(sender())
+        _ ← processAction(transportNotReady())
+      } yield ()).exec(registers)
       context become notConnected
     case TcpConnected(_, _) ⇒
-      val connectionActor: ActorRef = sender()
-      state = setTCPManager(connectionActor)
-      state.tcpConnection ! TcpRegister(self)
-      state = processAction(pendingActions)
-      context watch connectionActor
+      registers = (for {
+        _ ← setTCPManager(sender())
+        _ ← sendToTcpManager(TcpRegister(self))
+        _ ← processAction(pendingActions)
+        _ ← watchTcpManager
+      } yield ()).exec(registers)
       context become connected
   }
 
   private def connected: Receive = LoggingReceive {
     case message: APICommand ⇒
-      state = processAction(handleApiMessages(message))
+      registers = processAction(handleApiMessages(message)).exec(registers)
     case TimerSignal ⇒
-      state = processAction(timerSignal(System.currentTimeMillis()))
+      registers = (for {
+        actions ← timerSignal(System.currentTimeMillis())
+        _ ← processAction(actions)
+      } yield ()).exec(registers)
     case TcpReceived(encodedResponse) ⇒
       val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
-      state = processAction(handleNetworkFrames(frame))
+      registers = (for {
+        actions ← handleNetworkFrames(frame)
+        _ ← processAction(actions)
+      } yield ()).exec(registers)
     case Terminated(_) | _: TcpConnectionClosed ⇒
-      context unwatch state.tcpConnection
-      state = setTCPManager(tcpManagerActor)
-      state = resetTimerTask
-      state = processAction(connectionClosed())
+      registers = (for {
+        _ ← unwatchTcpManager
+        _ ← setTCPManager(tcpManagerActor)
+        _ ← resetTimerTask
+        _ ← processAction(connectionClosed())
+      } yield ()).exec(registers)
       context become notConnected
   }
 
-  private def processAction(action: Action)(implicit state: State): State = {
+  private def processAction(action: Action): RegistersState[Unit] = {
     action match {
-      case Sequence(actions) ⇒ actions.foldLeft(state)((state: State, action: Action) ⇒ processAction(action)(state))
+      case Sequence(actions) ⇒
+        if (actions.isEmpty) State { x ⇒ (x, ()) }
+        else for {
+          _ ← processAction(actions.head)
+          _ ← processAction(Sequence(actions.tail))
+        } yield ()
       case SetKeepAlive(keepAlive) ⇒
         setTimeOut(keepAlive)
       case StartPingRespTimer(timeout) ⇒
@@ -92,15 +109,15 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
       case SetPendingPingResponse(isPending) ⇒
         setPingResponsePending(isPending)
       case SendToClient(message) ⇒
-        state.client ! message
-        state
+        sendToClient(message)
       case SendToNetwork(frame) ⇒
         val encodedFrame = Codec[Frame].encodeValid(frame)
-        state.tcpConnection ! TcpWrite(ByteString(encodedFrame.toByteArray))
-        setLastSentMessageTimestamp(System.currentTimeMillis())
+        for {
+          _ ← sendToTcpManager(TcpWrite(ByteString(encodedFrame.toByteArray)))
+          _ ← setLastSentMessageTimestamp(System.currentTimeMillis())
+        } yield ()
       case ForciblyCloseTransport ⇒
-        state.tcpConnection ! TcpAbort
-        state
+        sendToTcpManager(TcpAbort)
     }
   }
 }
