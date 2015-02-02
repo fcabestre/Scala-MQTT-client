@@ -32,7 +32,8 @@ import scalaz.State
 
 private[protocol] case object TimerSignal
 
-abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor with ActorLogging { this: Protocol ⇒
+abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor with ActorLogging {
+  this: Protocol ⇒
 
   import akka.io.Tcp.{ Abort ⇒ TcpAbort, CommandFailed ⇒ TcpCommandFailed, Connect ⇒ TcpConnect, Connected ⇒ TcpConnected, ConnectionClosed ⇒ TcpConnectionClosed, Received ⇒ TcpReceived, Register ⇒ TcpRegister, Write ⇒ TcpWrite }
   import context.dispatcher
@@ -94,14 +95,18 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
       context become notConnected
   }
 
+  private def processActionSeq(actions: Seq[Action]): RegistersState[Unit] =
+    if (actions.isEmpty) State { x ⇒ (x, ()) }
+    else if (actions.size == 1) processAction(actions.head)
+    else for {
+      _ ← processAction(actions.head)
+      _ ← processActionSeq(actions.tail)
+    } yield ()
+
   private def processAction(action: Action): RegistersState[Unit] = {
     action match {
       case Sequence(actions) ⇒
-        if (actions.isEmpty) State { x ⇒ (x, ()) }
-        else for {
-          _ ← processAction(actions.head)
-          _ ← processAction(Sequence(actions.tail))
-        } yield ()
+        processActionSeq(actions)
       case SetKeepAlive(keepAlive) ⇒
         setTimeOut(keepAlive)
       case StartPingRespTimer(timeout) ⇒
