@@ -47,9 +47,7 @@ object ScalaMQTTClientBuild extends Build {
       testOptions in Test := Seq(Tests.Filter(unitFilter)),
       testOptions in IntegrationTest := Seq(Tests.Filter(itFilter))).
       settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*).
-      settings(
-        CoverallsPlugin.CoverallsKeys.coverallsToken := Some("4c62CwXnosg5iwouVOrCa46frQwqtBlzk"),
-        ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages := ".*examples.*").
+      settings(ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages := ".*examples.*").
       settings(bintraySettings: _*).
       settings(
         publishMavenStyle := false,
