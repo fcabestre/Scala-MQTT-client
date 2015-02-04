@@ -1,6 +1,7 @@
 language: scala
 scala:
-- 2.11.5
+  - 2.11.5
+sudo: false
 script: sbt clean coverage test coverageReport
 after_success: sbt coveralls
 env:
