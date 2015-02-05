@@ -20,6 +20,7 @@ object ScalaMQTTClientBuild extends Build {
       version := "0.1",
       scalaVersion := "2.11.5",
       licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
+      resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
       libraryDependencies ++= Seq(
         "org.specs2" %% "specs2" % "2.4.15" % "test",
         "com.typesafe.akka" %% "akka-actor" % "2.3.9",
