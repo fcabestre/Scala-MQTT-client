@@ -1,6 +1,6 @@
 import scalariform.formatter.preferences._
 
-scalariformSettings
+defaultScalariformSettings
 
 ScalariformKeys.preferences := ScalariformKeys.preferences.value
   .setPreference(RewriteArrowSymbols, true)
