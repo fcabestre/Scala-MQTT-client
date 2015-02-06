@@ -25,7 +25,7 @@ import scodec.bits.ByteVector
 
 import scala.util.Random
 
-object ProtocolSpec extends Specification with Protocol with NoTimeConversions {
+object HandlersSpec extends Specification with Handlers with NoTimeConversions {
 
   "The transportNotReady() function" should {
     "Define the action to perform when the transport is not ready" in {

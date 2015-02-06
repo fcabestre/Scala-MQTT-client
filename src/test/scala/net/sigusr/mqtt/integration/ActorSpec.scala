@@ -22,7 +22,7 @@ import akka.actor.{ Actor, ActorRef, Props }
 import akka.io.{ IO, Tcp }
 import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
-import net.sigusr.mqtt.impl.protocol.{ Protocol, Transport }
+import net.sigusr.mqtt.impl.protocol.{ Handlers, Engine }
 import org.specs2.mutable._
 import org.specs2.time.NoTimeConversions
 
@@ -34,7 +34,7 @@ object ActorSpec extends Specification with NoTimeConversions {
 
   val brokerHost = "localhost"
 
-  class TestMQTTManager(remote: InetSocketAddress) extends Transport(remote) with Protocol {
+  class TestMQTTManager(remote: InetSocketAddress) extends Engine(remote) with Handlers {
     import context.system
     override def tcpManagerActor = IO(Tcp)
   }

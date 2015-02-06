@@ -23,7 +23,7 @@ import scodec.bits.ByteVector
 
 import scalaz.State._
 
-trait Protocol {
+trait Handlers {
 
   private val zeroId = MessageId(0)
 
@@ -78,17 +78,19 @@ trait Protocol {
               SendToNetwork(PubrecFrame(Header(), messageIdentifier))))
         }
       case PubackFrame(header, messageId) ⇒
-        // TODO handle storage
+        // TODO handle storage (and timeouts ?)
         SendToClient(Published(messageId))
       case PubrecFrame(header, messageIdentifier) ⇒
-        // TODO handle storage and timeouts
+        // TODO handle storage (and timeouts ?)
         SendToNetwork(PubrelFrame(header.copy(qos = 1), messageIdentifier))
       case PubcompFrame(header, messageId) ⇒
-        // TODO handle storage
+        // TODO handle storage (and timeouts ?)
         SendToClient(Published(messageId))
       case SubackFrame(header, messageIdentifier, topicResults) ⇒
         SendToClient(Subscribed(topicResults.map(QualityOfService.fromEnum), messageIdentifier.identifier))
-      case _ ⇒ Sequence()
+      case _ ⇒
+        // TODO do more than ignoring unexpected frames!
+        Sequence()
     }
   }
 

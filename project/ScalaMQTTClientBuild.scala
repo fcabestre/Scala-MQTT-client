@@ -15,6 +15,7 @@ object ScalaMQTTClientBuild extends Build {
     settings(inConfig(IntegrationTest)(Defaults.testTasks): _*).
     settings(
       name := """Scala-MQTT-client""",
+      version := "0.5.0-SNAPSHOT",
       organization := "net.sigusr",
       scalaVersion := "2.11.5",
       licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),

@@ -20,9 +20,9 @@ import java.net.InetSocketAddress
 
 import akka.actor.Props
 import akka.io.{ IO, Tcp }
-import net.sigusr.mqtt.impl.protocol.{ Protocol, Transport }
+import net.sigusr.mqtt.impl.protocol.Engine
 
-class Manager(remote: InetSocketAddress) extends Transport(remote) with Protocol {
+class Manager(remote: InetSocketAddress) extends Engine(remote) {
   import context.system
   override def tcpManagerActor = IO(Tcp)
 }

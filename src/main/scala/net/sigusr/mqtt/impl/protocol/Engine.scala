@@ -32,10 +32,20 @@ import scalaz.State
 
 private[protocol] case object TimerSignal
 
-abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor with ActorLogging {
-  this: Protocol ⇒
+abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with Handlers with ActorLogging {
 
-  import akka.io.Tcp.{ Abort ⇒ TcpAbort, CommandFailed ⇒ TcpCommandFailed, Connect ⇒ TcpConnect, Connected ⇒ TcpConnected, ConnectionClosed ⇒ TcpConnectionClosed, Received ⇒ TcpReceived, Register ⇒ TcpRegister, Write ⇒ TcpWrite }
+  import akka.io.Tcp.{
+    Abort ⇒ TcpAbort,
+    CommandFailed ⇒ TcpCommandFailed,
+    Connect ⇒ TcpConnect,
+    Connected ⇒ TcpConnected,
+    ConnectionClosed ⇒
+    TcpConnectionClosed,
+    Received ⇒ TcpReceived,
+    Register ⇒ TcpRegister,
+    Write ⇒ TcpWrite
+  }
+
   import context.dispatcher
 
   var registers: Registers = Registers(client = context.parent, tcpManager = tcpManagerActor)
@@ -97,7 +107,6 @@ abstract class Transport(mqttBrokerAddress: InetSocketAddress) extends Actor wit
 
   private def processActionSeq(actions: Seq[Action]): RegistersState[Unit] =
     if (actions.isEmpty) State { x ⇒ (x, ()) }
-    else if (actions.size == 1) processAction(actions.head)
     else for {
       _ ← processAction(actions.head)
       _ ← processActionSeq(actions.tail)

@@ -19,7 +19,17 @@ package net.sigusr.mqtt.impl.protocol
 import java.net.InetSocketAddress
 
 import akka.actor.{ Status ⇒ ActorStatus, _ }
-import akka.io.Tcp.{ Abort ⇒ TCPAbort, Aborted ⇒ TCPAborted, Closed ⇒ TCPClosed, CommandFailed ⇒ TCPCommandFailed, Connect ⇒ TCPConnect, Connected ⇒ TCPConnected, Received ⇒ TCPReceived, Register ⇒ TCPRegister, Write ⇒ TCPWrite }
+import akka.io.Tcp.{
+  Abort ⇒ TCPAbort,
+  Aborted ⇒ TCPAborted,
+  Closed ⇒ TCPClosed,
+  CommandFailed ⇒ TCPCommandFailed,
+  Connect ⇒ TCPConnect,
+  Connected ⇒ TCPConnected,
+  Received ⇒ TCPReceived,
+  Register ⇒ TCPRegister,
+  Write ⇒ TCPWrite
+}
 import akka.testkit.{ ImplicitSender, TestProbe }
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecUtils.SpecsTestKit
@@ -29,7 +39,7 @@ import org.specs2.time.NoTimeConversions
 
 import scala.language.reflectiveCalls
 
-object TransportSpec extends Specification with NoTimeConversions {
+object EngineSpec extends Specification with NoTimeConversions {
 
   sequential
   isolated
@@ -37,7 +47,7 @@ object TransportSpec extends Specification with NoTimeConversions {
   private val fakeBrokerAddress: InetSocketAddress = new InetSocketAddress(0)
   private val fakeLocalAddress: InetSocketAddress = new InetSocketAddress(0)
 
-  class TestMQTTManager(_tcpManagerActor: ActorRef) extends Transport(fakeBrokerAddress) with Protocol {
+  class TestManager(_tcpManagerActor: ActorRef) extends Engine(fakeBrokerAddress) with Handlers {
     override def tcpManagerActor: ActorRef = _tcpManagerActor
   }
 
@@ -109,7 +119,7 @@ object TransportSpec extends Specification with NoTimeConversions {
   }
 
   class FakeMQTTManagerParent(testMQTTManagerName: String, fakeTCPManagerActor: ActorRef)(implicit testActor: ActorRef) extends Actor {
-    val child = context.actorOf(Props(new TestMQTTManager(fakeTCPManagerActor)), testMQTTManagerName)
+    val child = context.actorOf(Props(new TestManager(fakeTCPManagerActor)), testMQTTManagerName)
     def receive = {
       case x if sender == child ⇒ testActor forward x
       case x ⇒ child forward x
