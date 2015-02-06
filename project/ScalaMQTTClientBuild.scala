@@ -1,5 +1,3 @@
-import bintray.Plugin._
-import bintray.Keys._
 import org.scoverage.coveralls.CoverallsPlugin
 import sbt.Keys._
 import sbt._
@@ -17,7 +15,7 @@ object ScalaMQTTClientBuild extends Build {
     settings(inConfig(IntegrationTest)(Defaults.testTasks): _*).
     settings(
       name := """Scala-MQTT-client""",
-      version := "0.1",
+      organization := "net.sigusr",
       scalaVersion := "2.11.5",
       licenses += ("Apache-2.0", url("http://opensource.org/licenses/Apache-2.0")),
       resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
@@ -44,15 +42,12 @@ object ScalaMQTTClientBuild extends Build {
         "-Ywarn-numeric-widen",
         "-Ywarn-value-discard",
         "-Ywarn-unused-import"),
+      publishArtifact in (Compile, packageDoc) := false,
       testOptions in Test := Seq(Tests.Filter(unitFilter)),
       testOptions in IntegrationTest := Seq(Tests.Filter(itFilter))).
       settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*).
       settings(ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages := ".*examples.*").
-      settings(bintraySettings: _*).
-      settings(
-        publishMavenStyle := false,
-        publishArtifact in (Compile, packageDoc) := false,
-        repository in bintray := "releases").
+      settings(Publishing.settings: _*).
       settings(mappings in (Compile, packageBin) ~= { _.filter(!_._2.matches(".*/examples/.*")) })
 }
 

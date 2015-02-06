@@ -1,9 +1,11 @@
 language: scala
 scala:
-  - 2.11.5
+- 2.11.5
 sudo: false
 script: sbt clean coverage test coverageReport
-after_success: sbt coveralls
+after_success: sbt coveralls $(if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then echo "publish";  fi)
 env:
   global:
-    secure: fFRvPhrTWMYzVr6UkPXaVvnFn5p3XGh3IL8HrI1qYRdRkqaV+eTRXWtwmqN+miqVd/V/YsD9vYNjNbBoiC8tSH9gtK4DWtK01eJEmmBLtm3DdvtL/iH3Jh3HcPe5lTK4rZiicoO51zPGDQi+OBHAPix+8WwECeAUGlV2knGlcT4=
+  - secure: fFRvPhrTWMYzVr6UkPXaVvnFn5p3XGh3IL8HrI1qYRdRkqaV+eTRXWtwmqN+miqVd/V/YsD9vYNjNbBoiC8tSH9gtK4DWtK01eJEmmBLtm3DdvtL/iH3Jh3HcPe5lTK4rZiicoO51zPGDQi+OBHAPix+8WwECeAUGlV2knGlcT4=
+  - secure: cFwqmVV5q6TzxWakLLc43z9L9MTlVQarlzcKB3I01CoSXf5oq39pdR5EOHPIQYIEzgihFOGandu6DeKJb6nlvKCZQ9KXpbB/Y5pBwuZ5F5hfwNU/i+pw3+wM7OIIUfS/GD+YcGkD3SUmlTp2vX81ZNc3CEFPfOVL3h18ER4Shvg=
+  - secure: T0+31O4+vPQcwz11asrgTDc0OTQFAWv3KROavFK2te03rz1msOh5x1bllTlCMxWlLI3FntMxa9QpQgH6Q2Uo9q+ReSBfX0xbUrtB1HU9WROxPl17FcpWXoUUQf/cB1zdGW7mxEzF2qNWImbYJvpC8YFS+D28AyPY7CLzWd4xRgg=
