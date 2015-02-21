@@ -2,7 +2,7 @@ import org.scoverage.coveralls.CoverallsPlugin
 import sbt.Keys._
 import sbt._
 import scoverage.ScoverageSbtPlugin
-
+import com.typesafe.sbt.pgp.PgpKeys._
 
 object ScalaMQTTClientBuild extends Build {
   lazy val IntegrationTest = config("it") extend Test
@@ -43,7 +43,9 @@ object ScalaMQTTClientBuild extends Build {
         "-Ywarn-numeric-widen",
         "-Ywarn-value-discard",
         "-Ywarn-unused-import"),
-      publishArtifact in (Compile, packageDoc) := false,
+      useGpg := true,
+      gpgCommand := "/usr/bin/gpg2",
+      pgpSecretRing := file("~/.gnupg/secring.gpg"),
       testOptions in Test := Seq(Tests.Filter(unitFilter)),
       testOptions in IntegrationTest := Seq(Tests.Filter(itFilter))).
       settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*).
