@@ -37,7 +37,7 @@ there is still a lot of work to be done:
 [ci]: https://travis-ci.org/fcabestre/Scala-MQTT-client/
 [sonatype]: https://oss.sonatype.org/index.html#nexus-search;quick~scala-mqtt-client
 
-Artifacts are available at [Sonatype OSS Repository Hosting service][sonatype], event the ```SNAPSHOTS``` automatically
+Artifacts are available at [Sonatype OSS Repository Hosting service][sonatype], even the ```SNAPSHOTS``` automatically
 built by [Travis CI][ci]. To include the Sonatype repositories in your SBT build you should add,
 
 ```scala

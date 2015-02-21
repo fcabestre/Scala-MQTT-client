@@ -21,8 +21,8 @@ object Publishing extends Sonatype(ScalaMQTTClientBuild) {
   def projectUrl    = "https://github.com/fcabestre/Scala-MQTT-client"
   def developerId   = "fcabestre"
   def developerName = "Frédéric Cabestre"
-  def licenseName   = "Apache License"
-  def licenseUrl    = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+  def licenseName   = "Apache-2.0"
+  def licenseUrl    = "http://opensource.org/licenses/Apache-2.0"
 }
 
 /* Sonatype Publishing */

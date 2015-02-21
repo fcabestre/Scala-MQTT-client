@@ -3,7 +3,7 @@ scala:
 - 2.11.5
 sudo: false
 script: sbt clean coverage test coverageReport
-after_success: sbt coveralls $(if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" ]]; then echo "publish";  fi)
+after_success: sbt coveralls $(if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" && "${TRAVIS_TAG}" == "false" ]]; then echo "publish";  fi)
 env:
   global:
   - secure: fFRvPhrTWMYzVr6UkPXaVvnFn5p3XGh3IL8HrI1qYRdRkqaV+eTRXWtwmqN+miqVd/V/YsD9vYNjNbBoiC8tSH9gtK4DWtK01eJEmmBLtm3DdvtL/iH3Jh3HcPe5lTK4rZiicoO51zPGDQi+OBHAPix+8WwECeAUGlV2knGlcT4=
