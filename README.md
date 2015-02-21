@@ -32,6 +32,32 @@ there is still a lot of work to be done:
   * If I dare, passing [Paho](http://www.eclipse.org/paho/clients/testing/) conformance tests
   * And many, many, many more I can't foresee...
 
+## First release ever...
+
+[ci]: https://travis-ci.org/fcabestre/Scala-MQTT-client/
+[sonatype]: https://oss.sonatype.org/index.html#nexus-search;quick~scala-mqtt-client
+
+Artifacts are available at [Sonatype OSS Repository Hosting service][sonatype], event the ```SNAPSHOTS``` automatically
+built by [Travis CI][ci]. To include the Sonatype repositories in your SBT build you should add,
+
+```scala
+resolvers ++= Seq(
+    Resolver.sonatypeRepo("releases"),
+    Resolver.sonatypeRepo("snapshots")
+)
+```
+
+In case you want to easily give a try to this library, without the burden of adding resolvers, there is a release synced
+to Maven Central. In this case just add,
+
+```scala
+scalaVersion := "2.11.5"
+
+libraryDependencies ++= Seq(
+    "net.sigusr" %% "scala-mqtt-client" % "0.5.0"
+)
+```
+
 ## Dependencies
 
   * Scala 2.11.5
