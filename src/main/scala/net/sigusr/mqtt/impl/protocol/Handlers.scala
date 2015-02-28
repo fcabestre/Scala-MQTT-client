@@ -111,6 +111,6 @@ trait Handlers {
 
   private[protocol] def connectionClosed(): Action = SendToClient(Disconnected)
 
-  private[protocol] def transportNotReady(): Action = SendToClient(Disconnected)
+  private[protocol] def transportNotReady(): Action = SendToClient(ConnectionFailure(ServerNotResponding))
 }
 

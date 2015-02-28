@@ -29,7 +29,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
 
   "The transportNotReady() function" should {
     "Define the action to perform when the transport is not ready" in {
-      transportNotReady() shouldEqual SendToClient(Disconnected)
+      transportNotReady() shouldEqual SendToClient(ConnectionFailure(ServerNotResponding))
     }
   }
 

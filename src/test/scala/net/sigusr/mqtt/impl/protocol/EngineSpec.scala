@@ -149,7 +149,7 @@ object EngineSpec extends Specification with NoTimeConversions {
 
       fakeTCPManagerActor.expectConnectThenFail()
 
-      expectMsg(Disconnected)
+      expectMsg(ConnectionFailure(ServerNotResponding))
     }
 
     "Provide the right connection status [0]" in new SpecsTestKit {

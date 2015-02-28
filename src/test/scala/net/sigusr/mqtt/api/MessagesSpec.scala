@@ -40,6 +40,7 @@ object MessagesSpec extends Specification {
 
   "Connect failure reason" should {
     "Provide their «enum» value" in {
+      ServerNotResponding.enum should be_==(0)
       BadProtocolVersion.enum should be_==(1)
       IdentifierRejected.enum should be_==(2)
       ServerUnavailable.enum should be_==(3)
@@ -50,7 +51,8 @@ object MessagesSpec extends Specification {
     "Be constructable from their corresponding «enum» value" in {
       import net.sigusr.mqtt.api.ConnectionFailureReason._
 
-      fromEnum(0) should throwA[IllegalArgumentException]
+      fromEnum(-1) should throwA[IllegalArgumentException]
+      fromEnum(0) should_=== ServerNotResponding
       fromEnum(1) should_=== BadProtocolVersion
       fromEnum(2) should_=== IdentifierRejected
       fromEnum(3) should_=== ServerUnavailable
