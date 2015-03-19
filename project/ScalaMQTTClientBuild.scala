@@ -1,30 +1,84 @@
-import org.scoverage.coveralls.CoverallsPlugin
-import sbt.Keys._
 import sbt._
+import sbt.Keys._
 import scoverage.ScoverageSbtPlugin
+import org.scoverage.coveralls.CoverallsPlugin
 import com.typesafe.sbt.pgp.PgpKeys._
+import scalariform.formatter.preferences._
+import com.typesafe.sbt.SbtScalariform._
 
 object ScalaMQTTClientBuild extends Build {
+
   lazy val IntegrationTest = config("it") extend Test
 
   def itFilter(name: String): Boolean = name startsWith "net.sigusr.mqtt.integration"
   def unitFilter(name: String): Boolean = !itFilter(name)
 
-  lazy val root = (project in file(".")).
-    configs(IntegrationTest).
-    settings(inConfig(IntegrationTest)(Defaults.testTasks): _*).
-    settings(
+  def testSettings =
+    Seq(
+      testOptions in Test := Seq(Tests.Filter(unitFilter)),
+      testOptions in IntegrationTest := Seq(Tests.Filter(itFilter))
+    ) ++ inConfig(IntegrationTest)(Defaults.testTasks)
+
+  def pgpSetings =
+    Seq(
+      useGpg := true,
+      gpgCommand := "/usr/bin/gpg2",
+      pgpSecretRing := file("~/.gnupg/secring.gpg")
+    )
+
+
+  lazy val root = Project(
+    id = "scala-mqtt-client",
+    base = file("."),
+
+    aggregate = Seq(core, examples),
+
+    settings = commonSettings ++ scalariformSettings ++ Seq(
+      publish := (),
+      publishLocal := (),
+      publishArtifact := false
+    )
+  )
+
+  lazy val core = Project(
+    id = "scala-mqtt-client-core",
+    base = file("core"),
+
+    configurations = Seq(IntegrationTest),
+
+    settings = commonSettings ++ testSettings ++ pgpSetings ++ Publishing.settings ++ Seq(
       name := """Scala-MQTT-client""",
       version := "0.6.0-SNAPSHOT",
-      organization := "net.sigusr",
-      scalaVersion := "2.11.5",
+
       resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
       libraryDependencies ++= Seq(
         "org.specs2" %% "specs2" % "2.4.15" % "test",
         "com.typesafe.akka" %% "akka-actor" % "2.3.9",
         "com.typesafe.akka" %% "akka-testkit" % "2.3.9",
-        "org.typelevel" %% "scodec-core" % "1.6.0"),
+        "org.typelevel" %% "scodec-core" % "1.6.0")
+    )
+  )
+
+  lazy val examples = Project(
+    id = "scala-mqtt-client-examples",
+    base = file("examples"),
+
+    dependencies = Seq(core),
+
+    settings = commonSettings ++ Seq(
+      publish := (),
+      publishLocal := (),
+      publishArtifact := false
+    )
+  )
+
+  def commonSettings =
+    Seq(
+      organization := "net.sigusr",
+      scalaVersion := "2.11.5",
+
       scalacOptions in Test ++= Seq("-Yrangepos"),
+
       scalacOptions ++= Seq(
         "-language:implicitConversions",
         "-unchecked",
@@ -41,15 +95,13 @@ object ScalaMQTTClientBuild extends Build {
         "-Ywarn-dead-code",
         "-Ywarn-numeric-widen",
         "-Ywarn-value-discard",
-        "-Ywarn-unused-import"),
-      useGpg := true,
-      gpgCommand := "/usr/bin/gpg2",
-      pgpSecretRing := file("~/.gnupg/secring.gpg"),
-      testOptions in Test := Seq(Tests.Filter(unitFilter)),
-      testOptions in IntegrationTest := Seq(Tests.Filter(itFilter))).
-      settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*).
-      settings(ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages := ".*examples.*").
-      settings(Publishing.settings: _*).
-      settings(mappings in (Compile, packageBin) ~= { _.filter(!_._2.matches(".*/examples/.*")) })
+        "-Ywarn-unused-import")
+    )
+
+  def scalariformSettings =
+    defaultScalariformSettings ++ Seq(
+      ScalariformKeys.preferences :=
+        ScalariformKeys.preferences.value.setPreference(RewriteArrowSymbols, true)
+    )
 }
 
