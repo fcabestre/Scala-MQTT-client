@@ -19,8 +19,8 @@ a long time. So I decided to give it a try...
 
 I have a basic and far from complete implementation of the thing. Frame encoding and decoding works pretty well, and
 it's possible to write some code to talk to [Mosquitto](http://mosquitto.org). For examples you can have a look to the [local subscriber]
-(https://github.com/fcabestre/Scala-MQTT-client/blob/master/src/main/scala/net/sigusr/mqtt/examples/LocalSubscriber.scala) or the
-[local publisher](https://github.com/fcabestre/Scala-MQTT-client/blob/master/src/main/scala/net/sigusr/mqtt/examples/LocalPublisher.scala).
+(https://github.com/fcabestre/Scala-MQTT-client/blob/master/examples/src/main/scala/net/sigusr/mqtt/examples/LocalSubscriber.scala) or the
+[local publisher](https://github.com/fcabestre/Scala-MQTT-client/blob/master/examples/src/main/scala/net/sigusr/mqtt/examples/LocalPublisher.scala).
 I'm starting to take it a bit more seriously. I mean, thinking of doing something that could be useful to others. But
 there is still a lot of work to be done:
 

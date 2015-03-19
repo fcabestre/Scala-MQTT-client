@@ -2,7 +2,7 @@ language: scala
 scala:
 - 2.11.5
 sudo: false
-script: clean scala-mqtt-client-core/coverage test scala-mqtt-client-core/coverageReport
+script: sbt clean scala-mqtt-client-core/coverage test scala-mqtt-client-core/coverageReport
 after_success: sbt scala-mqtt-client-core/coveralls $(if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" && "${TRAVIS_TAG}" == "false" ]]; then echo "scala-mqtt-client-core/publish";  fi)
 env:
   global:
