@@ -27,40 +27,51 @@ trait Handlers {
 
   private val zeroId = MessageId(0)
 
-  private[protocol] def handleApiMessages(apiCommand: APICommand): Action = apiCommand match {
-    case Connect(clientId, keepAlive, cleanSession, will, user, password) ⇒
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val retain = will.fold(false)(_.retain)
-      val qos = will.fold(AtMostOnce.enum)(_.qos.enum)
-      val topic = will.map(_.topic)
-      val message = will.map(_.message)
-      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = retain, qos, willFlag = will.isDefined, cleanSession, keepAlive)
-      Sequence(
-        Seq(SetKeepAlive(keepAlive.toLong * 1000),
-          SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
-    case Disconnect ⇒
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      SendToNetwork(DisconnectFrame(header))
-    case Publish(topic, payload, qos, messageId, retain) if qos == AtMostOnce ⇒
-      val header = Header(dup = false, qos.enum, retain = retain)
-      SendToNetwork(PublishFrame(header, topic, messageId.getOrElse(zeroId).identifier, ByteVector(payload)))
-    case Publish(topic, payload, qos, Some(messageId), retain) ⇒
-      val header = Header(dup = false, qos.enum, retain = retain)
-      // TODO handle storage and timeouts
-      SendToNetwork(PublishFrame(header, topic, messageId.identifier, ByteVector(payload)))
-    case Subscribe(topics, messageId) ⇒
-      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
-      SendToNetwork(SubscribeFrame(header, messageId.identifier, topics.map((v: (String, QualityOfService)) ⇒ (v._1, v._2.enum))))
-    case Status ⇒
-      SendToClient(Connected)
+  private[protocol] def handleApiMessages(apiCommand: APICommand): RegistersState[Action] = gets { registers ⇒
+    apiCommand match {
+      case Connect(clientId, keepAlive, cleanSession, will, user, password) ⇒
+        val header = Header(dup = false, AtMostOnce.enum, retain = false)
+        val retain = will.fold(false)(_.retain)
+        val qos = will.fold(AtMostOnce.enum)(_.qos.enum)
+        val topic = will.map(_.topic)
+        val message = will.map(_.message)
+        val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = retain, qos, willFlag = will.isDefined, cleanSession, keepAlive)
+        val actions = Seq(
+          SetKeepAlive(keepAlive.toLong * 1000),
+          SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))
+        )
+        Sequence(if (!cleanSession) actions ++ registers.inFlightSentFrame.toSeq.map(p ⇒ SendToNetwork(p._2)) else actions)
+      case Disconnect ⇒
+        val header = Header(dup = false, AtMostOnce.enum, retain = false)
+        SendToNetwork(DisconnectFrame(header))
+      case Publish(topic, payload, qos, messageId, retain) if qos == AtMostOnce ⇒
+        val header = Header(dup = false, qos.enum, retain = retain)
+        SendToNetwork(PublishFrame(header, topic, messageId.getOrElse(zeroId).identifier, ByteVector(payload)))
+      case Publish(topic, payload, qos, Some(messageId), retain) ⇒
+        val header = Header(dup = false, qos.enum, retain = retain)
+        val frame = PublishFrame(header, topic, messageId.identifier, ByteVector(payload))
+        Sequence(Seq(
+          StoreSentInFlightFrame(messageId.identifier, PublishFrame.dupLens.set(frame)(true)),
+          SendToNetwork(frame)
+        ))
+      case Subscribe(topics, messageId) ⇒
+        val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+        SendToNetwork(SubscribeFrame(header, messageId.identifier, topics.map((v: (String, QualityOfService)) ⇒ (v._1, v._2.enum))))
+      case Status ⇒
+        SendToClient(Connected)
+    }
   }
 
   private[protocol] def handleNetworkFrames(frame: Frame): RegistersState[Action] = gets { registers ⇒
     frame match {
       case ConnackFrame(header, 0) ⇒
         if (registers.keepAlive == 0) SendToClient(Connected)
-        else Sequence(Seq(StartPingRespTimer(registers.keepAlive), SendToClient(Connected)))
-      case ConnackFrame(header, returnCode) ⇒ SendToClient(ConnectionFailure(ConnectionFailureReason.fromEnum(returnCode)))
+        else Sequence(Seq(
+          StartPingRespTimer(registers.keepAlive),
+          SendToClient(Connected)
+        ))
+      case ConnackFrame(header, returnCode) ⇒
+        SendToClient(ConnectionFailure(ConnectionFailureReason.fromEnum(returnCode)))
       case PingRespFrame(header) ⇒
         SetPendingPingResponse(isPending = false)
       case PublishFrame(header, topic, messageIdentifier, payload) ⇒
@@ -73,23 +84,43 @@ trait Handlers {
               toClient,
               SendToNetwork(PubackFrame(Header(), messageIdentifier))))
           case ExactlyOnce.enum ⇒
-            Sequence(Seq(
-              toClient,
-              SendToNetwork(PubrecFrame(Header(), messageIdentifier))))
+            if (registers.inFlightRecvFrame(messageIdentifier))
+              Sequence(Seq(
+                SendToNetwork(PubrecFrame(Header(), messageIdentifier))
+              ))
+            else
+              Sequence(Seq(
+                toClient,
+                StoreRecvInFlightFrameId(messageIdentifier),
+                SendToNetwork(PubrecFrame(Header(), messageIdentifier))
+              ))
         }
       case PubackFrame(header, messageId) ⇒
-        // TODO handle storage (and timeouts ?)
-        SendToClient(Published(messageId))
+        Sequence(Seq(
+          RemoveSentInFlightFrame(messageId),
+          SendToClient(Published(messageId))
+        ))
       case PubrecFrame(header, messageIdentifier) ⇒
-        // TODO handle storage (and timeouts ?)
-        SendToNetwork(PubrelFrame(header.copy(qos = 1), messageIdentifier))
+        val pubrelFrame = PubrelFrame(header.copy(qos = 1), messageIdentifier)
+        Sequence(Seq(
+          RemoveSentInFlightFrame(messageIdentifier),
+          StoreSentInFlightFrame(messageIdentifier.identifier, PubrelFrame.dupLens.set(pubrelFrame)(true)),
+          SendToNetwork(pubrelFrame)
+        ))
+      case PubrelFrame(header, messageIdentifier) ⇒
+        Sequence(Seq(
+          RemoveRecvInFlightFrameId(messageIdentifier),
+          SendToNetwork(PubcompFrame(header.copy(qos = 0), messageIdentifier))
+        ))
       case PubcompFrame(header, messageId) ⇒
-        // TODO handle storage (and timeouts ?)
-        SendToClient(Published(messageId))
+        Sequence(Seq(
+          RemoveSentInFlightFrame(messageId),
+          SendToClient(Published(messageId))
+        ))
       case SubackFrame(header, messageIdentifier, topicResults) ⇒
         SendToClient(Subscribed(topicResults.map(QualityOfService.fromEnum), messageIdentifier.identifier))
       case _ ⇒
-        // TODO do more than ignoring unexpected frames!
+        // TODO do more than ignoring unexpected frames?
         Sequence()
     }
   }
@@ -103,7 +134,8 @@ trait Handlers {
         Sequence(Seq(
           SetPendingPingResponse(isPending = true),
           StartPingRespTimer(registers.keepAlive),
-          SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))))
+          SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))
+        ))
       else
         StartPingRespTimer(timeout)
     }

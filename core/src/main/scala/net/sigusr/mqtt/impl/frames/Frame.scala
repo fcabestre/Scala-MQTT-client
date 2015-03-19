@@ -21,6 +21,7 @@ import net.sigusr.mqtt.impl.frames.Header._
 import scodec.Codec
 import scodec.bits.ByteVector
 import scodec.codecs._
+import shapeless._
 
 sealed trait Frame {
   def header: Header
@@ -72,6 +73,7 @@ object ConnackFrame {
 }
 
 object PublishFrame {
+  val dupLens = lens[PublishFrame] >> 'header >> 'dup
   implicit val discriminator: Discriminator[Frame, PublishFrame, Int] = Discriminator(3)
   implicit val codec: Codec[PublishFrame] = (headerCodec >>:~ {
     (hdr: Header) ⇒ variableSizeBytes(remainingLengthCodec, stringCodec :: (if (hdr.qos != 0) messageIdCodec else provide(0)) :: bytes)
@@ -89,6 +91,7 @@ object PubrecFrame {
 }
 
 object PubrelFrame {
+  val dupLens = lens[PubrelFrame] >> 'header >> 'dup
   implicit val discriminator: Discriminator[Frame, PubrelFrame, Int] = Discriminator(6)
   implicit val codec: Codec[PubrelFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdCodec)).as[PubrelFrame]
 }
@@ -129,7 +132,6 @@ object PingReqFrame {
 object PingRespFrame {
   implicit val discriminator: Discriminator[Frame, PingRespFrame, Int] = Discriminator(13)
   implicit val codec: Codec[PingRespFrame] = (headerCodec :: bytePaddingCodec).dropUnits.as[PingRespFrame]
-
 }
 
 object DisconnectFrame {

@@ -82,7 +82,7 @@ object EngineSpec extends Specification with NoTimeConversions {
     def expectWriteConnectFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          if (byteString(0) == 0x10) {
+          if ((byteString.head & 0xff) == 0x10) {
             sender() ! TCPReceived(connackFrame)
           }
       }
@@ -91,7 +91,7 @@ object EngineSpec extends Specification with NoTimeConversions {
     def expectWritePingReqFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          if (byteString(0) == -64) {
+          if ((byteString.head & 0xff) == 0xc0) {
             if (pingReqCount == 0) {
               sender() ! TCPReceived(pingRespFrame)
             }
@@ -105,7 +105,7 @@ object EngineSpec extends Specification with NoTimeConversions {
         case TCPWrite(byteString, _) ⇒
           // Why when I write 0xe0 instead of -32
           // here things go really wrong ?
-          if (byteString(0) == -32) {
+          if ((byteString.head & 0xff) == 0xe0) {
             sender() ! TCPClosed
           }
       }

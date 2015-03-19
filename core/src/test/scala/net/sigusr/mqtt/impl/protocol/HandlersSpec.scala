@@ -23,6 +23,7 @@ import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 import scodec.bits.ByteVector
 
+import scala.collection.immutable.{TreeMap, TreeSet}
 import scala.util.Random
 
 object HandlersSpec extends Specification with Handlers with NoTimeConversions {
@@ -40,7 +41,28 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
   }
 
   "The handleApiMessages() function" should {
-    "Define the action to perform to handle a MQTTConnect API message" in {
+    "Define the action to perform to handle a Connect API message with session cleaning" in {
+      val clientId = "client id"
+      val keepAlive = 60
+      val cleanSession = true
+      val topic = Some("topic")
+      val message = Some("message")
+      val will = Will(retain = false, AtLeastOnce, "topic", "message")
+      val user = Some("user")
+      val password = Some("password")
+      val input = Connect(clientId, keepAlive, cleanSession, Some(will), user, password)
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = true, cleanSession, keepAlive)
+      val publishFrame = PublishFrame(Header(), "topic", 42, ByteVector(0x01))
+      val pubrecFrame = PubrecFrame(Header(), 19)
+      val registers = Registers(inFlightSentFrame = TreeMap(42 -> publishFrame, 19 -> pubrecFrame))
+      val expected = Sequence(Seq(
+        SetKeepAlive(keepAlive.toLong * 1000),
+        SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
+      handleApiMessages(input).eval(registers) should_== expected
+    }
+
+    "Define the action to perform to handle a Connect API message when there is in flight frames and no session cleaning" in {
       val clientId = "client id"
       val keepAlive = 60
       val cleanSession = false
@@ -50,26 +72,35 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val user = Some("user")
       val password = Some("password")
       val input = Connect(clientId, keepAlive, cleanSession, Some(will), user, password)
+      
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = true, cleanSession, keepAlive)
-      val result = Sequence(Seq(
+      val connectFrame = ConnectFrame(header, variableHeader, clientId, topic, message, user, password)
+      val publishFrame = PublishFrame(Header(dup = true), "topic", 42, ByteVector(0x01))
+      val pubrelFrame = PubrelFrame(Header(dup = true, qos = AtMostOnce.enum), 19)
+      val registers = Registers(inFlightSentFrame = TreeMap(42 -> publishFrame, 19 -> pubrelFrame))
+      
+      val expected = Sequence(Seq(
         SetKeepAlive(keepAlive.toLong * 1000),
-        SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
-      handleApiMessages(input) should_== result
+        SendToNetwork(connectFrame),
+        SendToNetwork(pubrelFrame),
+        SendToNetwork(publishFrame)
+      ))
+      handleApiMessages(input).eval(registers) should_== expected
     }
 
     "Define the action to perform to handle a MQTTDisconnect API message" in {
       val input = Disconnect
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val result = SendToNetwork(DisconnectFrame(header))
-      handleApiMessages(input) should_== result
+      val expected = SendToNetwork(DisconnectFrame(header))
+      handleApiMessages(input).eval(Registers()) should_== expected
     }
 
     "Define the action to perform to handle a Status API message" in {
       val input = Status
       SendToClient(Connected)
-      val result = SendToClient(Connected)
-      handleApiMessages(input) should_== result
+      val expected = SendToClient(Connected)
+      handleApiMessages(input).eval(Registers()) should_== expected
     }
 
     "Define the action to perform to handle a MQTTSubscribe API message" in {
@@ -78,8 +109,8 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val input = Subscribe(topicsInput, messageId)
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val topicsResult = Vector(("topic0", AtMostOnce.enum), ("topic1", ExactlyOnce.enum), ("topic2", AtLeastOnce.enum))
-      val result = SendToNetwork(SubscribeFrame(header, messageId, topicsResult))
-      handleApiMessages(input) should_== result
+      val expected = SendToNetwork(SubscribeFrame(header, messageId, topicsResult))
+      handleApiMessages(input).eval(Registers()) should_== expected
     }
 
     "Define the action to perform to handle a MQTTPublish API message with QoS of 'At most once'" in {
@@ -90,8 +121,8 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val messageId = Random.nextInt(65536)
       val input = Publish(topic, payload, qos, Some(messageId), retain)
       val header = Header(dup = false, qos.enum, retain)
-      val result = SendToNetwork(PublishFrame(header, topic, messageId, ByteVector(payload)))
-      handleApiMessages(input) should_== result
+      val expected = SendToNetwork(PublishFrame(header, topic, messageId, ByteVector(payload)))
+      handleApiMessages(input).eval(Registers()) should_== expected
     }
 
     "Define the action to perform to handle a MQTTPublish API message with QoS of 'at least once' or 'exactly once'" in {
@@ -101,32 +132,39 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val payload = makeRandomByteVector(32)
       val messageId = Random.nextInt(65536)
       val input = Publish(topic, payload, qos, Some(messageId), retain)
-      val header = Header(dup = false, qos.enum, retain)
-      val result = SendToNetwork(PublishFrame(header, topic, messageId, ByteVector(payload)))
-      handleApiMessages(input) should_== result
+      val inputHeader = Header(dup = false, qos.enum, retain)
+      val expectedHeader = Header(dup = true, qos.enum, retain)
+      val expected =
+        Sequence(
+          Seq(
+            StoreSentInFlightFrame(messageId, PublishFrame(expectedHeader, topic, messageId, ByteVector(payload))),
+            SendToNetwork(PublishFrame(inputHeader, topic, messageId, ByteVector(payload)))
+          )
+        )
+      handleApiMessages(input).eval(Registers()) should_== expected
     }
   }
 
   "The timerSignal() function" should {
     "Define the action to perform to handle a SendKeepAlive internal API message while not waiting for a ping response and messages were recently sent" in {
       val state = Registers(keepAlive = 30000, lastSentMessageTimestamp = 120000000, isPingResponsePending = false)
-      val result = StartPingRespTimer(29500)
-      timerSignal(120000500).eval(state) should_== result
+      val expected = StartPingRespTimer(29500)
+      timerSignal(120000500).eval(state) should_== expected
     }
 
     "Define the action to perform to handle a SendKeepAlive internal API message while not waiting for a ping response but no messages were recently sent" in {
       val state = Registers(keepAlive = 30000, lastSentMessageTimestamp = 120000000, isPingResponsePending = false)
-      val result = Sequence(Seq(
+      val expected = Sequence(Seq(
         SetPendingPingResponse(isPending = true),
         StartPingRespTimer(30000),
         SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))))
-      timerSignal(120029001).eval(state) should_== result
+      timerSignal(120029001).eval(state) should_== expected
     }
 
     "Define the action to perform to handle a SendKeepAlive internal API message while waiting for a ping response" in {
       val state = Registers(keepAlive = 30000, lastSentMessageTimestamp = 120000000, isPingResponsePending = true)
-      val result = ForciblyCloseTransport
-      timerSignal(120029999).eval(state) should_== result
+      val expected = ForciblyCloseTransport
+      timerSignal(120029999).eval(state) should_== expected
     }
   }
 
@@ -136,24 +174,24 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val input = PingReqFrame(header)
       val state = Registers(keepAlive = 30000)
-      val result = Sequence()
-      handleNetworkFrames(input).eval(state) should_== result
+      val expected = Sequence()
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a ConnackFrame on a successful connection with keep alive greater than 0" in {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val input = ConnackFrame(header, 0)
       val state = Registers(keepAlive = 30000)
-      val result = Sequence(Seq(StartPingRespTimer(state.keepAlive), SendToClient(Connected)))
-      handleNetworkFrames(input).eval(state) should_== result
+      val expected = Sequence(Seq(StartPingRespTimer(state.keepAlive), SendToClient(Connected)))
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a ConnackFrame on a successful connection with keep alive equal to 0" in {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val input = ConnackFrame(header, 0)
       val state = Registers(keepAlive = 0)
-      val result = SendToClient(Connected)
-      handleNetworkFrames(input).eval(state) should_== result
+      val expected = SendToClient(Connected)
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a ConnackFrame (failed connection)" in {
@@ -161,16 +199,16 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val reason = BadUserNameOrPassword
       val input = ConnackFrame(header, reason.enum)
       val state = Registers(keepAlive = 30000)
-      val result = SendToClient(ConnectionFailure(reason))
-      handleNetworkFrames(input).eval(state) should_== result
+      val expected = SendToClient(ConnectionFailure(reason))
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a PingRespFrame" in {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val input = PingRespFrame(header)
       val state = Registers(keepAlive = 30000)
-      val result = SetPendingPingResponse(isPending = false)
-      handleNetworkFrames(input).eval(state) should_== result
+      val expected = SetPendingPingResponse(isPending = false)
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a PublishFrame with a QoS of at most once" in {
@@ -179,8 +217,8 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val payload = makeRandomByteVector(64)
       val input = PublishFrame(header, topic, Random.nextInt(65536), ByteVector(payload))
       val state = Registers(keepAlive = 30000)
-      val result = SendToClient(Message(topic, payload))
-      handleNetworkFrames(input).eval(state) should_== result
+      val expected = SendToClient(Message(topic, payload))
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a PublishFrame with a QoS of at least once" in {
@@ -190,23 +228,36 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val messageId = Random.nextInt(65536)
       val input = PublishFrame(header, topic, messageId, ByteVector(payload))
       val state = Registers(keepAlive = 30000)
-      val result = Sequence(Seq(
+      val expected = Sequence(Seq(
         SendToClient(Message(topic, payload)),
         SendToNetwork(PubackFrame(header.copy(qos = 0), messageId))))
-      handleNetworkFrames(input).eval(state) should_== result
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
-    "Define the actions to perform to handle a PublishFrame with a QoS of exactly once" in {
+    "Define the actions to perform to handle an already received PublishFrame with a QoS of exactly once" in {
+      val header = Header(dup = false, ExactlyOnce.enum, retain = false)
+      val topic = "topic"
+      val payload = makeRandomByteVector(64)
+      val messageId = Random.nextInt(65536)
+      val input = PublishFrame(header, topic, messageId, ByteVector(payload))
+      val state = Registers(keepAlive = 30000, inFlightRecvFrame = TreeSet(messageId))
+      val expected = Sequence(Seq(
+        SendToNetwork(PubrecFrame(header.copy(qos = 0), messageId))))
+      handleNetworkFrames(input).eval(state) should_== expected
+    }
+
+    "Define the actions to perform to handle a new PublishFrame with a QoS of exactly once" in {
       val header = Header(dup = false, ExactlyOnce.enum, retain = false)
       val topic = "topic"
       val payload = makeRandomByteVector(64)
       val messageId = Random.nextInt(65536)
       val input = PublishFrame(header, topic, messageId, ByteVector(payload))
       val state = Registers(keepAlive = 30000)
-      val result = Sequence(Seq(
+      val expected = Sequence(Seq(
         SendToClient(Message(topic, payload)),
+        StoreRecvInFlightFrameId(messageId),
         SendToNetwork(PubrecFrame(header.copy(qos = 0), messageId))))
-      handleNetworkFrames(input).eval(state) should_== result
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a PubackFrame" in {
@@ -214,8 +265,8 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val messageId = Random.nextInt(65536)
       val input = PubackFrame(header, messageId)
       val state = Registers(keepAlive = 30000)
-      val result = SendToClient(Published(messageId))
-      handleNetworkFrames(input).eval(state) should_== result
+      val expected = Sequence(Seq(RemoveSentInFlightFrame(messageId), SendToClient(Published(messageId))))
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a PubrecFrame" in {
@@ -223,8 +274,16 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val messageId = Random.nextInt(65536)
       val input = PubrecFrame(header, messageId)
       val state = Registers(keepAlive = 30000)
-      val result = SendToNetwork(PubrelFrame(header.copy(qos = 1), messageId))
-      handleNetworkFrames(input).eval(state) should_== result
+      val frame = PubrelFrame(header.copy(qos = 1), messageId)
+      val expected =
+        Sequence(
+          Seq(
+            RemoveSentInFlightFrame(messageId),
+            StoreSentInFlightFrame(messageId, PubrelFrame(header.copy(dup = true, qos = 1), messageId)),
+            SendToNetwork(frame)
+          )
+        )
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a PubcompFrame" in {
@@ -232,8 +291,8 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val messageId = Random.nextInt(65536)
       val input = PubcompFrame(header, messageId)
       val state = Registers(keepAlive = 30000)
-      val result = SendToClient(Published(messageId))
-      handleNetworkFrames(input).eval(state) should_== result
+      val expected = Sequence(Seq(RemoveSentInFlightFrame(messageId), SendToClient(Published(messageId))))
+      handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a SubackFrame" in {
@@ -243,8 +302,8 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val qosResult = Vector(AtLeastOnce, ExactlyOnce)
       val input = SubackFrame(header, messageId, qosInput)
       val state = Registers(keepAlive = 30000)
-      val result = SendToClient(Subscribed(qosResult, messageId))
-      handleNetworkFrames(input).eval(state) should_== result
+      val expected = SendToClient(Subscribed(qosResult, messageId))
+      handleNetworkFrames(input).eval(state) should_== expected
     }
   }
 }

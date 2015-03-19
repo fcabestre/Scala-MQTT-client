@@ -9,7 +9,7 @@ import com.typesafe.sbt.SbtScalariform._
 object ScalaMQTTClientBuild extends Build {
 
   lazy val IntegrationTest = config("it") extend Test
-
+  
   lazy val core = Project(
     id = "core",
     base = file("core"),

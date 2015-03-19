@@ -28,7 +28,7 @@ import scodec.Codec
 import scodec.bits.BitVector
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
-import scalaz.State
+import scalaz.{ Kleisli, State }
 
 private[protocol] case object TimerSignal
 
@@ -58,8 +58,12 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
     case Status ⇒
       registers = sendToClient(Disconnected).exec(registers)
     case c: Connect ⇒
-      registers = sendToTcpManager(TcpConnect(mqttBrokerAddress)).exec(registers)
-      context become connecting(handleApiMessages(c))
+      val (state, actions) = (for {
+        _ ← sendToTcpManager(TcpConnect(mqttBrokerAddress))
+        actions ← handleApiMessages(c)
+      } yield actions).run(registers)
+      registers = state
+      context become connecting(actions)
   }
 
   private def connecting(pendingActions: Action): Receive = LoggingReceive {
@@ -83,7 +87,10 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
 
   private def connected: Receive = LoggingReceive {
     case message: APICommand ⇒
-      registers = processAction(handleApiMessages(message)).exec(registers)
+      registers = (for {
+        actions ← handleApiMessages(message)
+        _ ← processAction(actions)
+      } yield ()).exec(registers)
     case TimerSignal ⇒
       registers = (for {
         actions ← timerSignal(System.currentTimeMillis())
@@ -112,27 +119,33 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
       _ ← processActionSeq(actions.tail)
     } yield ()
 
-  private def processAction(action: Action): RegistersState[Unit] = {
-    action match {
-      case Sequence(actions) ⇒
-        processActionSeq(actions)
-      case SetKeepAlive(keepAlive) ⇒
-        setTimeOut(keepAlive)
-      case StartPingRespTimer(timeout) ⇒
-        setTimerTask(context.system.scheduler.scheduleOnce(FiniteDuration(timeout, MILLISECONDS), self, TimerSignal))
-      case SetPendingPingResponse(isPending) ⇒
-        setPingResponsePending(isPending)
-      case SendToClient(message) ⇒
-        sendToClient(message)
-      case SendToNetwork(frame) ⇒
-        val encodedFrame = Codec[Frame].encodeValid(frame)
-        for {
-          _ ← sendToTcpManager(TcpWrite(ByteString(encodedFrame.toByteArray)))
-          _ ← setLastSentMessageTimestamp(System.currentTimeMillis())
-        } yield ()
-      case ForciblyCloseTransport ⇒
-        sendToTcpManager(TcpAbort)
-    }
+  private def processAction(action: Action): RegistersState[Unit] = action match {
+    case Sequence(actions) ⇒
+      processActionSeq(actions)
+    case SetKeepAlive(keepAlive) ⇒
+      setTimeOut(keepAlive)
+    case StartPingRespTimer(timeout) ⇒
+      setTimerTask(context.system.scheduler.scheduleOnce(FiniteDuration(timeout, MILLISECONDS), self, TimerSignal))
+    case SetPendingPingResponse(isPending) ⇒
+      setPingResponsePending(isPending)
+    case SendToClient(message) ⇒
+      sendToClient(message)
+    case SendToNetwork(frame) ⇒
+      val encodedFrame = Codec[Frame].encodeValid(frame)
+      for {
+        _ ← sendToTcpManager(TcpWrite(ByteString(encodedFrame.toByteArray)))
+        _ ← setLastSentMessageTimestamp(System.currentTimeMillis())
+      } yield ()
+    case ForciblyCloseTransport ⇒
+      sendToTcpManager(TcpAbort)
+    case StoreSentInFlightFrame(id, frame) ⇒
+      storeInFlightSentFrame(id, frame)
+    case RemoveSentInFlightFrame(id) ⇒
+      removeInFlightSentFrame(id)
+    case StoreRecvInFlightFrameId(id) ⇒
+      storeInFlightRecvFrame(id)
+    case RemoveRecvInFlightFrameId(id) ⇒
+      removeInFlightRecvFrame(id)
   }
 }
 

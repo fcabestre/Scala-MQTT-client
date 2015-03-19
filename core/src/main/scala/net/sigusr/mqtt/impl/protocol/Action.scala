@@ -28,4 +28,8 @@ private[protocol] case object ForciblyCloseTransport extends Action
 private[protocol] case class SetKeepAlive(keepAlive: Long) extends Action
 private[protocol] case class StartPingRespTimer(timeout: Long) extends Action
 private[protocol] case class SetPendingPingResponse(isPending: Boolean) extends Action
+private[protocol] case class StoreSentInFlightFrame(id: Int, frame: Frame) extends Action
+private[protocol] case class RemoveSentInFlightFrame(id: Int) extends Action
+private[protocol] case class StoreRecvInFlightFrameId(id: Int) extends Action
+private[protocol] case class RemoveRecvInFlightFrameId(id: Int) extends Action
 
