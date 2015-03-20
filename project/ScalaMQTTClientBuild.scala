@@ -10,43 +10,13 @@ object ScalaMQTTClientBuild extends Build {
 
   lazy val IntegrationTest = config("it") extend Test
 
-  def itFilter(name: String): Boolean = name startsWith "net.sigusr.mqtt.integration"
-  def unitFilter(name: String): Boolean = !itFilter(name)
-
-  def testSettings =
-    Seq(
-      testOptions in Test := Seq(Tests.Filter(unitFilter)),
-      testOptions in IntegrationTest := Seq(Tests.Filter(itFilter))
-    ) ++ inConfig(IntegrationTest)(Defaults.testTasks)
-
-  def pgpSetings =
-    Seq(
-      useGpg := true,
-      gpgCommand := "/usr/bin/gpg2",
-      pgpSecretRing := file("~/.gnupg/secring.gpg")
-    )
-
-
-  lazy val root = Project(
-    id = "scala-mqtt-client",
-    base = file("."),
-
-    aggregate = Seq(core, examples),
-
-    settings = commonSettings ++ scalariformSettings ++ Seq(
-      publish := (),
-      publishLocal := (),
-      publishArtifact := false
-    )
-  )
-
   lazy val core = Project(
-    id = "scala-mqtt-client-core",
+    id = "core",
     base = file("core"),
 
     configurations = Seq(IntegrationTest),
 
-    settings = commonSettings ++ testSettings ++ pgpSetings ++ Publishing.settings ++ Seq(
+    settings = commonSettings ++ scalariformSettings ++ testSettings ++ pgpSetings ++ Publishing.settings ++ Seq(
       name := """Scala-MQTT-client""",
       version := "0.6.0-SNAPSHOT",
 
@@ -60,12 +30,12 @@ object ScalaMQTTClientBuild extends Build {
   )
 
   lazy val examples = Project(
-    id = "scala-mqtt-client-examples",
+    id = "examples",
     base = file("examples"),
 
     dependencies = Seq(core),
 
-    settings = commonSettings ++ Seq(
+    settings = commonSettings ++ scalariformSettings ++ Seq(
       publish := (),
       publishLocal := (),
       publishArtifact := false
@@ -97,6 +67,23 @@ object ScalaMQTTClientBuild extends Build {
         "-Ywarn-value-discard",
         "-Ywarn-unused-import")
     )
+
+  def itFilter(name: String): Boolean = name startsWith "net.sigusr.mqtt.integration"
+  def unitFilter(name: String): Boolean = !itFilter(name)
+
+  def testSettings =
+    Seq(
+      testOptions in Test := Seq(Tests.Filter(unitFilter)),
+      testOptions in IntegrationTest := Seq(Tests.Filter(itFilter))
+    ) ++ inConfig(IntegrationTest)(Defaults.testTasks)
+
+  def pgpSetings =
+    Seq(
+      useGpg := true,
+      gpgCommand := "/usr/bin/gpg2",
+      pgpSecretRing := file("~/.gnupg/secring.gpg")
+    )
+
 
   def scalariformSettings =
     defaultScalariformSettings ++ Seq(
