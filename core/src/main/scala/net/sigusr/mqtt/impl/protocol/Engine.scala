@@ -28,24 +28,13 @@ import scodec.Codec
 import scodec.bits.BitVector
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
-import scalaz.{ Kleisli, State }
+import scalaz.State
 
 private[protocol] case object TimerSignal
 
 abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with Handlers with ActorLogging {
 
-  import akka.io.Tcp.{
-    Abort ⇒ TcpAbort,
-    CommandFailed ⇒ TcpCommandFailed,
-    Connect ⇒ TcpConnect,
-    Connected ⇒ TcpConnected,
-    ConnectionClosed ⇒
-    TcpConnectionClosed,
-    Received ⇒ TcpReceived,
-    Register ⇒ TcpRegister,
-    Write ⇒ TcpWrite
-  }
-
+  import akka.io.Tcp.{ Abort ⇒ TcpAbort, CommandFailed ⇒ TcpCommandFailed, Connect ⇒ TcpConnect, Connected ⇒ TcpConnected, ConnectionClosed ⇒ TcpConnectionClosed, Received ⇒ TcpReceived, Register ⇒ TcpRegister, Write ⇒ TcpWrite }
   import context.dispatcher
 
   var registers: Registers = Registers(client = context.parent, tcpManager = tcpManagerActor)
@@ -97,19 +86,28 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
         _ ← processAction(actions)
       } yield ()).exec(registers)
     case TcpReceived(encodedResponse) ⇒
-      val frame: Frame = Codec[Frame].decodeValidValue(BitVector.view(encodedResponse.toArray))
-      registers = (for {
-        actions ← handleNetworkFrames(frame)
-        _ ← processAction(actions)
-      } yield ()).exec(registers)
+      val bitVector = BitVector.view(encodedResponse.toArray)
+      Codec[Frame].decodeValue(bitVector).fold[Unit](
+        { _ ⇒ disconnect() },
+        {
+          frame ⇒
+            registers = (for {
+              actions ← handleNetworkFrames(frame)
+              _ ← processAction(actions)
+            } yield ()).exec(registers)
+        })
     case Terminated(_) | _: TcpConnectionClosed ⇒
-      registers = (for {
-        _ ← unwatchTcpManager
-        _ ← setTCPManager(tcpManagerActor)
-        _ ← resetTimerTask
-        _ ← processAction(connectionClosed())
-      } yield ()).exec(registers)
-      context become notConnected
+      disconnect()
+  }
+
+  private def disconnect(): Unit = {
+    registers = (for {
+      _ ← unwatchTcpManager
+      _ ← setTCPManager(tcpManagerActor)
+      _ ← resetTimerTask
+      _ ← processAction(connectionClosed())
+    } yield ()).exec(registers)
+    context become notConnected
   }
 
   private def processActionSeq(actions: Seq[Action]): RegistersState[Unit] =
