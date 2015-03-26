@@ -174,7 +174,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val input = PingReqFrame(header)
       val state = Registers(keepAlive = 30000)
-      val expected = Sequence()
+      val expected = ForciblyCloseTransport
       handleNetworkFrames(input).eval(state) should_== expected
     }
 

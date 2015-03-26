@@ -21,11 +21,13 @@ object ScalaMQTTClientBuild extends Build {
       version := "0.6.0-SNAPSHOT",
 
       resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
+
       libraryDependencies ++= Seq(
         "org.specs2" %% "specs2" % "2.4.15" % "test",
         "com.typesafe.akka" %% "akka-actor" % "2.3.9",
         "com.typesafe.akka" %% "akka-testkit" % "2.3.9",
-        "org.typelevel" %% "scodec-core" % "1.6.0")
+        "org.scodec" %% "scodec-core" % "1.7.1",
+        "org.scalaz" %% "scalaz-core" % "7.1.1")
     )
   )
 
@@ -45,7 +47,7 @@ object ScalaMQTTClientBuild extends Build {
   def commonSettings =
     Seq(
       organization := "net.sigusr",
-      scalaVersion := "2.11.5",
+      scalaVersion := "2.11.6",
 
       scalacOptions in Test ++= Seq("-Yrangepos"),
 

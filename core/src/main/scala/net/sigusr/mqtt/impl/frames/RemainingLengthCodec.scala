@@ -16,40 +16,34 @@
 
 package net.sigusr.mqtt.impl.frames
 
-import scodec.bits.{ BitVector, _ }
+import scodec.Attempt._
+import scodec._
+import scodec.bits.{BitVector, _}
 import scodec.codecs._
-import scodec.{ Codec, Err }
-
-import scalaz.{ -\/, \/, \/- }
 
 final class RemainingLengthCodec extends Codec[Int] {
 
   val MinValue = 0
   val MaxValue = 268435455
-  val MinBytes = 0
-  val MaxBytes = 4
 
-  def decode(bits: BitVector): Err \/ (BitVector, Int) = {
-    def decodeAux(step: \/[Err, (BitVector, Int)], factor: Int, depth: Int, value: Int): \/[Err, (BitVector, Int)] =
-      if (depth == 4) \/.left(Err("The remaining length must be 4 bytes long at most"))
-      else step match {
-        // $COVERAGE-OFF$
-        case e @ -\/(_) ⇒ e
-        // $COVERAGE-ON$
-        case \/-((b, d)) ⇒
-          if ((d & 128) == 0) \/.right((b, value + (d & 127) * factor))
-          else decodeAux(uint8.decode(b), factor * 128, depth + 1, value + (d & 127) * factor)
+  def sizeBound = SizeBound.bounded(8, 32)
 
-      }
+  def decode(bits: BitVector): Attempt[DecodeResult[Int]] = {
+    def decodeAux(step: Attempt[DecodeResult[Int]], factor: Int, depth: Int, value: Int): Attempt[DecodeResult[Int]] =
+      if (depth == 4) failure(Err("The remaining length must be 4 bytes long at most"))
+      else step.flatMap[DecodeResult[Int]](d =>
+          if ((d.value & 128) == 0) successful(DecodeResult(value + (d.value & 127) * factor, d.remainder))
+          else decodeAux(uint8.decode(d.remainder), factor * 128, depth + 1, value + (d.value & 127) * factor)
+      )
     decodeAux(uint8.decode(bits), 1, 0, 0)
   }
 
-  def encode(value: Int) = {
+  def encode(value: Int): Attempt[BitVector] = {
     @annotation.tailrec
     def encodeAux(value: Int, digit: Int, bytes: ByteVector): ByteVector =
       if (value == 0) bytes :+ digit.asInstanceOf[Byte]
       else encodeAux(value / 128, value % 128, bytes :+ (digit | 0x80).asInstanceOf[Byte])
-    if (value < MinValue || value > MaxValue) \/.left(Err(s"The remaining length must be in the range [$MinValue..$MaxValue], $value is not valid"))
-    else \/.right(BitVector(encodeAux(value / 128, value % 128, ByteVector.empty)))
+    if (value < MinValue || value > MaxValue) failure(Err(s"The remaining length must be in the range [$MinValue..$MaxValue], $value is not valid"))
+    else successful(BitVector(encodeAux(value / 128, value % 128, ByteVector.empty)))
   }
 }

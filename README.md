@@ -25,8 +25,6 @@ I'm starting to take it a bit more seriously. I mean, thinking of doing somethin
 there is still a lot of work to be done:
 
   * Learning how other MQTT APIs are organised to polish this one
-  * Properly handling quality of services of 1 and 2 with timeouts and
-    error messages
   * Managing communication back pressure with [Akka IO](http://doc.akka.io/docs/akka/snapshot/scala/io.html)
   * Suppoting both MQTT v3.1 and v3.1.1
   * If I dare, passing [Paho](http://www.eclipse.org/paho/clients/testing/) conformance tests
@@ -60,9 +58,10 @@ libraryDependencies ++= Seq(
 
 ## Dependencies
 
-  * Scala 2.11.5
+  * Scala 2.11.6
   * Akka 2.3.9
-  * scodec-core 1.6.0
+  * scodec-core 1.7.1
+  * Scalaz 7.1.1
 
 ## License
 

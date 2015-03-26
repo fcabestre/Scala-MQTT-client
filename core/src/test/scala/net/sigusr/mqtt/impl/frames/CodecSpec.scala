@@ -20,7 +20,7 @@ import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
 import org.specs2.mutable._
 import scodec.bits._
-import scodec.{ Codec, Err }
+import scodec.{DecodeResult, Codec, Err}
 
 import scala.util.Random
 
@@ -44,14 +44,14 @@ object CodecSpec extends Specification {
     }
 
     "Perform decoding of valid inputs" in {
-      remainingLengthCodec.decode(hex"00".bits) should succeedWith((BitVector.empty, 0))
-      remainingLengthCodec.decode(hex"7f".bits) should succeedWith((BitVector.empty, 127))
-      remainingLengthCodec.decode(hex"8001".bits) should succeedWith((BitVector.empty, 128))
-      remainingLengthCodec.decode(hex"ff7f".bits) should succeedWith((BitVector.empty, 16383))
-      remainingLengthCodec.decode(hex"808001".bits) should succeedWith((BitVector.empty, 16384))
-      remainingLengthCodec.decode(hex"ffff7f".bits) should succeedWith((BitVector.empty, 2097151))
-      remainingLengthCodec.decode(hex"80808001".bits) should succeedWith((BitVector.empty, 2097152))
-      remainingLengthCodec.decode(hex"ffffff7f".bits) should succeedWith((BitVector.empty, 268435455))
+      remainingLengthCodec.decode(hex"00".bits) should succeedWith(DecodeResult(0, BitVector.empty))
+      remainingLengthCodec.decode(hex"7f".bits) should succeedWith(DecodeResult(127, BitVector.empty))
+      remainingLengthCodec.decode(hex"8001".bits) should succeedWith(DecodeResult(128, BitVector.empty))
+      remainingLengthCodec.decode(hex"ff7f".bits) should succeedWith(DecodeResult(16383, BitVector.empty))
+      remainingLengthCodec.decode(hex"808001".bits) should succeedWith(DecodeResult(16384, BitVector.empty))
+      remainingLengthCodec.decode(hex"ffff7f".bits) should succeedWith(DecodeResult(2097151, BitVector.empty))
+      remainingLengthCodec.decode(hex"80808001".bits) should succeedWith(DecodeResult(2097152, BitVector.empty))
+      remainingLengthCodec.decode(hex"ffffff7f".bits) should succeedWith(DecodeResult(268435455, BitVector.empty))
     }
 
     "Fail to decode certain input values" in {
@@ -67,7 +67,7 @@ object CodecSpec extends Specification {
 
     "Perform decoding of valid inputs" in {
       val header = Header(dup = true, ExactlyOnce.enum, retain = false)
-      Codec[Header].decode(bin"1100110011") should succeedWith((bin"110011", header))
+      Codec[Header].decode(bin"1100110011") should succeedWith(DecodeResult(header, bin"110011"))
     }
   }
 
@@ -86,7 +86,7 @@ object CodecSpec extends Specification {
       import net.sigusr.mqtt.impl.frames.ConnectVariableHeader._
 
       val res = ConnectVariableHeader(cleanSession = false, willFlag = false, willQoS = AtLeastOnce.enum, willRetain = true, passwordFlag = false, userNameFlag = false, keepAliveTimer = 12683)
-      Codec[ConnectVariableHeader].decode(connectVariableHeaderFixedBytes ++ bin"001010000011000110001011101010") should succeedWith((bin"101010", res))
+      Codec[ConnectVariableHeader].decode(connectVariableHeaderFixedBytes ++ bin"001010000011000110001011101010") should succeedWith(DecodeResult(res, bin"101010"))
     }
   }
 
@@ -96,8 +96,8 @@ object CodecSpec extends Specification {
       val connectVariableHeader = ConnectVariableHeader(userNameFlag = true, passwordFlag = true, willRetain = true, AtLeastOnce.enum, willFlag = true, cleanSession = true, 15)
       val connectMessage = ConnectFrame(header, connectVariableHeader, "clientId", Some("Topic"), Some("Message"), Some("User"), Some("Password"))
 
-      val valid = Codec[Frame].encodeValid(connectMessage)
-      Codec[Frame].decode(valid) should succeedWith((bin"", connectMessage))
+      val valid = Codec[Frame].encode(connectMessage).require
+      Codec[Frame].decode(valid) should succeedWith(DecodeResult(connectMessage, bin""))
     }
 
     "[1] Perform round trip encoding/decoding of a valid input" in {
@@ -105,7 +105,7 @@ object CodecSpec extends Specification {
       val connectVariableHeader = ConnectVariableHeader(userNameFlag = true, passwordFlag = false, willRetain = true, AtLeastOnce.enum, willFlag = false, cleanSession = true, 15)
       val connectMessage = ConnectFrame(header, connectVariableHeader, "clientId", None, None, Some("User"), None)
 
-      Codec[Frame].decode(Codec[Frame].encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
+      Codec[Frame].decode(Codec[Frame].encode(connectMessage).require) should succeedWith(DecodeResult(connectMessage, bin""))
     }
 
     "[2] Perform round trip encoding/decoding of a valid input" in {
@@ -113,7 +113,7 @@ object CodecSpec extends Specification {
       val connectVariableHeader = ConnectVariableHeader(userNameFlag = false, passwordFlag = false, willRetain = true, ExactlyOnce.enum, willFlag = false, cleanSession = false, 128)
       val connectMessage = ConnectFrame(header, connectVariableHeader, "clientId", None, None, None, None)
 
-      Codec[Frame].decode(Codec[Frame].encodeValid(connectMessage)) should succeedWith((bin"", connectMessage))
+      Codec[Frame].decode(Codec[Frame].encode(connectMessage).require) should succeedWith(DecodeResult(connectMessage, bin""))
     }
 
     "Perform encoding and match a captured value" in {
@@ -131,14 +131,14 @@ object CodecSpec extends Specification {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val connackFrame = ConnackFrame(header, 0)
 
-      Codec[Frame].decode(Codec[Frame].encodeValid(connackFrame)) should succeedWith((bin"", connackFrame))
+      Codec[Frame].decode(Codec[Frame].encode(connackFrame).require) should succeedWith(DecodeResult(connackFrame, bin""))
     }
 
     "Perform decoding of captured values" in {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val connackFrame = ConnackFrame(header, 0)
 
-      Codec[Frame].decode(BitVector(0x20, 0x02, 0x00, 0x00)) should succeedWith((bin"", connackFrame))
+      Codec[Frame].decode(BitVector(0x20, 0x02, 0x00, 0x00)) should succeedWith(DecodeResult(connackFrame, bin""))
     }
   }
 
@@ -146,7 +146,7 @@ object CodecSpec extends Specification {
     "Perform round trip encoding/decoding of a valid input" in {
       import net.sigusr.mqtt.impl.frames.SubscribeFrame._
       val topics = Vector(("topic0", AtMostOnce.enum), ("topic1", AtLeastOnce.enum), ("topic2", ExactlyOnce.enum))
-      Codec[Vector[(String, Int)]].decode(Codec[Vector[(String, Int)]].encodeValid(topics)) should succeedWith((bin"", topics))
+      Codec[Vector[(String, Int)]].decode(Codec[Vector[(String, Int)]].encode(topics).require) should succeedWith(DecodeResult(topics, bin""))
     }
   }
 
@@ -155,7 +155,7 @@ object CodecSpec extends Specification {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val topics = Vector(("topic0", AtMostOnce.enum), ("topic1", AtLeastOnce.enum), ("topic2", ExactlyOnce.enum))
       val subscribeFrame = SubscribeFrame(header, 3, topics)
-      Codec[Frame].decode(Codec[Frame].encodeValid(subscribeFrame)) should succeedWith((bin"", subscribeFrame))
+      Codec[Frame].decode(Codec[Frame].encode(subscribeFrame).require) should succeedWith(DecodeResult(subscribeFrame, bin""))
     }
 
     "Perform encoding and match a captured value" in {
@@ -172,7 +172,7 @@ object CodecSpec extends Specification {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val qos = Vector(AtMostOnce.enum, AtLeastOnce.enum, ExactlyOnce.enum)
       val subackFrame = SubackFrame(header, 3, qos)
-      Codec[Frame].decode(Codec[Frame].encodeValid(subackFrame)) should succeedWith((bin"", subackFrame))
+      Codec[Frame].decode(Codec[Frame].encode(subackFrame).require) should succeedWith(DecodeResult(subackFrame, bin""))
     }
   }
 
@@ -181,7 +181,7 @@ object CodecSpec extends Specification {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val topics = Vector("topic0", "topic1")
       val unsubscribeFrame = UnsubscribeFrame(header, Random.nextInt(65536), topics)
-      Codec[Frame].decode(Codec[Frame].encodeValid(unsubscribeFrame)) should succeedWith((bin"", unsubscribeFrame))
+      Codec[Frame].decode(Codec[Frame].encode(unsubscribeFrame).require) should succeedWith(DecodeResult(unsubscribeFrame, bin""))
     }
   }
 
@@ -189,7 +189,7 @@ object CodecSpec extends Specification {
     "Perform round trip encoding/decoding of a valid input" in {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val unsubackFrame = UnsubackFrame(header, Random.nextInt(65536))
-      Codec[Frame].decode(Codec[Frame].encodeValid(unsubackFrame)) should succeedWith((bin"", unsubackFrame))
+      Codec[Frame].decode(Codec[Frame].encode(unsubackFrame).require) should succeedWith(DecodeResult(unsubackFrame, bin""))
     }
   }
 
@@ -198,7 +198,7 @@ object CodecSpec extends Specification {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val disconnectFrame = DisconnectFrame(header)
 
-      Codec[Frame].decode(Codec[Frame].encodeValid(disconnectFrame)) should succeedWith((bin"", disconnectFrame))
+      Codec[Frame].decode(Codec[Frame].encode(disconnectFrame).require) should succeedWith(DecodeResult(disconnectFrame, bin""))
     }
   }
 
@@ -207,7 +207,7 @@ object CodecSpec extends Specification {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val pingReqFrame = PingReqFrame(header)
 
-      Codec[Frame].decode(Codec[Frame].encodeValid(pingReqFrame)) should succeedWith((bin"", pingReqFrame))
+      Codec[Frame].decode(Codec[Frame].encode(pingReqFrame).require) should succeedWith(DecodeResult(pingReqFrame, bin""))
     }
 
     "Perform encoding and match a captured value" in {
@@ -224,14 +224,14 @@ object CodecSpec extends Specification {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val pingRespFrame = PingRespFrame(header)
 
-      Codec[Frame].decode(Codec[Frame].encodeValid(pingRespFrame)) should succeedWith((bin"", pingRespFrame))
+      Codec[Frame].decode(Codec[Frame].encode(pingRespFrame).require) should succeedWith(DecodeResult(pingRespFrame, bin""))
     }
 
     "Perform decoding of captured values" in {
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val pingRespFrame = PingRespFrame(header)
 
-      Codec[Frame].decode(BitVector(0xd0, 0x00)) should succeedWith((bin"", pingRespFrame))
+      Codec[Frame].decode(BitVector(0xd0, 0x00)) should succeedWith(DecodeResult(pingRespFrame, bin""))
     }
   }
 
@@ -241,7 +241,7 @@ object CodecSpec extends Specification {
       val topic = "a/b"
       val publishFrame = PublishFrame(header, topic, 10, ByteVector("Hello world".getBytes))
 
-      Codec[Frame].decode(Codec[Frame].encodeValid(publishFrame)) should succeedWith((bin"", publishFrame))
+      Codec[Frame].decode(Codec[Frame].encode(publishFrame).require) should succeedWith(DecodeResult(publishFrame, bin""))
     }
 
     "Perform round trip encoding/decoding of a valid input with a QoS equals to 0" in {
@@ -249,7 +249,7 @@ object CodecSpec extends Specification {
       val topic = "a/b"
       val publishFrame = PublishFrame(header, topic, 0, ByteVector("Hello world".getBytes))
 
-      Codec[Frame].decode(Codec[Frame].encodeValid(publishFrame)) should succeedWith((bin"", publishFrame))
+      Codec[Frame].decode(Codec[Frame].encode(publishFrame).require) should succeedWith(DecodeResult(publishFrame, bin""))
     }
   }
 }

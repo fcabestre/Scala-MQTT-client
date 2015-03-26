@@ -87,12 +87,12 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
       } yield ()).exec(registers)
     case TcpReceived(encodedResponse) ⇒
       val bitVector = BitVector.view(encodedResponse.toArray)
-      Codec[Frame].decodeValue(bitVector).fold[Unit](
+      Codec[Frame].decode(bitVector).fold[Unit](
         { _ ⇒ disconnect() },
         {
-          frame ⇒
+          d ⇒
             registers = (for {
-              actions ← handleNetworkFrames(frame)
+              actions ← handleNetworkFrames(d.value)
               _ ← processAction(actions)
             } yield ()).exec(registers)
         })
@@ -129,11 +129,11 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
     case SendToClient(message) ⇒
       sendToClient(message)
     case SendToNetwork(frame) ⇒
-      val encodedFrame = Codec[Frame].encodeValid(frame)
-      for {
-        _ ← sendToTcpManager(TcpWrite(ByteString(encodedFrame.toByteArray)))
-        _ ← setLastSentMessageTimestamp(System.currentTimeMillis())
-      } yield ()
+      Codec[Frame].encode(frame).fold(_ => noop, (f: BitVector) =>
+        for {
+          _ ← sendToTcpManager(TcpWrite(ByteString(f.toByteArray)))
+          _ ← setLastSentMessageTimestamp(System.currentTimeMillis())
+        } yield ())
     case ForciblyCloseTransport ⇒
       sendToTcpManager(TcpAbort)
     case StoreSentInFlightFrame(id, frame) ⇒

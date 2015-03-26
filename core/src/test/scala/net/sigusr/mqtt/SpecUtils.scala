@@ -17,30 +17,33 @@
 package net.sigusr.mqtt
 
 import akka.actor.ActorSystem
-import akka.testkit.{ ImplicitSender, TestKit }
+import akka.testkit.{ImplicitSender, TestKit}
 import com.typesafe.config.ConfigFactory
-import org.specs2.matcher.{ Expectable, Matcher }
-import org.specs2.specification.{ AfterExample, Scope }
-import scodec.Err
+import org.specs2.matcher.{Expectable, Matcher}
+import org.specs2.specification.{AfterExample, Scope}
+import scodec.{Attempt, Err}
 
 import scala.util.Random
-import scalaz.\/
 
 object SpecUtils {
 
-  class SuccessfulDisjunctionMatcher[T](v: T) extends Matcher[\/[Err, T]] {
-    def apply[S <: \/[Err, T]](e: Expectable[S]) = {
-      result(e.value exists {
-        _ == v
-      }, s"${e.description} equals to $v", s"The result is ${e.description}, instead of the expected value '$v'", e)
+  class SuccessfulDisjunctionMatcher[T](v: T) extends Matcher[Attempt[T]] {
+    def apply[S <: Attempt[T]](e: Expectable[S]) = {
+      result(
+        e.value.fold(_ => false, _ == v),
+        s"${e.description} equals to $v",
+        s"The result is ${e.description}, instead of the expected value '$v'",
+        e)
     }
   }
 
-  class FailedDisjunctionMatcher[T](m: Err) extends Matcher[\/[Err, T]] {
-    def apply[S <: \/[Err, T]](e: Expectable[S]) = {
-      result(~e.value exists {
-        _ == m
-      }, s"${e.description} equals to $m", s"The result is ${e.description} instead of the expected error message '$m'", e)
+  class FailedDisjunctionMatcher[T](m: Err) extends Matcher[Attempt[T]] {
+    def apply[S <: Attempt[T]](e: Expectable[S]) = {
+      result(
+        e.value.fold(_ => true, _ != m),
+        s"${e.description} equals to $m",
+        s"The result is ${e.description} instead of the expected error message '$m'",
+        e)
     }
   }
 

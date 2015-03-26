@@ -57,6 +57,8 @@ object Registers {
     r.copy(inFlightRecvFrame = r.inFlightRecvFrame.drop(id))
   }
 
+  def noop = gets[Registers, Unit] (_ => ())
+
   def setTCPManager(tcpManager: ActorRef) = modify[Registers](_.copy(tcpManager = tcpManager))
 
   def sendToTcpManager(command: Command)(implicit sender: ActorRef = Actor.noSender) = gets[Registers, Unit](_.tcpManager ! command)
