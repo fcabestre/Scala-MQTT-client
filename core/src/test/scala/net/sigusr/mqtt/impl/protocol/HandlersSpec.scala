@@ -89,7 +89,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       handleApiMessages(input).eval(registers) should_== expected
     }
 
-    "Define the action to perform to handle a MQTTDisconnect API message" in {
+    "Define the action to perform to handle a Disconnect API message" in {
       val input = Disconnect
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val expected = SendToNetwork(DisconnectFrame(header))
@@ -103,7 +103,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       handleApiMessages(input).eval(Registers()) should_== expected
     }
 
-    "Define the action to perform to handle a MQTTSubscribe API message" in {
+    "Define the action to perform to handle a Subscribe API message" in {
       val topicsInput = Vector(("topic0", AtMostOnce), ("topic1", ExactlyOnce), ("topic2", AtLeastOnce))
       val messageId = Random.nextInt(65536)
       val input = Subscribe(topicsInput, messageId)
@@ -113,7 +113,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       handleApiMessages(input).eval(Registers()) should_== expected
     }
 
-    "Define the action to perform to handle a MQTTPublish API message with QoS of 'At most once'" in {
+    "Define the action to perform to handle a Publish API message with QoS of 'At most once'" in {
       val topic = "topic0"
       val qos = AtMostOnce
       val retain = true
@@ -125,7 +125,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       handleApiMessages(input).eval(Registers()) should_== expected
     }
 
-    "Define the action to perform to handle a MQTTPublish API message with QoS of 'at least once' or 'exactly once'" in {
+    "Define the action to perform to handle a Publish API message with QoS of 'at least once' or 'exactly once'" in {
       val topic = "topic0"
       val qos = AtLeastOnce
       val retain = true
@@ -284,6 +284,20 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
           )
         )
       handleNetworkFrames(input).eval(state) should_== expected
+    }
+
+    "Define the actions to perform to handle a PubrelFrame" in {
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val messageId = Random.nextInt(65536)
+      val input = PubrelFrame(header.copy(qos = 1), messageId)
+      val state = Registers(keepAlive = 30000)
+      val result = Sequence(
+        Seq(
+          RemoveRecvInFlightFrameId(messageId),
+          SendToNetwork(PubcompFrame(header, messageId))
+        )
+      )
+      handleNetworkFrames(input).eval(state) should_== result
     }
 
     "Define the actions to perform to handle a PubcompFrame" in {

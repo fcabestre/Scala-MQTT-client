@@ -20,13 +20,18 @@ import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
 import org.specs2.mutable._
 import scodec.bits._
-import scodec.{DecodeResult, Codec, Err}
+import scodec.{SizeBound, DecodeResult, Codec, Err}
 
 import scala.util.Random
 
 object CodecSpec extends Specification {
 
   "A remaining length codec" should {
+
+    "Provide its size bounds" in {
+      remainingLengthCodec.sizeBound should_=== SizeBound.bounded(8, 32)
+    }
+
     "Perform encoding of valid inputs" in {
       remainingLengthCodec.encode(0) should succeedWith(hex"00".bits)
       remainingLengthCodec.encode(127) should succeedWith(hex"7f".bits)

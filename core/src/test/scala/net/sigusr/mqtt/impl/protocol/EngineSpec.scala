@@ -53,9 +53,14 @@ object EngineSpec extends Specification with NoTimeConversions {
 
   class FakeTCPManagerActor(implicit system: ActorSystem) extends TestProbe(system) with ImplicitSender {
 
+    val garbageFrame = ByteString(0xff)
     val connackFrame = ByteString(0x20, 0x02, 0x00, 0x00)
     val pingRespFrame = ByteString(0xd0, 0x00)
+    val pubrecFrame = ByteString(0x50, 0x02, 0x00, 0x2a)
+    val pubcompFrame = ByteString(0x70, 0x02, 0x00, 0x2a)
+
     var pingReqCount = 0
+    var mqttManager : Option[ActorRef] = None
 
     def expectConnect(): Unit = {
       expectMsgPF() {
@@ -75,7 +80,8 @@ object EngineSpec extends Specification with NoTimeConversions {
 
     def expectRegister(): Unit = {
       expectMsgPF() {
-        case TCPRegister(_, _, _) ⇒
+        case TCPRegister(handler, _, _) ⇒
+          mqttManager = Some(handler)
       }
     }
 
@@ -100,6 +106,24 @@ object EngineSpec extends Specification with NoTimeConversions {
       }
     }
 
+    def expectWritePublishFrame(): Unit = {
+      expectMsgPF() {
+        case TCPWrite(byteString, _) ⇒
+          if ((byteString.head & 0xff) == 0x34) {
+            sender() ! TCPReceived(pubrecFrame)
+          }
+      }
+    }
+
+    def expectWritePubrelFrame(): Unit = {
+      expectMsgPF() {
+        case TCPWrite(byteString, _) ⇒
+          if ((byteString.head & 0xff) == 0x64) {
+            sender() ! TCPReceived(pubcompFrame)
+          }
+      }
+    }
+
     def expectWriteDisconnectFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
@@ -116,6 +140,8 @@ object EngineSpec extends Specification with NoTimeConversions {
         case TCPAbort ⇒ sender() ! TCPAborted
       }
     }
+
+    def sendGarbageFrame(): Unit = mqttManager.foreach(_ ! TCPReceived(garbageFrame))
   }
 
   class FakeMQTTManagerParent(testMQTTManagerName: String, fakeTCPManagerActor: ActorRef)(implicit testActor: ActorRef) extends Actor {
@@ -239,6 +265,46 @@ object EngineSpec extends Specification with NoTimeConversions {
       fakeTCPManagerActor.expectWritePingReqFrame()
       fakeTCPManagerActor.expectWritePingReqFrame()
       fakeTCPManagerActor.expectClose()
+
+      expectMsg(Disconnected)
+    }
+
+    "Disconnect when a wrong frame is received" in new SpecsTestKit {
+      val fakeTCPManagerActor = new FakeTCPManagerActor
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+
+      mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
+
+      fakeTCPManagerActor.expectConnect()
+      fakeTCPManagerActor.expectRegister()
+      fakeTCPManagerActor.expectWriteConnectFrame()
+
+      expectMsg(Connected)
+
+      fakeTCPManagerActor.sendGarbageFrame()
+
+      expectMsg(Disconnected)
+    }
+
+    "Manage publishing a message with a QOS of exactly once" in new SpecsTestKit {
+      val fakeTCPManagerActor = new FakeTCPManagerActor
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+
+      mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
+
+      fakeTCPManagerActor.expectConnect()
+      fakeTCPManagerActor.expectRegister()
+      fakeTCPManagerActor.expectWriteConnectFrame()
+
+      expectMsg(Connected)
+
+      mqttManagerActor ! Publish("topic", "payload".getBytes.to[Vector], ExactlyOnce, Some(42))
+
+      fakeTCPManagerActor.expectWritePublishFrame()
+      fakeTCPManagerActor.expectWritePubrelFrame()
+
+      mqttManagerActor ! Disconnect
+      fakeTCPManagerActor.expectWriteDisconnectFrame()
 
       expectMsg(Disconnected)
     }
