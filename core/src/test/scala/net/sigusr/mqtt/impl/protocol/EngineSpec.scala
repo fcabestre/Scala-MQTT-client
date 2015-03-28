@@ -34,8 +34,11 @@ import akka.testkit.{ ImplicitSender, TestProbe }
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecUtils.SpecsTestKit
 import net.sigusr.mqtt.api._
+import net.sigusr.mqtt.impl.frames.{Header, PublishFrame, Frame}
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
+import scodec.Codec
+import scodec.bits.{BitVector, ByteVector}
 
 import scala.language.reflectiveCalls
 
@@ -57,7 +60,10 @@ object EngineSpec extends Specification with NoTimeConversions {
     val connackFrame = ByteString(0x20, 0x02, 0x00, 0x00)
     val pingRespFrame = ByteString(0xd0, 0x00)
     val pubrecFrame = ByteString(0x50, 0x02, 0x00, 0x2a)
+    val pubrelFrame = ByteString(0x62, 0x02, 0x00, 0x2a)
     val pubcompFrame = ByteString(0x70, 0x02, 0x00, 0x2a)
+    private val frame = PublishFrame(Header(qos = ExactlyOnce.enum), "topic", 42, ByteVector("payload".getBytes.to[Vector]))
+    val publishFrame = ByteString(Codec[Frame].encode(frame).require.toByteArray)
 
     var pingReqCount = 0
     var mqttManager : Option[ActorRef] = None
@@ -118,8 +124,25 @@ object EngineSpec extends Specification with NoTimeConversions {
     def expectWritePubrelFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          if ((byteString.head & 0xff) == 0x64) {
+          if ((byteString.head & 0xff) == 0x62) {
             sender() ! TCPReceived(pubcompFrame)
+          }
+      }
+    }
+
+    def expectWritePubrecFrame(): Unit = {
+      expectMsgPF() {
+        case TCPWrite(byteString, _) ⇒
+          if ((byteString.head & 0xff) == 0x50) {
+            sender() ! TCPReceived(pubrelFrame)
+          }
+      }
+    }
+
+    def expectWritePubcompFrame(): Unit = {
+      expectMsgPF() {
+        case TCPWrite(byteString, _) ⇒
+          if ((byteString.head & 0xff) == 0x70) {
           }
       }
     }
@@ -127,8 +150,6 @@ object EngineSpec extends Specification with NoTimeConversions {
     def expectWriteDisconnectFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          // Why when I write 0xe0 instead of -32
-          // here things go really wrong ?
           if ((byteString.head & 0xff) == 0xe0) {
             sender() ! TCPClosed
           }
@@ -140,6 +161,8 @@ object EngineSpec extends Specification with NoTimeConversions {
         case TCPAbort ⇒ sender() ! TCPAborted
       }
     }
+
+    def sendPublishFrame(): Unit = mqttManager.foreach(_ ! TCPReceived(publishFrame))
 
     def sendGarbageFrame(): Unit = mqttManager.foreach(_ ! TCPReceived(garbageFrame))
   }
@@ -302,6 +325,33 @@ object EngineSpec extends Specification with NoTimeConversions {
 
       fakeTCPManagerActor.expectWritePublishFrame()
       fakeTCPManagerActor.expectWritePubrelFrame()
+
+      expectMsg(Published(42))
+
+      mqttManagerActor ! Disconnect
+      fakeTCPManagerActor.expectWriteDisconnectFrame()
+
+      expectMsg(Disconnected)
+    }
+
+    "Manage receiving a message with a QOS of exactly once" in new SpecsTestKit {
+      val fakeTCPManagerActor = new FakeTCPManagerActor
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+
+      mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
+
+      fakeTCPManagerActor.expectConnect()
+      fakeTCPManagerActor.expectRegister()
+      fakeTCPManagerActor.expectWriteConnectFrame()
+
+      expectMsg(Connected)
+
+      fakeTCPManagerActor.sendPublishFrame()
+      fakeTCPManagerActor.expectWritePubrecFrame()
+
+      expectMsg(Message("topic", "payload".getBytes.to[Vector]))
+
+      fakeTCPManagerActor.expectWritePubcompFrame()
 
       mqttManagerActor ! Disconnect
       fakeTCPManagerActor.expectWriteDisconnectFrame()
