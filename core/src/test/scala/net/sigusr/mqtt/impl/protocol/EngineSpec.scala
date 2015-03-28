@@ -35,6 +35,7 @@ import akka.util.ByteString
 import net.sigusr.mqtt.SpecUtils.SpecsTestKit
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.{Header, PublishFrame, Frame}
+import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 import scodec.Codec
@@ -79,7 +80,7 @@ object EngineSpec extends Specification with NoTimeConversions {
     def expectConnectThenFail(): Unit = {
       expectMsgPF() {
         case c @ TCPConnect(remote, _, _, _, _) ⇒
-          remote should be_==(fakeBrokerAddress)
+          remote should_== fakeBrokerAddress
           sender() ! TCPCommandFailed(c)
       }
     }
@@ -94,65 +95,58 @@ object EngineSpec extends Specification with NoTimeConversions {
     def expectWriteConnectFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          if ((byteString.head & 0xff) == 0x10) {
-            sender() ! TCPReceived(connackFrame)
-          }
+          (byteString.head & 0xff) should_== 0x10
+          sender() ! TCPReceived(connackFrame)
       }
     }
 
     def expectWritePingReqFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          if ((byteString.head & 0xff) == 0xc0) {
-            if (pingReqCount == 0) {
-              sender() ! TCPReceived(pingRespFrame)
-            }
-            pingReqCount += 1
+          (byteString.head & 0xff) should_== 0xc0
+          if (pingReqCount == 0) {
+            sender() ! TCPReceived(pingRespFrame)
           }
+          pingReqCount += 1
       }
     }
 
     def expectWritePublishFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          if ((byteString.head & 0xff) == 0x34) {
-            sender() ! TCPReceived(pubrecFrame)
-          }
+          (byteString.head & 0xff) should_== 0x34
+          sender() ! TCPReceived(pubrecFrame)
       }
     }
 
     def expectWritePubrelFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          if ((byteString.head & 0xff) == 0x62) {
-            sender() ! TCPReceived(pubcompFrame)
-          }
+          (byteString.head & 0xff) should_== 0x62
+          sender() ! TCPReceived(pubcompFrame)
       }
     }
 
     def expectWritePubrecFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          if ((byteString.head & 0xff) == 0x50) {
-            sender() ! TCPReceived(pubrelFrame)
-          }
+          (byteString.head & 0xff) should_== 0x50
+          sender() ! TCPReceived(pubrelFrame)
       }
     }
 
-    def expectWritePubcompFrame(): Unit = {
+    def expectWritePubcompFrame(): MatchResult[Any] = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          if ((byteString.head & 0xff) == 0x70) {
-          }
+          (byteString.head & 0xff) should_== 0x70
       }
     }
 
     def expectWriteDisconnectFrame(): Unit = {
       expectMsgPF() {
         case TCPWrite(byteString, _) ⇒
-          if ((byteString.head & 0xff) == 0xe0) {
-            sender() ! TCPClosed
-          }
+          (byteString.head & 0xff) should_== 0xe0
+          sender() ! TCPClosed
       }
     }
 

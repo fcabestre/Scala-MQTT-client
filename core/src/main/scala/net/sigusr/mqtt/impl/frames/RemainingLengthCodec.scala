@@ -18,7 +18,7 @@ package net.sigusr.mqtt.impl.frames
 
 import scodec.Attempt._
 import scodec._
-import scodec.bits.{BitVector, _}
+import scodec.bits.{ BitVector, _ }
 import scodec.codecs._
 
 final class RemainingLengthCodec extends Codec[Int] {
@@ -31,9 +31,9 @@ final class RemainingLengthCodec extends Codec[Int] {
   def decode(bits: BitVector): Attempt[DecodeResult[Int]] = {
     def decodeAux(step: Attempt[DecodeResult[Int]], factor: Int, depth: Int, value: Int): Attempt[DecodeResult[Int]] =
       if (depth == 4) failure(Err("The remaining length must be 4 bytes long at most"))
-      else step.flatMap[DecodeResult[Int]](d =>
-          if ((d.value & 128) == 0) successful(DecodeResult(value + (d.value & 127) * factor, d.remainder))
-          else decodeAux(uint8.decode(d.remainder), factor * 128, depth + 1, value + (d.value & 127) * factor)
+      else step.flatMap[DecodeResult[Int]](d ⇒
+        if ((d.value & 128) == 0) successful(DecodeResult(value + (d.value & 127) * factor, d.remainder))
+        else decodeAux(uint8.decode(d.remainder), factor * 128, depth + 1, value + (d.value & 127) * factor)
       )
     decodeAux(uint8.decode(bits), 1, 0, 0)
   }

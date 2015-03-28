@@ -119,7 +119,7 @@ trait Handlers {
         ))
       case SubackFrame(header, messageIdentifier, topicResults) ⇒
         SendToClient(Subscribed(topicResults.map(QualityOfService.fromEnum), messageIdentifier.identifier))
-      case _ => ForciblyCloseTransport
+      case _ ⇒ ForciblyCloseTransport
     }
   }
 
