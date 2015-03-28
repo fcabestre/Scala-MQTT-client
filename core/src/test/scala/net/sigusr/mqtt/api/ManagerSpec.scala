@@ -18,15 +18,17 @@ package net.sigusr.mqtt.api
 
 import java.net.InetSocketAddress
 
-import akka.actor.Props
+import akka.actor.{ActorRef, Props}
+import net.sigusr.mqtt.SpecUtils.SpecsTestKit
 import org.specs2.mutable._
 
 object ManagerSpec extends Specification {
 
-  "Manager" should {
+  "Manager" in new SpecsTestKit {
     "be created" in {
       val props  = Manager.props(new InetSocketAddress(1883))
       props.isInstanceOf[Props] should beTrue
+      system.actorOf(props).isInstanceOf[ActorRef] should beTrue
     }
   }
 }
