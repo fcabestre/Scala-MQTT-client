@@ -18,17 +18,24 @@ package net.sigusr.mqtt.api
 
 import java.net.InetSocketAddress
 
-import akka.actor.{ActorRef, Props}
-import net.sigusr.mqtt.SpecUtils.SpecsTestKit
+import akka.actor._
+import net.sigusr.mqtt.SpecUtils._
 import org.specs2.mutable._
+import org.specs2.time.NoTimeConversions
 
-object ManagerSpec extends Specification {
+object ManagerSpec extends Specification with NoTimeConversions {
 
-  "Manager" in new SpecsTestKit {
-    "be created" in {
-      val props  = Manager.props(new InetSocketAddress(1883))
-      props.isInstanceOf[Props] should beTrue
-      system.actorOf(props).isInstanceOf[ActorRef] should beTrue
+  "An MQTT protocol manager" should {
+    "Provide its status" in new SpecsTestKit {
+
+      val manager = testActorProxy {
+        context =>
+          val props = Manager.props(new InetSocketAddress(1883))
+          context.actorOf(props)
+      }
+
+      manager ! Status
+      expectMsg(Disconnected)
     }
   }
 }

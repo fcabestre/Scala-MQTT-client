@@ -16,7 +16,7 @@
 
 package net.sigusr.mqtt
 
-import akka.actor.ActorSystem
+import akka.actor._
 import akka.testkit.{ImplicitSender, TestKit}
 import com.typesafe.config.ConfigFactory
 import org.specs2.matcher.{Expectable, Matcher}
@@ -81,6 +81,17 @@ object SpecUtils {
     def after = system.shutdown()
     def clientActor = testActor
   }
+
+  class TestActorProxy(actorBuilder: ActorContext => ActorRef)(implicit testActor: ActorRef) extends Actor {
+    val child = actorBuilder(context)
+
+    def receive = {
+      case x if sender == child ⇒ testActor forward x
+      case x ⇒ child forward x
+    }
+  }
+
+  def testActorProxy(actorBuilder: ActorContext => ActorRef)(implicit system: ActorSystem, testActor: ActorRef) = system.actorOf(Props(new TestActorProxy(actorBuilder)))
 
   def makeRandomByteVector(size: Int) = {
     val bytes = new Array[Byte](64)
