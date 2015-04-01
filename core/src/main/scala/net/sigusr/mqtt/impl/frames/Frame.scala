@@ -73,7 +73,7 @@ object ConnackFrame {
 }
 
 object PublishFrame {
-  val dupLens = lens[PublishFrame] >> 'header >> 'dup
+  val dupLens = lens[PublishFrame].header.dup
   implicit val discriminator: Discriminator[Frame, PublishFrame, Int] = Discriminator(3)
   implicit val codec: Codec[PublishFrame] = (headerCodec >>:~ {
     (hdr: Header) ⇒ variableSizeBytes(remainingLengthCodec, stringCodec :: (if (hdr.qos != 0) messageIdCodec else provide(0)) :: bytes)
@@ -91,7 +91,7 @@ object PubrecFrame {
 }
 
 object PubrelFrame {
-  val dupLens = lens[PubrelFrame] >> 'header >> 'dup
+  val dupLens = lens[PubrelFrame].header.dup
   implicit val discriminator: Discriminator[Frame, PubrelFrame, Int] = Discriminator(6)
   implicit val codec: Codec[PubrelFrame] = (headerCodec :: variableSizeBytes(remainingLengthCodec, messageIdCodec)).as[PubrelFrame]
 }
