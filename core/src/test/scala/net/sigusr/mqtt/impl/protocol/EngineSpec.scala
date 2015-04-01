@@ -32,14 +32,14 @@ import akka.io.Tcp.{
 }
 import akka.testkit.{ ImplicitSender, TestProbe }
 import akka.util.ByteString
-import net.sigusr.mqtt.SpecUtils.SpecsTestKit
+import net.sigusr.mqtt.SpecsTestKit
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.{Header, PublishFrame, Frame}
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.time.NoTimeConversions
 import scodec.Codec
-import scodec.bits.{BitVector, ByteVector}
+import scodec.bits.ByteVector
 
 import scala.language.reflectiveCalls
 

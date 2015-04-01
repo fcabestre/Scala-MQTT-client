@@ -16,18 +16,14 @@
 
 package net.sigusr.mqtt
 
-import akka.actor._
-import akka.testkit.{ImplicitSender, TestKit}
-import com.typesafe.config.ConfigFactory
 import org.specs2.matcher.{Expectable, Matcher}
-import org.specs2.specification.{AfterExample, Scope}
 import scodec.{Attempt, Err}
 
 import scala.util.Random
 
 object SpecUtils {
 
-  class SuccessfulDisjunctionMatcher[T](v: T) extends Matcher[Attempt[T]] {
+  class SuccessfulAttemptMatcher[T](v: T) extends Matcher[Attempt[T]] {
     def apply[S <: Attempt[T]](e: Expectable[S]) = {
       result(
         e.value.fold(_ => false, _ == v),
@@ -37,7 +33,7 @@ object SpecUtils {
     }
   }
 
-  class FailedDisjunctionMatcher[T](m: Err) extends Matcher[Attempt[T]] {
+  class FailedAttemptMatcher[T](m: Err) extends Matcher[Attempt[T]] {
     def apply[S <: Attempt[T]](e: Expectable[S]) = {
       result(
         e.value.fold(_ => true, _ != m),
@@ -47,51 +43,9 @@ object SpecUtils {
     }
   }
 
-  def succeedWith[T](t: T) = new SuccessfulDisjunctionMatcher[T](t)
+  def succeedWith[T](t: T) = new SuccessfulAttemptMatcher[T](t)
 
-  def failWith[T](t: Err) = new FailedDisjunctionMatcher[T](t)
-
-  val configDebug =
-    """akka {
-         loglevel = DEBUG
-         actor {
-            debug {
-              receive = on
-              autoreceive = off
-              lifecycle = off
-            }
-         }
-       }
-    """
-
-  val config =
-    """akka {
-         loglevel = INFO
-         actor {
-            debug {
-              receive = off
-              autoreceive = off
-              lifecycle = off
-            }
-         }
-       }
-    """
-
-  class SpecsTestKit extends TestKit(ActorSystem("MQTTClient-system", ConfigFactory.parseString(config))) with ImplicitSender with Scope with AfterExample {
-    def after = system.shutdown()
-    def clientActor = testActor
-  }
-
-  class TestActorProxy(actorBuilder: ActorContext => ActorRef)(implicit testActor: ActorRef) extends Actor {
-    val child = actorBuilder(context)
-
-    def receive = {
-      case x if sender == child ⇒ testActor forward x
-      case x ⇒ child forward x
-    }
-  }
-
-  def testActorProxy(actorBuilder: ActorContext => ActorRef)(implicit system: ActorSystem, testActor: ActorRef) = system.actorOf(Props(new TestActorProxy(actorBuilder)))
+  def failWith[T](t: Err) = new FailedAttemptMatcher[T](t)
 
   def makeRandomByteVector(size: Int) = {
     val bytes = new Array[Byte](64)

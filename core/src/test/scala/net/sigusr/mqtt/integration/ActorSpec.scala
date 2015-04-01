@@ -18,9 +18,9 @@ package net.sigusr.mqtt.integration
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.Props
 import akka.io.{IO, Tcp}
-import net.sigusr.mqtt.SpecUtils._
+import net.sigusr.mqtt.SpecsTestKit
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.protocol.Engine
 import org.specs2.mutable._
