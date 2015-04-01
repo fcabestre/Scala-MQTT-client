@@ -49,15 +49,19 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
     case c: Connect ⇒
       val (state, actions) = (for {
         _ ← sendToTcpManager(TcpConnect(mqttBrokerAddress))
-        actions ← handleApiMessages(c)
+        actions ← handleApiConnect(c)
       } yield actions).run(registers)
       registers = state
       context become connecting(actions)
+    case _: APICommand ⇒
+      registers = sendToClient(Error(NotConnected)).exec(registers)
   }
 
   private def connecting(pendingActions: Action): Receive = LoggingReceive {
     case Status ⇒
       registers = sendToClient(Disconnected).exec(registers)
+    case _: APICommand ⇒
+      registers = sendToClient(Error(NotConnected)).exec(registers)
     case TcpCommandFailed(_: TcpConnect) ⇒
       registers = (for {
         _ ← setTCPManager(sender())
@@ -77,7 +81,7 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
   private def connected: Receive = LoggingReceive {
     case message: APICommand ⇒
       registers = (for {
-        actions ← handleApiMessages(message)
+        actions ← handleApiCommand(message)
         _ ← processAction(actions)
       } yield ()).exec(registers)
     case TimerSignal ⇒

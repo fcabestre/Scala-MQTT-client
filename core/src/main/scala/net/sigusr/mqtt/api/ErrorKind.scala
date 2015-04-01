@@ -16,18 +16,7 @@
 
 package net.sigusr.mqtt.api
 
-sealed trait APIResponse
+sealed trait ErrorKind
 
-case object Connected extends APIResponse
-case class ConnectionFailure(reason: ConnectionFailureReason) extends APIResponse
-
-case object Disconnected extends APIResponse
-
-case class Published(messageId: MessageId) extends APIResponse
-case class Message(topic: String, payload: Vector[Byte]) extends APIResponse
-
-case class Subscribed(topicResults: Vector[QualityOfService], messageId: MessageId) extends APIResponse
-
-case class Unsubscribed(messageId: MessageId) extends APIResponse
-
-case class Error(kind: ErrorKind) extends APIResponse
+case object AlreadyConnected extends ErrorKind
+case object NotConnected extends ErrorKind

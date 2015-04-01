@@ -40,7 +40,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
     }
   }
 
-  "The handleApiMessages() function" should {
+  "The handleApiConnect() function" should {
     "Define the action to perform to handle a Connect API message with session cleaning" in {
       val clientId = "client id"
       val keepAlive = 60
@@ -59,7 +59,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val expected = Sequence(Seq(
         SetKeepAlive(keepAlive.toLong * 1000),
         SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
-      handleApiMessages(input).eval(registers) should_== expected
+      handleApiConnect(input).eval(registers) should_== expected
     }
 
     "Define the action to perform to handle a Connect API message when there is in flight frames and no session cleaning" in {
@@ -72,35 +72,52 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val user = Some("user")
       val password = Some("password")
       val input = Connect(clientId, keepAlive, cleanSession, Some(will), user, password)
-      
+
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = true, cleanSession, keepAlive)
       val connectFrame = ConnectFrame(header, variableHeader, clientId, topic, message, user, password)
       val publishFrame = PublishFrame(Header(dup = true), "topic", 42, ByteVector(0x01))
       val pubrelFrame = PubrelFrame(Header(dup = true, qos = AtMostOnce.enum), 19)
       val registers = Registers(inFlightSentFrame = TreeMap(42 -> publishFrame, 19 -> pubrelFrame))
-      
+
       val expected = Sequence(Seq(
         SetKeepAlive(keepAlive.toLong * 1000),
         SendToNetwork(connectFrame),
         SendToNetwork(pubrelFrame),
         SendToNetwork(publishFrame)
       ))
-      handleApiMessages(input).eval(registers) should_== expected
+      handleApiConnect(input).eval(registers) should_== expected
+    }
+  }
+
+  "The handleApiCommand() function" should {
+
+    "Define the action to perform to handle a Connect API message when already connected" in {
+      val clientId = "client id"
+      val keepAlive = 60
+      val cleanSession = false
+      val topic = Some("topic")
+      val message = Some("message")
+      val will = Will(retain = false, AtLeastOnce, "topic", "message")
+      val user = Some("user")
+      val password = Some("password")
+      val input = Connect(clientId, keepAlive, cleanSession, Some(will), user, password)
+      val expected = SendToClient(Error(AlreadyConnected))
+      handleApiCommand(input).eval(Registers()) should_== expected
     }
 
     "Define the action to perform to handle a Disconnect API message" in {
       val input = Disconnect
       val header = Header(dup = false, AtMostOnce.enum, retain = false)
       val expected = SendToNetwork(DisconnectFrame(header))
-      handleApiMessages(input).eval(Registers()) should_== expected
+      handleApiCommand(input).eval(Registers()) should_== expected
     }
 
     "Define the action to perform to handle a Status API message" in {
       val input = Status
       SendToClient(Connected)
       val expected = SendToClient(Connected)
-      handleApiMessages(input).eval(Registers()) should_== expected
+      handleApiCommand(input).eval(Registers()) should_== expected
     }
 
     "Define the action to perform to handle a Subscribe API message" in {
@@ -110,7 +127,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val header = Header(dup = false, AtLeastOnce.enum, retain = false)
       val topicsResult = Vector(("topic0", AtMostOnce.enum), ("topic1", ExactlyOnce.enum), ("topic2", AtLeastOnce.enum))
       val expected = SendToNetwork(SubscribeFrame(header, messageId, topicsResult))
-      handleApiMessages(input).eval(Registers()) should_== expected
+      handleApiCommand(input).eval(Registers()) should_== expected
     }
 
     "Define the action to perform to handle a Publish API message with QoS of 'At most once'" in {
@@ -122,7 +139,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val input = Publish(topic, payload, qos, Some(messageId), retain)
       val header = Header(dup = false, qos.enum, retain)
       val expected = SendToNetwork(PublishFrame(header, topic, messageId, ByteVector(payload)))
-      handleApiMessages(input).eval(Registers()) should_== expected
+      handleApiCommand(input).eval(Registers()) should_== expected
     }
 
     "Define the action to perform to handle a Publish API message with QoS of 'at least once' or 'exactly once'" in {
@@ -141,7 +158,7 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
             SendToNetwork(PublishFrame(inputHeader, topic, messageId, ByteVector(payload)))
           )
         )
-      handleApiMessages(input).eval(Registers()) should_== expected
+      handleApiCommand(input).eval(Registers()) should_== expected
     }
   }
 

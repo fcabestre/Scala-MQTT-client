@@ -27,20 +27,31 @@ trait Handlers {
 
   private val zeroId = MessageId(0)
 
-  private[protocol] def handleApiMessages(apiCommand: APICommand): RegistersState[Action] = gets { registers ⇒
+  private[protocol] def handleApiConnect(connect: Connect): RegistersState[Action] = gets { registers ⇒
+    val header = Header(dup = false, AtMostOnce.enum, retain = false)
+    val retain = connect.will.fold(false)(_.retain)
+    val qos = connect.will.fold(AtMostOnce.enum)(_.qos.enum)
+    val topic = connect.will.map(_.topic)
+    val message = connect.will.map(_.message)
+    val variableHeader = ConnectVariableHeader(
+      connect.user.isDefined,
+      connect.password.isDefined,
+      willRetain = retain,
+      qos,
+      willFlag = connect.will.isDefined,
+      connect.cleanSession,
+      connect.keepAlive)
+    val actions = Seq(
+      SetKeepAlive(connect.keepAlive.toLong * 1000),
+      SendToNetwork(ConnectFrame(header, variableHeader, connect.clientId, topic, message, connect.user, connect.password))
+    )
+    Sequence(if (!connect.cleanSession) actions ++ registers.inFlightSentFrame.toSeq.map(p ⇒ SendToNetwork(p._2)) else actions)
+  }
+
+  private[protocol] def handleApiCommand(apiCommand: APICommand): RegistersState[Action] = gets { registers ⇒
     apiCommand match {
       case Connect(clientId, keepAlive, cleanSession, will, user, password) ⇒
-        val header = Header(dup = false, AtMostOnce.enum, retain = false)
-        val retain = will.fold(false)(_.retain)
-        val qos = will.fold(AtMostOnce.enum)(_.qos.enum)
-        val topic = will.map(_.topic)
-        val message = will.map(_.message)
-        val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = retain, qos, willFlag = will.isDefined, cleanSession, keepAlive)
-        val actions = Seq(
-          SetKeepAlive(keepAlive.toLong * 1000),
-          SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))
-        )
-        Sequence(if (!cleanSession) actions ++ registers.inFlightSentFrame.toSeq.map(p ⇒ SendToNetwork(p._2)) else actions)
+        SendToClient(Error(AlreadyConnected))
       case Disconnect ⇒
         val header = Header(dup = false, AtMostOnce.enum, retain = false)
         SendToNetwork(DisconnectFrame(header))
