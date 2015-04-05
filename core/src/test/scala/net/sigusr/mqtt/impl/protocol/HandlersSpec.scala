@@ -130,6 +130,16 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       handleApiCommand(input).eval(Registers()) should_== expected
     }
 
+    "Define the action to perform to handle an Unsubscribe API message" in {
+      val topicsInput = Vector("topic0")
+      val messageId = Random.nextInt(65536)
+      val input = Unsubscribe(topicsInput, messageId)
+      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val topicsResult = Vector("topic0")
+      val expected = SendToNetwork(UnsubscribeFrame(header, messageId, topicsResult))
+      handleApiCommand(input).eval(Registers()) should_== expected
+    }
+
     "Define the action to perform to handle a Publish API message with QoS of 'At most once'" in {
       val topic = "topic0"
       val qos = AtMostOnce
@@ -334,6 +344,15 @@ object HandlersSpec extends Specification with Handlers with NoTimeConversions {
       val input = SubackFrame(header, messageId, qosInput)
       val state = Registers(keepAlive = 30000)
       val expected = SendToClient(Subscribed(qosResult, messageId))
+      handleNetworkFrames(input).eval(state) should_== expected
+    }
+
+    "Define the actions to perform to handle an UnsubackFrame" in {
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val messageId = Random.nextInt(65536)
+      val input = UnsubackFrame(header, messageId)
+      val state = Registers(keepAlive = 30000)
+      val expected = SendToClient(Unsubscribed(messageId))
       handleNetworkFrames(input).eval(state) should_== expected
     }
   }

@@ -68,6 +68,9 @@ trait Handlers {
       case Subscribe(topics, messageId) ⇒
         val header = Header(dup = false, AtLeastOnce.enum, retain = false)
         SendToNetwork(SubscribeFrame(header, messageId.identifier, topics.map((v: (String, QualityOfService)) ⇒ (v._1, v._2.enum))))
+      case Unsubscribe(topics, messageId) ⇒
+        val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+        SendToNetwork(UnsubscribeFrame(header, messageId.identifier, topics))
       case Status ⇒
         SendToClient(Connected)
     }
@@ -130,6 +133,8 @@ trait Handlers {
         ))
       case SubackFrame(header, messageIdentifier, topicResults) ⇒
         SendToClient(Subscribed(topicResults.map(QualityOfService.fromEnum), messageIdentifier.identifier))
+      case UnsubackFrame(header, messageId) ⇒
+        SendToClient(Unsubscribed(messageId))
       case _ ⇒ ForciblyCloseTransport
     }
   }
