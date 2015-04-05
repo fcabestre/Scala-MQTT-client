@@ -21,6 +21,7 @@ import java.net.InetSocketAddress
 import akka.actor.Props
 import akka.io.{IO, Tcp}
 import net.sigusr.mqtt.SpecsTestKit
+import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.protocol.Engine
 import org.specs2.mutable._
@@ -141,11 +142,39 @@ object ActorSpec extends Specification with NoTimeConversions {
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
-      mqttManager ! Connect("TestPubAck")
+      mqttManager ! Connect("Test")
 
       receiveOne(1 seconds) should be_==(Connected)
 
       mqttManager ! Publish("a/b", "Hello world".getBytes.to[Vector], AtMostOnce, Some(123))
+
+      mqttManager ! Disconnect
+
+      receiveOne(1 seconds) should be_==(Disconnected)
+    }
+
+    "Allow to publish a 'large' message with QOS 0 and read it back" in new SpecsTestKit {
+      import net.sigusr.mqtt.api.{Connect, Connected}
+
+      val endpoint = new InetSocketAddress(brokerHost, 1883)
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val payload = makeRandomByteVector(65535)
+
+      mqttManager ! Connect("Test", cleanSession = true)
+
+      receiveOne(1 seconds) should be_==(Connected)
+
+      mqttManager ! Subscribe(Vector(("a/b", AtMostOnce)), 1)
+
+      receiveOne(1 seconds) should be_==(Subscribed(Vector(AtMostOnce), 1))
+
+      mqttManager ! Publish("a/b", payload, AtMostOnce)
+
+      receiveOne(1 seconds) should be_==(Message("a/b", payload))
+
+      mqttManager ! Unsubscribe(Vector("a/b"), 2)
+
+      receiveOne(1 seconds) should be_==(Unsubscribed(2))
 
       mqttManager ! Disconnect
 
@@ -158,7 +187,7 @@ object ActorSpec extends Specification with NoTimeConversions {
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
-      mqttManager ! Connect("TestPubAck")
+      mqttManager ! Connect("Test")
 
       receiveOne(1 seconds) should be_==(Connected)
 
@@ -177,7 +206,7 @@ object ActorSpec extends Specification with NoTimeConversions {
       val endpoint = new InetSocketAddress(brokerHost, 1883)
       val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
-      mqttManager ! Connect("TestPubAck")
+      mqttManager ! Connect("Test")
 
       receiveOne(1 seconds) should be_==(Connected)
 

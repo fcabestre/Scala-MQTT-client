@@ -48,7 +48,7 @@ object SpecUtils {
   def failWith[T](t: Err) = new FailedAttemptMatcher[T](t)
 
   def makeRandomByteVector(size: Int) = {
-    val bytes = new Array[Byte](64)
+    val bytes = new Array[Byte](size)
     Random.nextBytes(bytes)
     bytes.to[Vector]
   }
