@@ -20,12 +20,14 @@ import java.net.InetSocketAddress
 
 import akka.actor.{ Actor, ActorLogging, ActorRef, Terminated }
 import akka.event.LoggingReceive
+import akka.io.Tcp
 import akka.util.ByteString
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.Frame
 import net.sigusr.mqtt.impl.protocol.Registers._
-import scodec.Codec
+import scodec.Err.InsufficientBits
 import scodec.bits.BitVector
+import scodec.{ Codec, DecodeResult, Err }
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
 import scalaz.State
@@ -34,8 +36,9 @@ private[protocol] case object TimerSignal
 
 abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with Handlers with ActorLogging {
 
-  import akka.io.Tcp.{ Abort ⇒ TcpAbort, CommandFailed ⇒ TcpCommandFailed, Connect ⇒ TcpConnect, Connected ⇒ TcpConnected, ConnectionClosed ⇒ TcpConnectionClosed, Received ⇒ TcpReceived, Register ⇒ TcpRegister, Write ⇒ TcpWrite }
   import context.dispatcher
+
+  type RegistersManagerBody = Any ⇒ RegistersState[Unit]
 
   var registers: Registers = Registers(client = context.parent, tcpManager = tcpManagerActor)
 
@@ -43,74 +46,89 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
 
   def receive: Receive = notConnected
 
+  private def registersManager(body: ⇒ RegistersManagerBody): Receive = {
+    case m ⇒ registers = body(m).exec(registers)
+  }
+
   private def notConnected: Receive = LoggingReceive {
-    case Status ⇒
-      registers = sendToClient(Disconnected).exec(registers)
-    case c: Connect ⇒
-      val (state, actions) = (for {
-        _ ← sendToTcpManager(TcpConnect(mqttBrokerAddress))
-        actions ← handleApiConnect(c)
-      } yield actions).run(registers)
-      registers = state
-      context become connecting(actions)
-    case _: APICommand ⇒
-      registers = sendToClient(Error(NotConnected)).exec(registers)
+    registersManager {
+      case Status ⇒
+        sendToClient(Disconnected)
+      case c: Connect ⇒
+        for {
+          _ ← sendToTcpManager(Tcp.Connect(mqttBrokerAddress))
+          actions ← handleApiConnect(c)
+        } yield context become connecting(actions)
+      case _: APICommand ⇒
+        sendToClient(Error(NotConnected))
+    }
   }
 
   private def connecting(pendingActions: Action): Receive = LoggingReceive {
-    case Status ⇒
-      registers = sendToClient(Disconnected).exec(registers)
-    case _: APICommand ⇒
-      registers = sendToClient(Error(NotConnected)).exec(registers)
-    case TcpCommandFailed(_: TcpConnect) ⇒
-      registers = (for {
-        _ ← setTCPManager(sender())
-        _ ← processAction(transportNotReady())
-      } yield ()).exec(registers)
-      context become notConnected
-    case TcpConnected(_, _) ⇒
-      registers = (for {
-        _ ← setTCPManager(sender())
-        _ ← sendToTcpManager(TcpRegister(self))
-        _ ← processAction(pendingActions)
-        _ ← watchTcpManager
-      } yield ()).exec(registers)
-      context become connected
+    registersManager {
+      case Status ⇒
+        sendToClient(Disconnected)
+      case _: APICommand ⇒
+        sendToClient(Error(NotConnected))
+      case Tcp.CommandFailed(_: Tcp.Connect) ⇒
+        for {
+          _ ← setTCPManager(sender())
+          _ ← processAction(transportNotReady())
+        } yield context become notConnected
+      case Tcp.Connected(_, _) ⇒
+        for {
+          _ ← setTCPManager(sender())
+          _ ← sendToTcpManager(Tcp.Register(self))
+          _ ← processAction(pendingActions)
+          _ ← watchTcpManager
+        } yield context become connected
+    }
   }
 
   private def connected: Receive = LoggingReceive {
-    case message: APICommand ⇒
-      registers = (for {
-        actions ← handleApiCommand(message)
-        _ ← processAction(actions)
-      } yield ()).exec(registers)
-    case TimerSignal ⇒
-      registers = (for {
-        actions ← timerSignal(System.currentTimeMillis())
-        _ ← processAction(actions)
-      } yield ()).exec(registers)
-    case TcpReceived(encodedResponse) ⇒
-      val bitVector = BitVector.view(encodedResponse.toArray)
-      Codec[Frame].decode(bitVector).fold[Unit](
-        { _ ⇒ disconnect() }, {
-          d ⇒
-            registers = (for {
-              actions ← handleNetworkFrames(d.value)
-              _ ← processAction(actions)
-            } yield ()).exec(registers)
-        })
-    case Terminated(_) | _: TcpConnectionClosed ⇒
-      disconnect()
+    registersManager {
+      case message: APICommand ⇒
+        for {
+          actions ← handleApiCommand(message)
+          _ ← processAction(actions)
+        } yield ()
+      case TimerSignal ⇒
+        for {
+          actions ← timerSignal(System.currentTimeMillis())
+          _ ← processAction(actions)
+        } yield ()
+      case Tcp.Received(encodedResponse) ⇒
+        for {
+          bits ← getRemainingBits(encodedResponse)
+          _ ← decode(bits)
+        } yield ()
+      case Terminated(_) | _: Tcp.ConnectionClosed ⇒
+        disconnect()
+    }
   }
 
-  private def disconnect(): Unit = {
-    registers = (for {
+  private def decode(bits: BitVector): RegistersState[Unit] = {
+    def onSuccess(d: DecodeResult[Frame]): RegistersState[Unit] = {
+      for {
+        actions ← handleNetworkFrames(d.value)
+        _ ← processAction(actions)
+        _ ← decode(d.remainder)
+      } yield ()
+    }
+    def onError(bits: BitVector): Err ⇒ RegistersState[Unit] = {
+      case _: InsufficientBits ⇒ setRemainingBits(bits)
+      case _ ⇒ disconnect()
+    }
+    Codec[Frame].decode(bits).fold(onError(bits), onSuccess)
+  }
+
+  private def disconnect(): RegistersState[Unit] = {
+    for {
       _ ← unwatchTcpManager
       _ ← setTCPManager(tcpManagerActor)
       _ ← resetTimerTask
       _ ← processAction(connectionClosed())
-    } yield ()).exec(registers)
-    context become notConnected
+    } yield context become notConnected
   }
 
   private def processActionSeq(actions: Seq[Action]): RegistersState[Unit] =
@@ -133,11 +151,11 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
       sendToClient(message)
     case SendToNetwork(frame) ⇒
       for {
-        _ ← sendToTcpManager(TcpWrite(ByteString(Codec[Frame].encode(frame).require.toByteArray)))
+        _ ← sendToTcpManager(Tcp.Write(ByteString(Codec[Frame].encode(frame).require.toByteArray)))
         _ ← setLastSentMessageTimestamp(System.currentTimeMillis())
       } yield ()
     case ForciblyCloseTransport ⇒
-      sendToTcpManager(TcpAbort)
+      sendToTcpManager(Tcp.Abort)
     case StoreSentInFlightFrame(id, frame) ⇒
       storeInFlightSentFrame(id, frame)
     case RemoveSentInFlightFrame(id) ⇒

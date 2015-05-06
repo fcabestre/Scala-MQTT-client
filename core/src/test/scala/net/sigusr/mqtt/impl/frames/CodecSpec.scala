@@ -61,6 +61,7 @@ object CodecSpec extends Specification {
 
     "Fail to decode certain input values" in {
       remainingLengthCodec.decode(hex"808080807f".bits) should failWith(Err("The remaining length must be 4 bytes long at most"))
+      remainingLengthCodec.decode(hex"ffffff".bits) should failWith(Err.insufficientBits(8, 0))
     }
   }
 
@@ -255,6 +256,18 @@ object CodecSpec extends Specification {
       val publishFrame = PublishFrame(header, topic, 0, ByteVector("Hello world".getBytes))
 
       Codec[Frame].decode(Codec[Frame].encode(publishFrame).require) should succeedWith(DecodeResult(publishFrame, bin""))
+    }
+  }
+
+  "A message codec" should {
+    "Fail if there is not enough bytes to decodde" in {
+      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val topic = "a/b"
+      val publishFrame = PublishFrame(header, topic, 10, ByteVector(makeRandomByteVector(256)))
+
+      val bitVector = Codec[Frame].encode(publishFrame).require
+      val head = bitVector.take(56 * 8)
+      Codec[Frame].decode(head) should failWith(Err.insufficientBits(2104, 424))
     }
   }
 }

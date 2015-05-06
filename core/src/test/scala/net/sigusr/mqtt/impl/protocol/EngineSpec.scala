@@ -57,14 +57,32 @@ object EngineSpec extends Specification with NoTimeConversions {
 
   class FakeTCPManagerActor(implicit system: ActorSystem) extends TestProbe(system) with ImplicitSender {
 
+    import net.sigusr.mqtt.SpecUtils._
+
     val garbageFrame = ByteString(0xff)
     val connackFrame = ByteString(0x20, 0x02, 0x00, 0x00)
     val pingRespFrame = ByteString(0xd0, 0x00)
     val pubrecFrame = ByteString(0x50, 0x02, 0x00, 0x2a)
     val pubrelFrame = ByteString(0x62, 0x02, 0x00, 0x2a)
     val pubcompFrame = ByteString(0x70, 0x02, 0x00, 0x2a)
-    private val frame = PublishFrame(Header(qos = ExactlyOnce.enum), "topic", 42, ByteVector("payload".getBytes.to[Vector]))
-    val publishFrame = ByteString(Codec[Frame].encode(frame).require.toByteArray)
+
+    private val payload0 = "payload".getBytes.to[Vector]
+    val frame0 = PublishFrame(Header(qos = ExactlyOnce.enum), "topic", 42, ByteVector(payload0))
+    val publishFrame0 = ByteString(Codec[Frame].encode(frame0).require.toByteArray)
+
+    val payload1: Vector[Byte] = "payload of frame 1".getBytes.to[Vector]
+    val frame1 = PublishFrame(Header(qos = AtMostOnce.enum), "topic", 42, ByteVector(payload1))
+    val publishFrame1 = ByteString(Codec[Frame].encode(frame1).require.toByteArray)
+
+    val payload2: Vector[Byte] = "payload of frame 2".getBytes.to[Vector]
+    val frame2 = PublishFrame(Header(qos = AtMostOnce.enum), "topic", 42, ByteVector(payload2))
+    val publishFrame2 = ByteString(Codec[Frame].encode(frame2).require.toByteArray)
+
+    val bigPayload = makeRandomByteVector(2500)
+    val bigFrame = PublishFrame(Header(qos = AtMostOnce.enum), "topic", 42, ByteVector(bigPayload))
+    val encodedBigFrame = ByteString(Codec[Frame].encode(bigFrame).require.toByteArray)
+    val encodedBigFramePart1 = encodedBigFrame.take(1500)
+    val encodedBigFramePart2 = encodedBigFrame.drop(1500)
 
     var pingReqCount = 0
     var mqttManager : Option[ActorRef] = None
@@ -156,7 +174,7 @@ object EngineSpec extends Specification with NoTimeConversions {
       }
     }
 
-    def sendPublishFrame(): Unit = mqttManager.foreach(_ ! TCPReceived(publishFrame))
+    def sendPublishFrame(publishFrame : ByteString): Unit = mqttManager.foreach(_ ! TCPReceived(publishFrame))
 
     def sendGarbageFrame(): Unit = mqttManager.foreach(_ ! TCPReceived(garbageFrame))
   }
@@ -382,12 +400,58 @@ object EngineSpec extends Specification with NoTimeConversions {
 
       expectMsg(Connected)
 
-      fakeTCPManagerActor.sendPublishFrame()
+      fakeTCPManagerActor.sendPublishFrame(fakeTCPManagerActor.publishFrame0)
       fakeTCPManagerActor.expectWritePubrecFrame()
 
       expectMsg(Message("topic", "payload".getBytes.to[Vector]))
 
       fakeTCPManagerActor.expectWritePubcompFrame()
+
+      mqttManagerActor ! Disconnect
+      fakeTCPManagerActor.expectWriteDisconnectFrame()
+
+      expectMsg(Disconnected)
+    }
+
+    "Manage receiving a message in multiple packets" in new SpecsTestKit {
+      val fakeTCPManagerActor = new FakeTCPManagerActor
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+
+      mqttManagerActor ! Connect("test", 1, cleanSession = true, Some(Will(retain = false, AtLeastOnce, "test/topic", "test death")), None, None)
+
+      fakeTCPManagerActor.expectConnect()
+      fakeTCPManagerActor.expectRegister()
+      fakeTCPManagerActor.expectWriteConnectFrame()
+
+      expectMsg(Connected)
+
+      fakeTCPManagerActor.sendPublishFrame(fakeTCPManagerActor.encodedBigFramePart1)
+      fakeTCPManagerActor.sendPublishFrame(fakeTCPManagerActor.encodedBigFramePart2)
+
+      expectMsg(Message("topic", fakeTCPManagerActor.bigPayload))
+
+      mqttManagerActor ! Disconnect
+      fakeTCPManagerActor.expectWriteDisconnectFrame()
+
+      expectMsg(Disconnected)
+    }
+
+    "Manage receiving two messages in one packet" in new SpecsTestKit {
+      val fakeTCPManagerActor = new FakeTCPManagerActor
+      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+
+      mqttManagerActor ! Connect("test", 1, cleanSession = true, Some(Will(retain = false, AtLeastOnce, "test/topic", "test death")), None, None)
+
+      fakeTCPManagerActor.expectConnect()
+      fakeTCPManagerActor.expectRegister()
+      fakeTCPManagerActor.expectWriteConnectFrame()
+
+      expectMsg(Connected)
+
+      fakeTCPManagerActor.sendPublishFrame(fakeTCPManagerActor.publishFrame1 ++ fakeTCPManagerActor.publishFrame2)
+
+      expectMsg(Message("topic", fakeTCPManagerActor.payload1))
+      expectMsg(Message("topic", fakeTCPManagerActor.payload2))
 
       mqttManagerActor ! Disconnect
       fakeTCPManagerActor.expectWriteDisconnectFrame()

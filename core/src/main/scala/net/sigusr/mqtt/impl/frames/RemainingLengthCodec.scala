@@ -29,12 +29,15 @@ final class RemainingLengthCodec extends Codec[Int] {
   def sizeBound = SizeBound.bounded(8, 32)
 
   def decode(bits: BitVector): Attempt[DecodeResult[Int]] = {
+    @annotation.tailrec
     def decodeAux(step: Attempt[DecodeResult[Int]], factor: Int, depth: Int, value: Int): Attempt[DecodeResult[Int]] =
       if (depth == 4) failure(Err("The remaining length must be 4 bytes long at most"))
-      else step.flatMap[DecodeResult[Int]](d ⇒
-        if ((d.value & 128) == 0) successful(DecodeResult(value + (d.value & 127) * factor, d.remainder))
-        else decodeAux(uint8.decode(d.remainder), factor * 128, depth + 1, value + (d.value & 127) * factor)
-      )
+      else step match {
+        case f: Failure ⇒ f
+        case Successful(d) ⇒
+          if ((d.value & 128) == 0) successful(DecodeResult(value + (d.value & 127) * factor, d.remainder))
+          else decodeAux(uint8.decode(d.remainder), factor * 128, depth + 1, value + (d.value & 127) * factor)
+      }
     decodeAux(uint8.decode(bits), 1, 0, 0)
   }
 
