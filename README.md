@@ -30,7 +30,7 @@ there is still a lot of work to be done:
   * If I dare, passing [Paho](http://www.eclipse.org/paho/clients/testing/) conformance tests
   * And many, many, many more I can't foresee...
 
-## First release ever...
+## Releases
 
 [ci]: https://travis-ci.org/fcabestre/Scala-MQTT-client/
 [sonatype]: https://oss.sonatype.org/index.html#nexus-search;quick~scala-mqtt-client
@@ -49,10 +49,10 @@ In case you want to easily give a try to this library, without the burden of add
 to Maven Central. In this case just add,
 
 ```scala
-scalaVersion := "2.11.5"
+scalaVersion := "2.11.6"
 
 libraryDependencies ++= Seq(
-    "net.sigusr" %% "scala-mqtt-client" % "0.5.0"
+    "net.sigusr" %% "scala-mqtt-client" % "0.6.0"
 )
 ```
 

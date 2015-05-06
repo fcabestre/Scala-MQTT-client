@@ -18,7 +18,7 @@ object ScalaMQTTClientBuild extends Build {
 
     settings = commonSettings ++ scalariformSettings ++ testSettings ++ pgpSetings ++ Publishing.settings ++ Seq(
       name := """Scala-MQTT-client""",
-      version := "0.6.0-SNAPSHOT",
+      version := "0.6.0",
 
       resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
 
