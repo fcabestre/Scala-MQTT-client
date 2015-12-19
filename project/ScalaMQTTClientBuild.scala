@@ -1,10 +1,9 @@
-import sbt._
-import sbt.Keys._
-import scoverage.ScoverageSbtPlugin
-import org.scoverage.coveralls.CoverallsPlugin
-import com.typesafe.sbt.pgp.PgpKeys._
-import scalariform.formatter.preferences._
 import com.typesafe.sbt.SbtScalariform._
+import com.typesafe.sbt.pgp.PgpKeys._
+import sbt.Keys._
+import sbt._
+
+import scalariform.formatter.preferences._
 
 object ScalaMQTTClientBuild extends Build {
 
@@ -18,16 +17,17 @@ object ScalaMQTTClientBuild extends Build {
 
     settings = commonSettings ++ scalariformSettings ++ testSettings ++ pgpSetings ++ Publishing.settings ++ Seq(
       name := """Scala-MQTT-client""",
-      version := "0.6.0",
+      version := "0.7.0-SNAPSHOT",
 
       resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
 
       libraryDependencies ++= Seq(
-        "org.specs2" %% "specs2" % "2.4.15" % "test",
-        "com.typesafe.akka" %% "akka-actor" % "2.3.9",
-        "com.typesafe.akka" %% "akka-testkit" % "2.3.9",
-        "org.scodec" %% "scodec-core" % "1.7.1",
-        "org.scalaz" %% "scalaz-core" % "7.1.1")
+        "org.specs2" %% "specs2-core" % "3.6.6" % "test",
+        "com.typesafe.akka" %% "akka-actor" % "2.4.1",
+        "com.typesafe.akka" %% "akka-testkit" % "2.4.1",
+        "com.typesafe.akka" %% "akka-stream-experimental" % "2.0-M2",
+        "org.scodec" %% "scodec-core" % "1.8.3",
+        "org.scalaz" %% "scalaz-core" % "7.1.6")
     )
   )
 
@@ -47,7 +47,7 @@ object ScalaMQTTClientBuild extends Build {
   def commonSettings =
     Seq(
       organization := "net.sigusr",
-      scalaVersion := "2.11.6",
+      scalaVersion := "2.11.7",
 
       scalacOptions in Test ++= Seq("-Yrangepos"),
 

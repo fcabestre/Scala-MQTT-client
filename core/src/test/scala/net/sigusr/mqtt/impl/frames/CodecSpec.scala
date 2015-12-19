@@ -20,7 +20,7 @@ import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
 import org.specs2.mutable._
 import scodec.bits._
-import scodec.{SizeBound, DecodeResult, Codec, Err}
+import scodec.{Codec, DecodeResult, Err, SizeBound}
 
 import scala.util.Random
 

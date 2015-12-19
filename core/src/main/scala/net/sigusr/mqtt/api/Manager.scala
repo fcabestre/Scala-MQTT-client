@@ -19,7 +19,7 @@ package net.sigusr.mqtt.api
 import java.net.InetSocketAddress
 
 import akka.actor.Props
-import akka.io.{ IO, Tcp }
+import akka.io.{IO, Tcp}
 import net.sigusr.mqtt.impl.protocol.Engine
 
 class Manager(remote: InetSocketAddress) extends Engine(remote) {

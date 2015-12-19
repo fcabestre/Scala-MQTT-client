@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
+import sbt.Keys._
 import sbt._
-import Keys._
 
 object Publishing extends Sonatype(ScalaMQTTClientBuild) {
   def projectUrl    = "https://github.com/fcabestre/Scala-MQTT-client"
@@ -39,7 +39,6 @@ object Publishing extends Sonatype(ScalaMQTTClientBuild) {
 // password=<password>
 
 abstract class Sonatype(build: Build) {
-  import build._
 
   val ossSnapshots = "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
   val ossStaging   = "Sonatype OSS Staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2/"

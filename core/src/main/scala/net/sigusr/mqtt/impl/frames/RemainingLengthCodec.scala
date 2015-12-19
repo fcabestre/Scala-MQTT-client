@@ -18,7 +18,7 @@ package net.sigusr.mqtt.impl.frames
 
 import scodec.Attempt._
 import scodec._
-import scodec.bits.{ BitVector, _ }
+import scodec.bits.{BitVector, _}
 import scodec.codecs._
 
 final class RemainingLengthCodec extends Codec[Int] {

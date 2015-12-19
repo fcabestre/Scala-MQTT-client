@@ -21,9 +21,8 @@ import java.net.InetSocketAddress
 import akka.actor._
 import net.sigusr.mqtt.SpecsTestKit
 import org.specs2.mutable._
-import org.specs2.time.NoTimeConversions
 
-object ManagerSpec extends Specification with NoTimeConversions {
+object ManagerSpec extends Specification {
 
   "An MQTT protocol manager" should {
     "Provide its status" in new SpecsTestKit {

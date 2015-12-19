@@ -20,16 +20,15 @@ import java.net.InetSocketAddress
 
 import akka.actor.Props
 import akka.io.{IO, Tcp}
-import net.sigusr.mqtt.SpecsTestKit
 import net.sigusr.mqtt.SpecUtils._
+import net.sigusr.mqtt.SpecsTestKit
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.protocol.Engine
 import org.specs2.mutable._
-import org.specs2.time.NoTimeConversions
 
 import scala.concurrent.duration._
 
-object ActorSpec extends Specification with NoTimeConversions {
+object ActorSpec extends Specification {
 
   sequential
 

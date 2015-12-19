@@ -20,13 +20,12 @@ import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames._
 import org.specs2.mutable.Specification
-import org.specs2.time.NoTimeConversions
 import scodec.bits.ByteVector
 
 import scala.collection.immutable.{TreeMap, TreeSet}
 import scala.util.Random
 
-object HandlersSpec extends Specification with Handlers with NoTimeConversions {
+object HandlersSpec extends Specification with Handlers {
 
   "The transportNotReady() function" should {
     "Define the action to perform when the transport is not ready" in {
