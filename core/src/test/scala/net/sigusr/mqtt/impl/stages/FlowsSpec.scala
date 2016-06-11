@@ -16,7 +16,7 @@
 
 package net.sigusr.mqtt.impl.stages
 
-import akka.stream.scaladsl.Keep
+import akka.stream.scaladsl.{Source, Keep}
 import akka.stream.testkit.scaladsl.{TestSink, TestSource}
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecsTestKit
@@ -26,7 +26,36 @@ import org.specs2.mutable._
 import scodec.Codec
 import scodec.bits.ByteVector
 
-object FlowsSpecs extends Specification {
+object FlowsSpec extends Specification {
+
+  "A frames to bytes flow" should {
+    "Provide a byte stream from a correct frame" in new SpecsTestKit {
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val connackFrame = ConnackFrame(header, 0)
+      val encodedConnackFrame = ByteString(Codec[Frame].encode(connackFrame).require.toByteArray)
+
+      val flow = new FramesToBytes
+      val (pub, sub) = TestSource.probe[Frame].via(flow).toMat(TestSink.probe[ByteString])(Keep.both).run()
+
+      sub.request(1)
+      pub.sendNext(connackFrame)
+      val result = sub.expectNext()
+      result should_=== encodedConnackFrame
+    }
+
+    "Provide a byte stream (pull) from a correct frame" in new SpecsTestKit {
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val connackFrame = ConnackFrame(header, 0)
+      val encodedConnackFrame = ByteString(Codec[Frame].encode(connackFrame).require.toByteArray)
+
+      val flow = new FramesToBytes
+      val (pub, sub) = Source.single(connackFrame).via(flow).toMat(TestSink.probe[ByteString])(Keep.both).run()
+
+      sub.request(1)
+      val result = sub.expectNext()
+      result should_=== encodedConnackFrame
+    }
+  }
 
   "A bytes to frames flow" should {
 
@@ -40,6 +69,19 @@ object FlowsSpecs extends Specification {
 
       sub.request(1)
       pub.sendNext(encodedConnackFrame)
+      val result = sub.expectNext()
+      result should_=== connackFrame
+    }
+
+    "Provide a frame (pull) from a correct byte stream" in new SpecsTestKit {
+      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val connackFrame = ConnackFrame(header, 0)
+      val encodedConnackFrame = ByteString(Codec[Frame].encode(connackFrame).require.toByteArray)
+
+      val flow = new BytesToFrames
+      val (pub, sub) = Source.single(encodedConnackFrame).via(flow).toMat(TestSink.probe[Frame])(Keep.both).run()
+
+      sub.request(1)
       val result = sub.expectNext()
       result should_=== connackFrame
     }
@@ -77,7 +119,7 @@ object FlowsSpecs extends Specification {
       sub.expectNextN(List(frame0x01, frame0x7f))
     }
 
-    "Fail from a failing byte stream" in new SpecsTestKit {
+    "Fail from a byte stream error decoding" in new SpecsTestKit {
       val garbageFrame = ByteString(0xff)
 
       val flow = new BytesToFrames
@@ -86,6 +128,25 @@ object FlowsSpecs extends Specification {
       sub.request(1)
       pub.sendNext(garbageFrame)
       val result = sub.expectError()
+      result.getMessage should_=== "Unknown discriminator 15"
+    }
+
+    "Fail from a failing byte stream" in new SpecsTestKit {
+      val flow = new BytesToFrames
+      val (pub, sub) = TestSource.probe[ByteString].via(flow).toMat(TestSink.probe[Frame])(Keep.both).run()
+
+      sub.request(1)
+      pub.sendComplete()
+      val result = sub.expectComplete()
+    }
+    "Be completed from a completed byte stream" in new SpecsTestKit {
+      val flow = new BytesToFrames
+      val (pub, sub) = TestSource.probe[ByteString].via(flow).toMat(TestSink.probe[Frame])(Keep.both).run()
+
+      sub.request(1)
+      pub.sendError(new Exception("Unusualsituation ;)"))
+      val result = sub.expectError()
+      result.getMessage should_=== "Unusualsituation ;)"
     }
   }
 }

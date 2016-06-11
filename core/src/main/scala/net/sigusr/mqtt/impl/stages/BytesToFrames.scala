@@ -62,11 +62,13 @@ class BytesToFrames extends GraphStage[FlowShape[ByteString, Frame]] {
 
       def onError(error: Err) = fail(out, new Exception(error.messageWithContext))
 
+      @throws[Exception](classOf[Exception])
       override def onPush(): Unit = {
         val bits = remainingBytes ++ BitVector(grab(in).asByteBuffer)
         decode(bits).fold(onError, onSuccess)
       }
 
+      @throws[Exception](classOf[Exception])
       override def onPull(): Unit = if (!hasBeenPulled(in)) tryPull(in)
 
       setHandler(out, this)
