@@ -22,12 +22,13 @@ object ScalaMQTTClientBuild extends Build {
       resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
 
       libraryDependencies ++= Seq(
-        "org.specs2" %% "specs2-core" % "3.6.6" % "test",
-        "com.typesafe.akka" %% "akka-actor" % "2.4.1",
-        "com.typesafe.akka" %% "akka-testkit" % "2.4.1",
-        "com.typesafe.akka" %% "akka-stream-experimental" % "2.0-M2",
-        "org.scodec" %% "scodec-core" % "1.8.3",
-        "org.scalaz" %% "scalaz-core" % "7.1.6")
+        "org.specs2" %% "specs2-core" % "3.8.3" % "test",
+        "com.typesafe.akka" %% "akka-actor" % "2.4.7",
+        "com.typesafe.akka" %% "akka-testkit" % "2.4.7",
+        "com.typesafe.akka" %% "akka-stream" % "2.4.7",
+        "com.typesafe.akka" %% "akka-stream-testkit" % "2.4.7",
+        "org.scodec" %% "scodec-core" % "1.10.0",
+        "org.scalaz" %% "scalaz-core" % "7.2.3")
     )
   )
 

@@ -18,11 +18,11 @@ package net.sigusr.mqtt.examples
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
 import com.typesafe.config.ConfigFactory
 import net.sigusr.mqtt.api._
 
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.util.Random
 
 class LocalPublisher(toPublish: Vector[String]) extends Actor {

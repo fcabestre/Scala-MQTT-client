@@ -26,7 +26,7 @@ there is still a lot of work to be done:
 
   * Learning how other MQTT APIs are organised to polish this one
   * Managing communication back pressure with [Akka IO](http://doc.akka.io/docs/akka/snapshot/scala/io.html)
-  * Suppoting both MQTT v3.1 and v3.1.1
+  * Supporting both MQTT v3.1 and v3.1.1
   * If I dare, passing [Paho](http://www.eclipse.org/paho/clients/testing/) conformance tests
   * And many, many, many more I can't foresee...
 
@@ -59,9 +59,10 @@ libraryDependencies ++= Seq(
 ## Dependencies
 
   * Scala 2.11.6
-  * Akka 2.3.9
-  * scodec-core 1.7.1
-  * Scalaz 7.1.1
+  * Akka 2.4.1
+  * Akka Streams (Experimental) 2.0.2
+  * scodec-core 1.8.3
+  * Scalaz 7.1.6
 
 ## License
 
