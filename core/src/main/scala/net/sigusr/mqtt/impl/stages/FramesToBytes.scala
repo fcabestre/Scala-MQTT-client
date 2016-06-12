@@ -1,7 +1,7 @@
 package net.sigusr.mqtt.impl.stages
 
-import akka.stream.stage.{GraphStage, GraphStageLogic, InHandler, OutHandler}
-import akka.stream.{Attributes, FlowShape, Inlet, Outlet}
+import akka.stream.stage.{ GraphStage, GraphStageLogic, InHandler, OutHandler }
+import akka.stream.{ Attributes, FlowShape, Inlet, Outlet }
 import akka.util.ByteString
 import net.sigusr.mqtt.impl.frames.Frame
 import scodec.Codec
