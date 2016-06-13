@@ -44,19 +44,6 @@ object FlowsSpec extends Specification {
       val result = sub.expectNext()
       result should_=== encodedConnackFrame
     }
-
-    "Provide a byte stream (pull) from a correct frame" in new SpecsTestKit {
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val connackFrame = ConnackFrame(header, 0)
-      val encodedConnackFrame = ByteString(Codec[Frame].encode(connackFrame).require.toByteArray)
-
-      val flow = new FramesToBytes
-      val (pub, sub) = pullableSource(connackFrame).via(flow).toMat(TestSink.probe[ByteString])(Keep.both).run()
-
-      sub.request(1)
-      val result = sub.expectNext()
-      result should_=== encodedConnackFrame
-    }
   }
 
   "A bytes to frames flow" should {
@@ -71,19 +58,6 @@ object FlowsSpec extends Specification {
 
       sub.request(1)
       pub.sendNext(encodedConnackFrame)
-      val result = sub.expectNext()
-      result should_=== connackFrame
-    }
-
-    "Provide a frame (pull) from a correct byte stream" in new SpecsTestKit {
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val connackFrame = ConnackFrame(header, 0)
-      val encodedConnackFrame = ByteString(Codec[Frame].encode(connackFrame).require.toByteArray)
-
-      val flow = new BytesToFrames
-      val (pub, sub) = pullableSource(encodedConnackFrame).via(flow).toMat(TestSink.probe[Frame])(Keep.both).run()
-
-      sub.request(1)
       val result = sub.expectNext()
       result should_=== connackFrame
     }

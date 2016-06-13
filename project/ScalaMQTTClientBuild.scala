@@ -48,7 +48,7 @@ object ScalaMQTTClientBuild extends Build {
   def commonSettings =
     Seq(
       organization := "net.sigusr",
-      scalaVersion := "2.11.7",
+      scalaVersion := "2.11.8",
 
       scalacOptions in Test ++= Seq("-Yrangepos"),
 

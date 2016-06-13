@@ -52,17 +52,17 @@ to Maven Central. In this case just add,
 scalaVersion := "2.11.6"
 
 libraryDependencies ++= Seq(
-    "net.sigusr" %% "scala-mqtt-client" % "0.6.0"
+    "net.sigusr" %% "scala-mqtt-client" % "0.7.0-SNAPSHOT"
 )
 ```
 
 ## Dependencies
 
-  * Scala 2.11.6
-  * Akka 2.4.1
-  * Akka Streams (Experimental) 2.0.2
-  * scodec-core 1.8.3
-  * Scalaz 7.1.6
+  * Scala 2.11.8
+  * Akka 2.4.7
+  * Akka Streams 2.4.7
+  * scodec-core 1.10.0
+  * Scalaz 7.2.3
 
 ## License
 

@@ -18,19 +18,18 @@ package net.sigusr.mqtt.impl.protocol
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Status => ActorStatus, _}
+import akka.actor._
 import akka.io.Tcp.{Abort => TCPAbort, Aborted => TCPAborted, Closed => TCPClosed, CommandFailed => TCPCommandFailed, Connect => TCPConnect, Connected => TCPConnected, Received => TCPReceived, Register => TCPRegister, Write => TCPWrite}
 import akka.testkit.{ImplicitSender, TestProbe}
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecsTestKit
 import net.sigusr.mqtt.api._
+import net.sigusr.mqtt.api.Status
 import net.sigusr.mqtt.impl.frames.{Frame, Header, PublishFrame}
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import scodec.Codec
 import scodec.bits.ByteVector
-
-import scala.language.reflectiveCalls
 
 object EngineSpec extends Specification {
 
