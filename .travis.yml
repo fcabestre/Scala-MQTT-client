@@ -1,10 +1,10 @@
 language: scala
 scala:
-  - 2.11.7
+  - 2.12.1
 jdk:
   - oraclejdk8
 sudo: false
-script: sbt clean core/coverage test core/coverageReport
+script: sbt clean coverage test core/coverageReport
 after_success: sbt core/coveralls $(if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" && "${TRAVIS_TAG}" == "false" ]]; then echo "core/publish";  fi)
 env:
   global:
