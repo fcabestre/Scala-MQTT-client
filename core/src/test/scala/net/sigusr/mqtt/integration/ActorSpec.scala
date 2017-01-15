@@ -19,7 +19,7 @@ package net.sigusr.mqtt.integration
 import java.net.InetSocketAddress
 
 import akka.actor.Props
-import akka.io.{IO, Tcp}
+import akka.io.{ IO, Tcp }
 import net.sigusr.mqtt.SpecUtils._
 import net.sigusr.mqtt.SpecsTestKit
 import net.sigusr.mqtt.api._
@@ -43,10 +43,10 @@ object ActorSpec extends Specification {
 
     "Allow to connect to a broker and then disconnect" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{Connect, Connected, Disconnect, Disconnected}
+      import net.sigusr.mqtt.api.{ Connect, Connected, Disconnect, Disconnected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test")
 
@@ -59,10 +59,10 @@ object ActorSpec extends Specification {
 
     "Allow to connect to a broker with user and password and then disconnect" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{Connect, Connected, Disconnect, Disconnected}
+      import net.sigusr.mqtt.api.{ Connect, Connected, Disconnect, Disconnected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test", user = Some("user"), password = Some("pass"))
 
@@ -78,7 +78,7 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.Connect
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test", user = Some("wrong"), password = Some("pass"))
 
@@ -90,7 +90,7 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.Connect
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test", user = Some("user"), password = Some("wrong"))
 
@@ -99,10 +99,10 @@ object ActorSpec extends Specification {
 
     "Allow to connect to a broker and keep connected even when idle" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{Connect, Connected}
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test", keepAlive = 2)
 
@@ -117,10 +117,10 @@ object ActorSpec extends Specification {
 
     "Allow to subscribe to topics and receive a subscription acknowledgement" in new SpecsTestKit {
 
-      import net.sigusr.mqtt.api.{Connect, Connected}
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test")
 
@@ -136,10 +136,10 @@ object ActorSpec extends Specification {
     }
 
     "Allow to publish a message with QOS 0" in new SpecsTestKit {
-      import net.sigusr.mqtt.api.{Connect, Connected}
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test")
 
@@ -153,10 +153,10 @@ object ActorSpec extends Specification {
     }
 
     "Allow to publish a 'large' message with QOS 0 and read it back" in new SpecsTestKit {
-      import net.sigusr.mqtt.api.{Connect, Connected}
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
       val payload = makeRandomByteVector(131070)
 
       mqttManager ! Connect("Test", cleanSession = true)
@@ -181,10 +181,10 @@ object ActorSpec extends Specification {
     }
 
     "Allow to publish a message with QOS 1 and receive a Puback response" in new SpecsTestKit {
-      import net.sigusr.mqtt.api.{Connect, Connected}
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test")
 
@@ -200,10 +200,10 @@ object ActorSpec extends Specification {
     }
 
     "Allow to publish a message with QOS 2 and complete the handshake" in new SpecsTestKit {
-      import net.sigusr.mqtt.api.{Connect, Connected}
+      import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test")
 

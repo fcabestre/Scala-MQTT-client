@@ -18,7 +18,7 @@ package net.sigusr.mqtt.examples
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
 import com.typesafe.config.ConfigFactory
 import net.sigusr.mqtt.api._
 

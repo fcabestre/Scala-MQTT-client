@@ -22,7 +22,7 @@ import net.sigusr.mqtt.impl.frames._
 import org.specs2.mutable.Specification
 import scodec.bits.ByteVector
 
-import scala.collection.immutable.{TreeMap, TreeSet}
+import scala.collection.immutable.{ TreeMap, TreeSet }
 import scala.util.Random
 
 object HandlersSpec extends Specification with Handlers {
@@ -54,10 +54,11 @@ object HandlersSpec extends Specification with Handlers {
       val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = true, cleanSession, keepAlive)
       val publishFrame = PublishFrame(Header(), "topic", 42, ByteVector(0x01))
       val pubrecFrame = PubrecFrame(Header(), 19)
-      val registers = Registers(inFlightSentFrame = TreeMap(42 -> publishFrame, 19 -> pubrecFrame))
+      val registers = Registers(inFlightSentFrame = TreeMap(42 → publishFrame, 19 → pubrecFrame))
       val expected = Sequence(Seq(
         SetKeepAlive(keepAlive.toLong * 1000),
-        SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))))
+        SendToNetwork(ConnectFrame(header, variableHeader, clientId, topic, message, user, password))
+      ))
       handleApiConnect(input).eval(registers) should_== expected
     }
 
@@ -77,7 +78,7 @@ object HandlersSpec extends Specification with Handlers {
       val connectFrame = ConnectFrame(header, variableHeader, clientId, topic, message, user, password)
       val publishFrame = PublishFrame(Header(dup = true), "topic", 42, ByteVector(0x01))
       val pubrelFrame = PubrelFrame(Header(dup = true, qos = AtMostOnce.enum), 19)
-      val registers = Registers(inFlightSentFrame = TreeMap(42 -> publishFrame, 19 -> pubrelFrame))
+      val registers = Registers(inFlightSentFrame = TreeMap(42 → publishFrame, 19 → pubrelFrame))
 
       val expected = Sequence(Seq(
         SetKeepAlive(keepAlive.toLong * 1000),
@@ -183,7 +184,8 @@ object HandlersSpec extends Specification with Handlers {
       val expected = Sequence(Seq(
         SetPendingPingResponse(isPending = true),
         StartPingRespTimer(30000),
-        SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))))
+        SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))
+      ))
       timerSignal(120029001).eval(state) should_== expected
     }
 
@@ -256,7 +258,8 @@ object HandlersSpec extends Specification with Handlers {
       val state = Registers(keepAlive = 30000)
       val expected = Sequence(Seq(
         SendToClient(Message(topic, payload)),
-        SendToNetwork(PubackFrame(header.copy(qos = 0), messageId))))
+        SendToNetwork(PubackFrame(header.copy(qos = 0), messageId))
+      ))
       handleNetworkFrames(input).eval(state) should_== expected
     }
 
@@ -268,7 +271,8 @@ object HandlersSpec extends Specification with Handlers {
       val input = PublishFrame(header, topic, messageId, ByteVector(payload))
       val state = Registers(keepAlive = 30000, inFlightRecvFrame = TreeSet(messageId))
       val expected = Sequence(Seq(
-        SendToNetwork(PubrecFrame(header.copy(qos = 0), messageId))))
+        SendToNetwork(PubrecFrame(header.copy(qos = 0), messageId))
+      ))
       handleNetworkFrames(input).eval(state) should_== expected
     }
 
@@ -282,7 +286,8 @@ object HandlersSpec extends Specification with Handlers {
       val expected = Sequence(Seq(
         SendToClient(Message(topic, payload)),
         StoreRecvInFlightFrameId(messageId),
-        SendToNetwork(PubrecFrame(header.copy(qos = 0), messageId))))
+        SendToNetwork(PubrecFrame(header.copy(qos = 0), messageId))
+      ))
       handleNetworkFrames(input).eval(state) should_== expected
     }
 

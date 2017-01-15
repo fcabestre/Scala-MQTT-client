@@ -40,7 +40,8 @@ trait Handlers {
       qos,
       willFlag = connect.will.isDefined,
       connect.cleanSession,
-      connect.keepAlive)
+      connect.keepAlive
+    )
     val actions = Seq(
       SetKeepAlive(connect.keepAlive.toLong * 1000),
       SendToNetwork(ConnectFrame(header, variableHeader, connect.clientId, topic, message, connect.user, connect.password))
@@ -96,7 +97,8 @@ trait Handlers {
           case AtLeastOnce.enum ⇒
             Sequence(Seq(
               toClient,
-              SendToNetwork(PubackFrame(Header(), messageIdentifier))))
+              SendToNetwork(PubackFrame(Header(), messageIdentifier))
+            ))
           case ExactlyOnce.enum ⇒
             if (registers.inFlightRecvFrame(messageIdentifier))
               Sequence(Seq(

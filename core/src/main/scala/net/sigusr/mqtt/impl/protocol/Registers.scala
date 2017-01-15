@@ -1,12 +1,12 @@
 package net.sigusr.mqtt.impl.protocol
 
-import akka.actor.{Actor, ActorContext, ActorRef, Cancellable}
+import akka.actor.{ Actor, ActorContext, ActorRef, Cancellable }
 import akka.util.ByteString
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.Frame
 import scodec.bits.BitVector
 
-import scala.collection.immutable.{TreeMap, TreeSet}
+import scala.collection.immutable.{ TreeMap, TreeSet }
 
 case class Registers(
     lastSentMessageTimestamp: Long = 0,
@@ -17,7 +17,8 @@ case class Registers(
     inFlightSentFrame: TreeMap[Int, Frame] = TreeMap.empty[Int, Frame],
     inFlightRecvFrame: TreeSet[Int] = TreeSet.empty[Int],
     remainingBytes: BitVector = BitVector.empty,
-    tcpManager: ActorRef = null) {
+    tcpManager: ActorRef = null
+) {
 }
 
 object Registers {

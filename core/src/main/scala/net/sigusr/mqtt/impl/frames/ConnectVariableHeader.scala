@@ -16,7 +16,7 @@
 
 package net.sigusr.mqtt.impl.frames
 
-import scodec.bits.{BitVector, _}
+import scodec.bits.{ BitVector, _ }
 import scodec.codecs._
 
 case class ConnectVariableHeader(
@@ -26,7 +26,8 @@ case class ConnectVariableHeader(
     willQoS: Int,
     willFlag: Boolean,
     cleanSession: Boolean,
-    keepAliveTimer: Int) {
+    keepAliveTimer: Int
+) {
 }
 
 object ConnectVariableHeader {
@@ -45,5 +46,6 @@ object ConnectVariableHeader {
     bool ::
     bool ::
     ignore(1) :~>:
-    keepAliveCodec).as[ConnectVariableHeader]
+    keepAliveCodec
+  ).as[ConnectVariableHeader]
 }

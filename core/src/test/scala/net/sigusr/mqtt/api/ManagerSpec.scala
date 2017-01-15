@@ -27,7 +27,7 @@ object ManagerSpec extends Specification {
   "An MQTT protocol manager" should {
     "Provide its status" in new SpecsTestKit {
 
-      val manager = testActorProxy { context => context.actorOf(Manager.props(new InetSocketAddress(1883))) }
+      val manager = testActorProxy { context ⇒ context.actorOf(Manager.props(new InetSocketAddress(1883))) }
 
       manager ! Status
       expectMsg(Disconnected)

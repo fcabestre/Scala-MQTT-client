@@ -16,8 +16,8 @@
 
 package net.sigusr.mqtt
 
-import org.specs2.matcher.{Expectable, Matcher}
-import scodec.{Attempt, Err}
+import org.specs2.matcher.{ Expectable, Matcher }
+import scodec.{ Attempt, Err }
 
 import scala.util.Random
 
@@ -26,20 +26,22 @@ object SpecUtils {
   class SuccessfulAttemptMatcher[T](v: T) extends Matcher[Attempt[T]] {
     def apply[S <: Attempt[T]](e: Expectable[S]) = {
       result(
-        e.value.fold(_ => false, _ == v),
+        e.value.fold(_ ⇒ false, _ == v),
         s"${e.description} equals to $v",
         s"The result is ${e.description}, instead of the expected value '$v'",
-        e)
+        e
+      )
     }
   }
 
   class FailedAttemptMatcher[T](m: Err) extends Matcher[Attempt[T]] {
     def apply[S <: Attempt[T]](e: Expectable[S]) = {
       result(
-        e.value.fold(_ => true, _ != m),
+        e.value.fold(_ ⇒ true, _ != m),
         s"${e.description} equals to $m",
         s"The result is ${e.description} instead of the expected error message '$m'",
-        e)
+        e
+      )
     }
   }
 

@@ -26,7 +26,8 @@ case class Connect(
     cleanSession: Boolean = true,
     will: Option[Will] = None,
     user: Option[String] = None,
-    password: Option[String] = None) extends APICommand {
+    password: Option[String] = None
+) extends APICommand {
   assert(keepAlive >= 0 && keepAlive < 65636, "Keep alive value should be in the range [0..65535]")
   assert(user.isDefined || !password.isDefined, "A password cannot be provided without user")
 }
@@ -40,7 +41,8 @@ case class Publish(
     payload: Vector[Byte],
     qos: QualityOfService = AtMostOnce,
     messageId: Option[MessageId] = None,
-    retain: Boolean = false) extends APICommand {
+    retain: Boolean = false
+) extends APICommand {
   assert(qos == AtMostOnce || messageId.isDefined, "A message identifier must be provided when QoS is greater than 0")
 }
 
