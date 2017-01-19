@@ -1,11 +1,12 @@
 language: scala
 scala:
+  - 2.11.8
   - 2.12.1
 jdk:
   - oraclejdk8
 sudo: false
-script: sbt clean coverage test core/coverageReport
-after_success: sbt core/coveralls $(if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" && "${TRAVIS_TAG}" == "false" ]]; then echo "core/publish";  fi)
+script: sbt clean coverage test core/coverageReport && sbt coverageAggregate
+after_success: sbt coveralls $(if [[ "${TRAVIS_PULL_REQUEST}" == "false" && "${TRAVIS_BRANCH}" == "master" && "${TRAVIS_TAG}" == "false" ]]; then echo "core/publish";  fi)
 env:
   global:
   - secure: fFRvPhrTWMYzVr6UkPXaVvnFn5p3XGh3IL8HrI1qYRdRkqaV+eTRXWtwmqN+miqVd/V/YsD9vYNjNbBoiC8tSH9gtK4DWtK01eJEmmBLtm3DdvtL/iH3Jh3HcPe5lTK4rZiicoO51zPGDQi+OBHAPix+8WwECeAUGlV2knGlcT4=

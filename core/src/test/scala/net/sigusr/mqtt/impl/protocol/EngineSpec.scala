@@ -23,14 +23,12 @@ import akka.io.Tcp.{ Abort ⇒ TCPAbort, Aborted ⇒ TCPAborted, Closed ⇒ TCPC
 import akka.testkit.{ ImplicitSender, TestProbe }
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecsTestKit
-import net.sigusr.mqtt.api.{ Status => MqttApiStatus, _ }
+import net.sigusr.mqtt.api.{ Status ⇒ MqttApiStatus, _ }
 import net.sigusr.mqtt.impl.frames.{ Frame, Header, PublishFrame }
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import scodec.Codec
 import scodec.bits.ByteVector
-
-import scala.language.reflectiveCalls
 
 object EngineSpec extends Specification {
 
