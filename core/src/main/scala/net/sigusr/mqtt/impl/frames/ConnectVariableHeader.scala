@@ -20,14 +20,13 @@ import scodec.bits.{ BitVector, _ }
 import scodec.codecs._
 
 case class ConnectVariableHeader(
-    userNameFlag: Boolean,
-    passwordFlag: Boolean,
-    willRetain: Boolean,
-    willQoS: Int,
-    willFlag: Boolean,
-    cleanSession: Boolean,
-    keepAliveTimer: Int
-) {
+  userNameFlag: Boolean,
+  passwordFlag: Boolean,
+  willRetain: Boolean,
+  willQoS: Int,
+  willFlag: Boolean,
+  cleanSession: Boolean,
+  keepAliveTimer: Int) {
 }
 
 object ConnectVariableHeader {
@@ -46,6 +45,5 @@ object ConnectVariableHeader {
     bool ::
     bool ::
     ignore(1) :~>:
-    keepAliveCodec
-  ).as[ConnectVariableHeader]
+    keepAliveCodec).as[ConnectVariableHeader]
 }

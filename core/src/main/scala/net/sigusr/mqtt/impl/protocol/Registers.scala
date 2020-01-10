@@ -9,16 +9,15 @@ import scodec.bits.BitVector
 import scala.collection.immutable.{ TreeMap, TreeSet }
 
 case class Registers(
-    lastSentMessageTimestamp: Long = 0,
-    isPingResponsePending: Boolean = false,
-    keepAlive: Long = DEFAULT_KEEP_ALIVE.toLong,
-    timerTask: Option[Cancellable] = None,
-    client: ActorRef = null,
-    inFlightSentFrame: TreeMap[Int, Frame] = TreeMap.empty[Int, Frame],
-    inFlightRecvFrame: TreeSet[Int] = TreeSet.empty[Int],
-    remainingBytes: BitVector = BitVector.empty,
-    tcpManager: ActorRef = null
-) {
+  lastSentMessageTimestamp: Long = 0,
+  isPingResponsePending: Boolean = false,
+  keepAlive: Long = DEFAULT_KEEP_ALIVE.toLong,
+  timerTask: Option[Cancellable] = None,
+  client: ActorRef = null,
+  inFlightSentFrame: TreeMap[Int, Frame] = TreeMap.empty[Int, Frame],
+  inFlightRecvFrame: TreeSet[Int] = TreeSet.empty[Int],
+  remainingBytes: BitVector = BitVector.empty,
+  tcpManager: ActorRef = null) {
 }
 
 object Registers {
@@ -40,24 +39,24 @@ object Registers {
 
   def setTimerTask(timerTask: Cancellable) = modify[Registers](_.copy(timerTask = Some(timerTask)))
 
-  def resetTimerTask = modify[Registers] { r ⇒
+  def resetTimerTask = modify[Registers] { r =>
     r.timerTask foreach { _.cancel() }
     r.copy(timerTask = None)
   }
 
-  def storeInFlightSentFrame(id: Int, frame: Frame) = modify[Registers] { r ⇒
+  def storeInFlightSentFrame(id: Int, frame: Frame) = modify[Registers] { r =>
     r.copy(inFlightSentFrame = r.inFlightSentFrame.updated(id, frame))
   }
 
-  def removeInFlightSentFrame(id: Int) = modify[Registers] { r ⇒
+  def removeInFlightSentFrame(id: Int) = modify[Registers] { r =>
     r.copy(inFlightSentFrame = r.inFlightSentFrame.drop(id))
   }
 
-  def storeInFlightRecvFrame(id: Int) = modify[Registers] { r ⇒
-    r.copy(inFlightRecvFrame = r.inFlightRecvFrame.insert(id))
+  def storeInFlightRecvFrame(id: Int) = modify[Registers] { r =>
+    r.copy(inFlightRecvFrame = r.inFlightRecvFrame.incl(id))
   }
 
-  def removeInFlightRecvFrame(id: Int) = modify[Registers] { r ⇒
+  def removeInFlightRecvFrame(id: Int) = modify[Registers] { r =>
     r.copy(inFlightRecvFrame = r.inFlightRecvFrame.drop(id))
   }
 

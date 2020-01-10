@@ -46,7 +46,7 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.{ Connect, Connected, Disconnect, Disconnected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test")
 
@@ -62,7 +62,7 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.{ Connect, Connected, Disconnect, Disconnected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test", user = Some("user"), password = Some("pass"))
 
@@ -78,7 +78,7 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.Connect
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test", user = Some("wrong"), password = Some("pass"))
 
@@ -90,7 +90,7 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.Connect
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test", user = Some("user"), password = Some("wrong"))
 
@@ -102,13 +102,13 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test", keepAlive = 2)
 
       receiveOne(1 seconds) should be_==(Connected)
 
-      expectNoMsg(4 seconds) should not throwA ()
+      expectNoMessage(4 seconds) should not(throwA[IllegalArgumentException])
 
       mqttManager ! Disconnect
 
@@ -120,7 +120,7 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test")
 
@@ -139,13 +139,13 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test")
 
       receiveOne(1 seconds) should be_==(Connected)
 
-      mqttManager ! Publish("a/b", "Hello world".getBytes.to[Vector], AtMostOnce, Some(123))
+      mqttManager ! Publish("a/b", "Hello world".getBytes.toVector, AtMostOnce, Some(123))
 
       mqttManager ! Disconnect
 
@@ -156,7 +156,7 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
       val payload = makeRandomByteVector(131070)
 
       mqttManager ! Connect("Test", cleanSession = true)
@@ -184,13 +184,13 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test")
 
       receiveOne(1 seconds) should be_==(Connected)
 
-      mqttManager ! Publish("a/b", "Hello world".getBytes.to[Vector], AtLeastOnce, Some(123))
+      mqttManager ! Publish("a/b", "Hello world".getBytes.toVector, AtLeastOnce, Some(123))
 
       receiveOne(1 seconds) should be_==(Published(123))
 
@@ -203,13 +203,13 @@ object ActorSpec extends Specification {
       import net.sigusr.mqtt.api.{ Connect, Connected }
 
       val endpoint = new InetSocketAddress(brokerHost, 1883)
-      val mqttManager = testActorProxy { context ⇒ context.actorOf(Props(new TestMQTTManager(endpoint))) }
+      val mqttManager = testActorProxy { context => context.actorOf(Props(new TestMQTTManager(endpoint))) }
 
       mqttManager ! Connect("Test")
 
       receiveOne(1 seconds) should be_==(Connected)
 
-      mqttManager ! Publish("a/b", "Hello world".getBytes.to[Vector], ExactlyOnce, Some(123))
+      mqttManager ! Publish("a/b", "Hello world".getBytes.toVector, ExactlyOnce, Some(123))
 
       receiveOne(2 seconds) should be_==(Published(123))
 

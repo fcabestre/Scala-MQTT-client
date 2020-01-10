@@ -38,7 +38,7 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
 
   import context.dispatcher
 
-  type RegistersManagerBody = Any ⇒ RegistersState[Unit]
+  type RegistersManagerBody = Any => RegistersState[Unit]
 
   var registers: Registers = Registers(client = context.parent, tcpManager = tcpManagerActor)
 
@@ -46,63 +46,63 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
 
   def receive: Receive = notConnected
 
-  private def registersManager(body: ⇒ RegistersManagerBody): Receive = {
-    case m ⇒ registers = body(m).exec(registers)
+  private def registersManager(body: => RegistersManagerBody): Receive = {
+    case m => registers = body(m).exec(registers)
   }
 
   private def notConnected: Receive = LoggingReceive {
     registersManager {
-      case Status ⇒
+      case Status =>
         sendToClient(Disconnected)
-      case c: Connect ⇒
+      case c: Connect =>
         for {
-          _ ← sendToTcpManager(Tcp.Connect(mqttBrokerAddress))
-          actions ← handleApiConnect(c)
+          _ <- sendToTcpManager(Tcp.Connect(mqttBrokerAddress))
+          actions <- handleApiConnect(c)
         } yield context become connecting(actions)
-      case _: APICommand ⇒
+      case _: APICommand =>
         sendToClient(Error(NotConnected))
     }
   }
 
   private def connecting(pendingActions: Action): Receive = LoggingReceive {
     registersManager {
-      case Status ⇒
+      case Status =>
         sendToClient(Disconnected)
-      case _: APICommand ⇒
+      case _: APICommand =>
         sendToClient(Error(NotConnected))
-      case Tcp.CommandFailed(_: Tcp.Connect) ⇒
+      case Tcp.CommandFailed(_: Tcp.Connect) =>
         for {
-          _ ← setTCPManager(sender())
-          _ ← processAction(transportNotReady())
+          _ <- setTCPManager(sender())
+          _ <- processAction(transportNotReady())
         } yield context become notConnected
-      case Tcp.Connected(_, _) ⇒
+      case Tcp.Connected(_, _) =>
         for {
-          _ ← setTCPManager(sender())
-          _ ← sendToTcpManager(Tcp.Register(self))
-          _ ← processAction(pendingActions)
-          _ ← watchTcpManager
+          _ <- setTCPManager(sender())
+          _ <- sendToTcpManager(Tcp.Register(self))
+          _ <- processAction(pendingActions)
+          _ <- watchTcpManager
         } yield context become connected
     }
   }
 
   private def connected: Receive = LoggingReceive {
     registersManager {
-      case message: APICommand ⇒
+      case message: APICommand =>
         for {
-          actions ← handleApiCommand(message)
-          _ ← processAction(actions)
+          actions <- handleApiCommand(message)
+          _ <- processAction(actions)
         } yield ()
-      case TimerSignal ⇒
+      case TimerSignal =>
         for {
-          actions ← timerSignal(System.currentTimeMillis())
-          _ ← processAction(actions)
+          actions <- timerSignal(System.currentTimeMillis())
+          _ <- processAction(actions)
         } yield ()
-      case Tcp.Received(encodedResponse) ⇒
+      case Tcp.Received(encodedResponse) =>
         for {
-          bits ← getRemainingBits(encodedResponse)
-          _ ← decode(bits)
+          bits <- getRemainingBits(encodedResponse)
+          _ <- decode(bits)
         } yield ()
-      case Terminated(_) | _: Tcp.ConnectionClosed ⇒
+      case Terminated(_) | _: Tcp.ConnectionClosed =>
         disconnect()
     }
   }
@@ -110,59 +110,59 @@ abstract class Engine(mqttBrokerAddress: InetSocketAddress) extends Actor with H
   private def decode(bits: BitVector): RegistersState[Unit] = {
     def onSuccess(d: DecodeResult[Frame]): RegistersState[Unit] = {
       for {
-        actions ← handleNetworkFrames(d.value)
-        _ ← processAction(actions)
-        _ ← decode(d.remainder)
+        actions <- handleNetworkFrames(d.value)
+        _ <- processAction(actions)
+        _ <- decode(d.remainder)
       } yield ()
     }
-    def onError(bits: BitVector): Err ⇒ RegistersState[Unit] = {
-      case _: InsufficientBits ⇒ setRemainingBits(bits)
-      case _ ⇒ disconnect()
+    def onError(bits: BitVector): Err => RegistersState[Unit] = {
+      case _: InsufficientBits => setRemainingBits(bits)
+      case _ => disconnect()
     }
     Codec[Frame].decode(bits).fold(onError(bits), onSuccess)
   }
 
   private def disconnect(): RegistersState[Unit] = {
     for {
-      _ ← unwatchTcpManager
-      _ ← setTCPManager(tcpManagerActor)
-      _ ← resetTimerTask
-      _ ← processAction(connectionClosed())
+      _ <- unwatchTcpManager
+      _ <- setTCPManager(tcpManagerActor)
+      _ <- resetTimerTask
+      _ <- processAction(connectionClosed())
     } yield context become notConnected
   }
 
   private def processActionSeq(actions: Seq[Action]): RegistersState[Unit] =
-    if (actions.isEmpty) State { x ⇒ (x, ()) }
+    if (actions.isEmpty) State { x => (x, ()) }
     else for {
-      _ ← processAction(actions.head)
-      _ ← processActionSeq(actions.tail)
+      _ <- processAction(actions.head)
+      _ <- processActionSeq(actions.tail)
     } yield ()
 
   private def processAction(action: Action): RegistersState[Unit] = action match {
-    case Sequence(actions) ⇒
+    case Sequence(actions) =>
       processActionSeq(actions)
-    case SetKeepAlive(keepAlive) ⇒
+    case SetKeepAlive(keepAlive) =>
       setTimeOut(keepAlive)
-    case StartPingRespTimer(timeout) ⇒
+    case StartPingRespTimer(timeout) =>
       setTimerTask(context.system.scheduler.scheduleOnce(FiniteDuration(timeout, MILLISECONDS), self, TimerSignal))
-    case SetPendingPingResponse(isPending) ⇒
+    case SetPendingPingResponse(isPending) =>
       setPingResponsePending(isPending)
-    case SendToClient(message) ⇒
+    case SendToClient(message) =>
       sendToClient(message)
-    case SendToNetwork(frame) ⇒
+    case SendToNetwork(frame) =>
       for {
-        _ ← sendToTcpManager(Tcp.Write(ByteString(Codec[Frame].encode(frame).require.toByteArray)))
-        _ ← setLastSentMessageTimestamp(System.currentTimeMillis())
+        _ <- sendToTcpManager(Tcp.Write(ByteString(Codec[Frame].encode(frame).require.toByteArray)))
+        _ <- setLastSentMessageTimestamp(System.currentTimeMillis())
       } yield ()
-    case ForciblyCloseTransport ⇒
+    case ForciblyCloseTransport =>
       sendToTcpManager(Tcp.Abort)
-    case StoreSentInFlightFrame(id, frame) ⇒
+    case StoreSentInFlightFrame(id, frame) =>
       storeInFlightSentFrame(id, frame)
-    case RemoveSentInFlightFrame(id) ⇒
+    case RemoveSentInFlightFrame(id) =>
       removeInFlightSentFrame(id)
-    case StoreRecvInFlightFrameId(id) ⇒
+    case StoreRecvInFlightFrameId(id) =>
       storeInFlightRecvFrame(id)
-    case RemoveRecvInFlightFrameId(id) ⇒
+    case RemoveRecvInFlightFrameId(id) =>
       removeInFlightRecvFrame(id)
   }
 }

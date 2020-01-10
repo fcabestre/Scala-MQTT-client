@@ -72,7 +72,7 @@ object MessagesSpec extends Specification {
 
     "Allow pattern matching" in {
       MessageId(42) match {
-        case MessageId(i) ⇒ i should_=== 42
+        case MessageId(i) => i should_=== 42
       }
     }
 
@@ -97,25 +97,25 @@ object MessagesSpec extends Specification {
   "Connect" should {
     "Check the range of the keep alive value provided to its constructor" in {
       Connect("Client", keepAlive = -1) should throwA[IllegalArgumentException]
-      Connect("Client", keepAlive = 0) should not throwA ()
-      Connect("Client", keepAlive = 65635) should not throwA ()
+      Connect("Client", keepAlive = 0) should not(throwA[IllegalArgumentException])
+      Connect("Client", keepAlive = 65635) should not(throwA[IllegalArgumentException])
       Connect("Client", keepAlive = 65636) should throwA[IllegalArgumentException]
     }
 
     "Check a user is provided when a password is set" in {
       Connect("Client", password = Some("pass")) should throwA[IllegalArgumentException]
-      Connect("Client", user = Some("user"), password = Some("pass")) should not throwA ()
+      Connect("Client", user = Some("user"), password = Some("pass")) should not(throwA[IllegalArgumentException])
 
     }
   }
 
   "Publish" should {
     "Have a valid combination of QoS and message identifier" in {
-      Publish("topic", Vector(0x00), AtMostOnce) should not throwA ()
+      Publish("topic", Vector(0x00), AtMostOnce) should not(throwA[IllegalArgumentException])
       Publish("topic", Vector(0x00), AtLeastOnce) should throwA[IllegalArgumentException]
-      Publish("topic", Vector(0x00), AtLeastOnce, Some(1)) should not throwA ()
+      Publish("topic", Vector(0x00), AtLeastOnce, Some(1)) should not(throwA[IllegalArgumentException])
       Publish("topic", Vector(0x00), ExactlyOnce) should throwA[IllegalArgumentException]
-      Publish("topic", Vector(0x00), ExactlyOnce, Some(1)) should not throwA ()
+      Publish("topic", Vector(0x00), ExactlyOnce, Some(1)) should not(throwA[IllegalArgumentException])
     }
   }
 }

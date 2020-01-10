@@ -8,8 +8,8 @@ lazy val IntegrationTest = config("it") extend Test
 
 lazy val commonSettings = Seq(
   organization := "net.sigusr",
-  scalaVersion := "2.12.1",
-  crossScalaVersions := Seq("2.11.8", "2.12.1"),
+  scalaVersion := "2.13.1",
+  crossScalaVersions := Seq("2.11.8", "2.12.1", "2.13.1"),
   crossVersion := CrossVersion.binary,
 
   scalacOptions in Test ++= Seq("-Yrangepos"),
@@ -25,12 +25,9 @@ lazy val commonSettings = Seq(
     "-language:implicitConversions",
     "-Xfatal-warnings",
     "-Xlint:_",
-    "-Xfuture",
-    "-Yno-adapted-args",
     "-Ywarn-dead-code",
     "-Ywarn-numeric-widen",
-    "-Ywarn-value-discard",
-    "-Ywarn-unused-import")
+    "-Ywarn-value-discard")
 )
 
 lazy val root = (project in file("."))
@@ -40,28 +37,28 @@ lazy val root = (project in file("."))
 lazy val core = project
   .in(file("core"))
   .configs(IntegrationTest)
-  .settings(commonSettings ++ scalariformSettings ++ testSettings ++ pgpSetings ++ publishingSettings ++ Seq(
+  .settings(commonSettings ++ testSettings ++ pgpSettings ++ publishingSettings ++ Seq(
     name := """Scala-MQTT-client""",
     version := "0.7.0-SNAPSHOT",
 
-    resolvers += "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
+    resolvers += "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases",
 
     libraryDependencies ++= Seq(
-      "org.specs2" %% "specs2-core" % "3.8.6" % "test",
-      "com.typesafe.akka" %% "akka-actor" % "2.4.14",
-      "com.typesafe.akka" %% "akka-testkit" % "2.4.14",
-      "com.typesafe.akka" %% "akka-stream" % "2.4.14",
-      "com.typesafe.akka" %% "akka-stream-testkit" % "2.4.14",
-      "org.scodec" %% "scodec-core" % "1.10.3",
-      "org.scalaz" %% "scalaz-core" % "7.2.8")
+      "org.specs2" %% "specs2-core" % "4.8.3" % "test",
+      "com.typesafe.akka" %% "akka-actor" % "2.5.27",
+      "com.typesafe.akka" %% "akka-testkit" % "2.5.27",
+      "com.typesafe.akka" %% "akka-stream" % "2.5.27",
+      "com.typesafe.akka" %% "akka-stream-testkit" % "2.5.27",
+      "org.scodec" %% "scodec-core" % "1.11.4",
+      "org.scalaz" %% "scalaz-core" % "7.2.30")
   ))
 
 lazy val examples = project
   .in(file("examples"))
   .dependsOn(core)
-  .settings(commonSettings ++ scalariformSettings ++ Seq(
-    publish := (),
-    publishLocal := (),
+  .settings(commonSettings ++ Seq(
+    publish := ((): Unit),
+    publishLocal := ((): Unit),
     publishArtifact := false
   ))
 
@@ -75,20 +72,13 @@ def testSettings =
     testOptions in IntegrationTest := Seq(Tests.Filter(itFilter))
   ) ++ inConfig(IntegrationTest)(Defaults.testTasks)
 
-import com.typesafe.sbt.pgp.PgpKeys.{gpgCommand, pgpSecretRing, useGpg}
+import com.jsuereth.sbtpgp.PgpKeys.{gpgCommand, pgpSecretRing, useGpg}
 
-def pgpSetings =
+def pgpSettings =
   Seq(
     useGpg := true,
     gpgCommand := "/usr/bin/gpg2",
     pgpSecretRing := file("~/.gnupg/secring.gpg")
-  )
-
-
-def scalariformSettings =
-  defaultScalariformSettings ++ Seq(
-    ScalariformKeys.preferences :=
-      ScalariformKeys.preferences.value.setPreference(RewriteArrowSymbols, true)
   )
 
 val ossSnapshots = "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"

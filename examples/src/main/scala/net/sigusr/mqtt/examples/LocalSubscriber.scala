@@ -29,28 +29,28 @@ class LocalSubscriber(topics: Vector[String]) extends Actor {
   context.actorOf(Manager.props(new InetSocketAddress(1883))) ! Connect(localSubscriber)
 
   def receive: Receive = {
-    case Connected ⇒
+    case Connected =>
       println("Successfully connected to localhost:1883")
       sender() ! Subscribe((stopTopic +: topics) zip Vector.fill(topics.length + 1) { AtMostOnce }, 1)
       context become ready(sender())
-    case ConnectionFailure(reason) ⇒
+    case ConnectionFailure(reason) =>
       println(s"Connection to localhost:1883 failed [$reason]")
   }
 
   def ready(mqttManager: ActorRef): Receive = {
-    case Subscribed(vQoS, MessageId(1)) ⇒
+    case Subscribed(vQoS, MessageId(1)) =>
       println("Successfully subscribed to topics:")
       println(topics.mkString(" ", ",\n ", ""))
-    case Message(`stopTopic`, _) ⇒
+    case Message(`stopTopic`, _) =>
       mqttManager ! Disconnect
       context become disconnecting
-    case Message(topic, payload) ⇒
-      val message = new String(payload.to[Array], "UTF-8")
+    case Message(topic, payload) =>
+      val message = new String(payload.toArray, "UTF-8")
       println(s"[$topic] $message")
   }
 
   def disconnecting(): Receive = {
-    case Disconnected ⇒
+    case Disconnected =>
       println("Disconnected from localhost:1883")
       LocalSubscriber.shutdown()
   }
@@ -78,7 +78,7 @@ object LocalSubscriber {
   }
 
   def main(args: Array[String]) = {
-    system.actorOf(Props(classOf[LocalSubscriber], args.to[Vector]))
+    system.actorOf(Props(classOf[LocalSubscriber], args.toVector))
     sys.addShutdownHook { shutdown() }
     println(s"<$localSubscriber> started")
   }

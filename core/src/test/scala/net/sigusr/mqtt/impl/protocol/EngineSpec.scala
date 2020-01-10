@@ -19,11 +19,11 @@ package net.sigusr.mqtt.impl.protocol
 import java.net.InetSocketAddress
 
 import akka.actor._
-import akka.io.Tcp.{ Abort ⇒ TCPAbort, Aborted ⇒ TCPAborted, Closed ⇒ TCPClosed, CommandFailed ⇒ TCPCommandFailed, Connect ⇒ TCPConnect, Connected ⇒ TCPConnected, Received ⇒ TCPReceived, Register ⇒ TCPRegister, Write ⇒ TCPWrite }
+import akka.io.Tcp.{ Abort => TCPAbort, Aborted => TCPAborted, Closed => TCPClosed, CommandFailed => TCPCommandFailed, Connect => TCPConnect, Connected => TCPConnected, Received => TCPReceived, Register => TCPRegister, Write => TCPWrite }
 import akka.testkit.{ ImplicitSender, TestProbe }
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecsTestKit
-import net.sigusr.mqtt.api.{ Status ⇒ MqttApiStatus, _ }
+import net.sigusr.mqtt.api.{ Status => MqttApiStatus, _ }
 import net.sigusr.mqtt.impl.frames.{ Frame, Header, PublishFrame }
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
@@ -53,15 +53,15 @@ object EngineSpec extends Specification {
     val pubrelFrame = ByteString(0x62, 0x02, 0x00, 0x2a)
     val pubcompFrame = ByteString(0x70, 0x02, 0x00, 0x2a)
 
-    private val payload0 = "payload".getBytes.to[Vector]
+    private val payload0 = "payload".getBytes.toVector
     val frame0 = PublishFrame(Header(qos = ExactlyOnce.enum), "topic", 42, ByteVector(payload0))
     val publishFrame0 = ByteString(Codec[Frame].encode(frame0).require.toByteArray)
 
-    val payload1: Vector[Byte] = "payload of frame 1".getBytes.to[Vector]
+    val payload1: Vector[Byte] = "payload of frame 1".getBytes.toVector
     val frame1 = PublishFrame(Header(qos = AtMostOnce.enum), "topic", 42, ByteVector(payload1))
     val publishFrame1 = ByteString(Codec[Frame].encode(frame1).require.toByteArray)
 
-    val payload2: Vector[Byte] = "payload of frame 2".getBytes.to[Vector]
+    val payload2: Vector[Byte] = "payload of frame 2".getBytes.toVector
     val frame2 = PublishFrame(Header(qos = AtMostOnce.enum), "topic", 42, ByteVector(payload2))
     val publishFrame2 = ByteString(Codec[Frame].encode(frame2).require.toByteArray)
 
@@ -76,7 +76,7 @@ object EngineSpec extends Specification {
 
     def expectConnect(): Unit = {
       expectMsgPF() {
-        case TCPConnect(remote, _, _, _, _) ⇒
+        case TCPConnect(remote, _, _, _, _) =>
           remote should be_==(fakeBrokerAddress)
           sender() ! TCPConnected(fakeBrokerAddress, fakeLocalAddress)
       }
@@ -84,7 +84,7 @@ object EngineSpec extends Specification {
 
     def expectConnectThenFail(): Unit = {
       expectMsgPF() {
-        case c @ TCPConnect(remote, _, _, _, _) ⇒
+        case c @ TCPConnect(remote, _, _, _, _) =>
           remote should_== fakeBrokerAddress
           sender() ! TCPCommandFailed(c)
       }
@@ -92,14 +92,14 @@ object EngineSpec extends Specification {
 
     def expectRegister(): Unit = {
       expectMsgPF() {
-        case TCPRegister(handler, _, _) ⇒
+        case TCPRegister(handler, _, _) =>
           mqttManager = Some(handler)
       }
     }
 
     def expectWriteConnectFrame(): Unit = {
       expectMsgPF() {
-        case TCPWrite(byteString, _) ⇒
+        case TCPWrite(byteString, _) =>
           (byteString.head & 0xff) should_== 0x10
           sender() ! TCPReceived(connackFrame)
       }
@@ -107,7 +107,7 @@ object EngineSpec extends Specification {
 
     def expectWritePingReqFrame(): Unit = {
       expectMsgPF() {
-        case TCPWrite(byteString, _) ⇒
+        case TCPWrite(byteString, _) =>
           (byteString.head & 0xff) should_== 0xc0
           if (pingReqCount == 0) {
             sender() ! TCPReceived(pingRespFrame)
@@ -118,7 +118,7 @@ object EngineSpec extends Specification {
 
     def expectWritePublishFrame(): Unit = {
       expectMsgPF() {
-        case TCPWrite(byteString, _) ⇒
+        case TCPWrite(byteString, _) =>
           (byteString.head & 0xff) should_== 0x34
           sender() ! TCPReceived(pubrecFrame)
       }
@@ -126,7 +126,7 @@ object EngineSpec extends Specification {
 
     def expectWritePubrelFrame(): Unit = {
       expectMsgPF() {
-        case TCPWrite(byteString, _) ⇒
+        case TCPWrite(byteString, _) =>
           (byteString.head & 0xff) should_== 0x62
           sender() ! TCPReceived(pubcompFrame)
       }
@@ -134,7 +134,7 @@ object EngineSpec extends Specification {
 
     def expectWritePubrecFrame(): Unit = {
       expectMsgPF() {
-        case TCPWrite(byteString, _) ⇒
+        case TCPWrite(byteString, _) =>
           (byteString.head & 0xff) should_== 0x50
           sender() ! TCPReceived(pubrelFrame)
       }
@@ -142,14 +142,14 @@ object EngineSpec extends Specification {
 
     def expectWritePubcompFrame(): MatchResult[Any] = {
       expectMsgPF() {
-        case TCPWrite(byteString, _) ⇒
+        case TCPWrite(byteString, _) =>
           (byteString.head & 0xff) should_== 0x70
       }
     }
 
     def expectWriteDisconnectFrame(): Unit = {
       expectMsgPF() {
-        case TCPWrite(byteString, _) ⇒
+        case TCPWrite(byteString, _) =>
           (byteString.head & 0xff) should_== 0xe0
           sender() ! TCPClosed
       }
@@ -157,7 +157,7 @@ object EngineSpec extends Specification {
 
     def expectClose(): Unit = {
       expectMsgPF() {
-        case TCPAbort ⇒ sender() ! TCPAborted
+        case TCPAbort => sender() ! TCPAborted
       }
     }
 
@@ -169,8 +169,8 @@ object EngineSpec extends Specification {
   class FakeMQTTManagerParent(testMQTTManagerName: String, fakeTCPManagerActor: ActorRef)(implicit testActor: ActorRef) extends Actor {
     val child = context.actorOf(Props(new TestManager(fakeTCPManagerActor)), testMQTTManagerName)
     def receive = {
-      case x if sender == child ⇒ testActor forward x
-      case x ⇒ child forward x
+      case x if sender == child => testActor forward x
+      case x => child forward x
     }
   }
 
@@ -362,7 +362,7 @@ object EngineSpec extends Specification {
 
       expectMsg(Connected)
 
-      mqttManagerActor ! Publish("topic", "payload".getBytes.to[Vector], ExactlyOnce, Some(42))
+      mqttManagerActor ! Publish("topic", "payload".getBytes.toVector, ExactlyOnce, Some(42))
 
       fakeTCPManagerActor.expectWritePublishFrame()
       fakeTCPManagerActor.expectWritePubrelFrame()
@@ -390,7 +390,7 @@ object EngineSpec extends Specification {
       fakeTCPManagerActor.sendPublishFrame(fakeTCPManagerActor.publishFrame0)
       fakeTCPManagerActor.expectWritePubrecFrame()
 
-      expectMsg(Message("topic", "payload".getBytes.to[Vector]))
+      expectMsg(Message("topic", "payload".getBytes.toVector))
 
       fakeTCPManagerActor.expectWritePubcompFrame()
 

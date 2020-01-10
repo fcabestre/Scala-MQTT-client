@@ -40,19 +40,19 @@ class LocalPublisher(toPublish: Vector[String]) extends Actor {
   }
 
   def receive: Receive = {
-    case Connected ⇒
+    case Connected =>
       println("Successfully connected to localhost:1883")
       println(s"Ready to publish to topic [ $localPublisher ]")
       scheduleRandomMessage()
       context become ready(sender())
-    case ConnectionFailure(reason) ⇒
+    case ConnectionFailure(reason) =>
       println(s"Connection to localhost:1883 failed [$reason]")
   }
 
   def ready(mqttManager: ActorRef): Receive = {
-    case m: String ⇒
+    case m: String =>
       println(s"Publishing [ $m ]")
-      mqttManager ! Publish(localPublisher, m.getBytes("UTF-8").to[Vector])
+      mqttManager ! Publish(localPublisher, m.getBytes("UTF-8").toVector)
       scheduleRandomMessage()
   }
 }
@@ -80,7 +80,7 @@ object LocalPublisher {
   }
 
   def main(args: Array[String]) = {
-    system.actorOf(Props(classOf[LocalPublisher], args.to[Vector]))
+    system.actorOf(Props(classOf[LocalPublisher], args.toVector))
     sys.addShutdownHook { shutdown() }
     println(s"<$localPublisher> started")
   }

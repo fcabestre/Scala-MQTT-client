@@ -27,7 +27,7 @@ trait Handlers {
 
   private val zeroId = MessageId(0)
 
-  private[protocol] def handleApiConnect(connect: Connect): RegistersState[Action] = gets { registers ⇒
+  private[protocol] def handleApiConnect(connect: Connect): RegistersState[Action] = gets { registers =>
     val header = Header(dup = false, AtMostOnce.enum, retain = false)
     val retain = connect.will.fold(false)(_.retain)
     val qos = connect.will.fold(AtMostOnce.enum)(_.qos.enum)
@@ -40,108 +40,97 @@ trait Handlers {
       qos,
       willFlag = connect.will.isDefined,
       connect.cleanSession,
-      connect.keepAlive
-    )
+      connect.keepAlive)
     val actions = Seq(
       SetKeepAlive(connect.keepAlive.toLong * 1000),
-      SendToNetwork(ConnectFrame(header, variableHeader, connect.clientId, topic, message, connect.user, connect.password))
-    )
-    Sequence(if (!connect.cleanSession) actions ++ registers.inFlightSentFrame.toSeq.map(p ⇒ SendToNetwork(p._2)) else actions)
+      SendToNetwork(ConnectFrame(header, variableHeader, connect.clientId, topic, message, connect.user, connect.password)))
+    Sequence(if (!connect.cleanSession) actions ++ registers.inFlightSentFrame.toSeq.map(p => SendToNetwork(p._2)) else actions)
   }
 
-  private[protocol] def handleApiCommand(apiCommand: APICommand): RegistersState[Action] = gets { registers ⇒
+  private[protocol] def handleApiCommand(apiCommand: APICommand): RegistersState[Action] = gets { registers =>
     apiCommand match {
-      case Connect(clientId, keepAlive, cleanSession, will, user, password) ⇒
+      case Connect(clientId, keepAlive, cleanSession, will, user, password) =>
         SendToClient(Error(AlreadyConnected))
-      case Disconnect ⇒
+      case Disconnect =>
         val header = Header(dup = false, AtMostOnce.enum, retain = false)
         SendToNetwork(DisconnectFrame(header))
-      case Publish(topic, payload, qos, messageId, retain) if qos == AtMostOnce ⇒
+      case Publish(topic, payload, qos, messageId, retain) if qos == AtMostOnce =>
         val header = Header(dup = false, qos.enum, retain = retain)
         SendToNetwork(PublishFrame(header, topic, messageId.getOrElse(zeroId).identifier, ByteVector(payload)))
-      case Publish(topic, payload, qos, Some(messageId), retain) ⇒
+      case Publish(topic, payload, qos, Some(messageId), retain) =>
         val header = Header(dup = false, qos.enum, retain = retain)
         val frame = PublishFrame(header, topic, messageId.identifier, ByteVector(payload))
         Sequence(Seq(
           StoreSentInFlightFrame(messageId.identifier, PublishFrame.dupLens.set(frame)(true)),
-          SendToNetwork(frame)
-        ))
-      case Subscribe(topics, messageId) ⇒
+          SendToNetwork(frame)))
+      case Subscribe(topics, messageId) =>
         val header = Header(dup = false, AtLeastOnce.enum, retain = false)
-        SendToNetwork(SubscribeFrame(header, messageId.identifier, topics.map((v: (String, QualityOfService)) ⇒ (v._1, v._2.enum))))
-      case Unsubscribe(topics, messageId) ⇒
+        SendToNetwork(SubscribeFrame(header, messageId.identifier, topics.map((v: (String, QualityOfService)) => (v._1, v._2.enum))))
+      case Unsubscribe(topics, messageId) =>
         val header = Header(dup = false, AtLeastOnce.enum, retain = false)
         SendToNetwork(UnsubscribeFrame(header, messageId.identifier, topics))
-      case Status ⇒
+      case Status =>
         SendToClient(Connected)
     }
   }
 
-  private[protocol] def handleNetworkFrames(frame: Frame): RegistersState[Action] = gets { registers ⇒
+  private[protocol] def handleNetworkFrames(frame: Frame): RegistersState[Action] = gets { registers =>
     frame match {
-      case ConnackFrame(header, 0) ⇒
+      case ConnackFrame(header, 0) =>
         if (registers.keepAlive == 0) SendToClient(Connected)
         else Sequence(Seq(
           StartPingRespTimer(registers.keepAlive),
-          SendToClient(Connected)
-        ))
-      case ConnackFrame(header, returnCode) ⇒
+          SendToClient(Connected)))
+      case ConnackFrame(header, returnCode) =>
         SendToClient(ConnectionFailure(ConnectionFailureReason.fromEnum(returnCode)))
-      case PingRespFrame(header) ⇒
+      case PingRespFrame(header) =>
         SetPendingPingResponse(isPending = false)
-      case PublishFrame(header, topic, messageIdentifier, payload) ⇒
-        val toClient = SendToClient(Message(topic, payload.toArray.to[Vector]))
+      case PublishFrame(header, topic, messageIdentifier, payload) =>
+        val toClient = SendToClient(Message(topic, payload.toArray.toVector))
         header.qos match {
-          case AtMostOnce.enum ⇒
+          case AtMostOnce.enum =>
             toClient
-          case AtLeastOnce.enum ⇒
+          case AtLeastOnce.enum =>
             Sequence(Seq(
               toClient,
-              SendToNetwork(PubackFrame(Header(), messageIdentifier))
-            ))
-          case ExactlyOnce.enum ⇒
+              SendToNetwork(PubackFrame(Header(), messageIdentifier))))
+          case ExactlyOnce.enum =>
             if (registers.inFlightRecvFrame(messageIdentifier))
               Sequence(Seq(
-                SendToNetwork(PubrecFrame(Header(), messageIdentifier))
-              ))
+                SendToNetwork(PubrecFrame(Header(), messageIdentifier))))
             else
               Sequence(Seq(
                 toClient,
                 StoreRecvInFlightFrameId(messageIdentifier),
-                SendToNetwork(PubrecFrame(Header(), messageIdentifier))
-              ))
+                SendToNetwork(PubrecFrame(Header(), messageIdentifier))))
         }
-      case PubackFrame(header, messageId) ⇒
+      case PubackFrame(header, messageId) =>
         Sequence(Seq(
           RemoveSentInFlightFrame(messageId),
-          SendToClient(Published(messageId))
-        ))
-      case PubrecFrame(header, messageIdentifier) ⇒
+          SendToClient(Published(messageId))))
+      case PubrecFrame(header, messageIdentifier) =>
         val pubrelFrame = PubrelFrame(header.copy(qos = 1), messageIdentifier)
         Sequence(Seq(
           RemoveSentInFlightFrame(messageIdentifier),
           StoreSentInFlightFrame(messageIdentifier.identifier, PubrelFrame.dupLens.set(pubrelFrame)(true)),
-          SendToNetwork(pubrelFrame)
-        ))
-      case PubrelFrame(header, messageIdentifier) ⇒
+          SendToNetwork(pubrelFrame)))
+      case PubrelFrame(header, messageIdentifier) =>
         Sequence(Seq(
           RemoveRecvInFlightFrameId(messageIdentifier),
-          SendToNetwork(PubcompFrame(header.copy(qos = 0), messageIdentifier))
-        ))
-      case PubcompFrame(header, messageId) ⇒
+          SendToNetwork(PubcompFrame(header.copy(qos = 0), messageIdentifier))))
+      case PubcompFrame(header, messageId) =>
         Sequence(Seq(
           RemoveSentInFlightFrame(messageId),
-          SendToClient(Published(messageId))
-        ))
-      case SubackFrame(header, messageIdentifier, topicResults) ⇒
+          SendToClient(Published(messageId))))
+      case SubackFrame(header, messageIdentifier, topicResults) =>
         SendToClient(Subscribed(topicResults.map(QualityOfService.fromEnum), messageIdentifier.identifier))
-      case UnsubackFrame(header, messageId) ⇒
+      case UnsubackFrame(header, messageId) =>
         SendToClient(Unsubscribed(messageId))
-      case _ ⇒ ForciblyCloseTransport
+      case _ => ForciblyCloseTransport
     }
   }
 
-  private[protocol] def timerSignal(currentTime: Long): RegistersState[Action] = gets { registers ⇒
+  private[protocol] def timerSignal(currentTime: Long): RegistersState[Action] = gets { registers =>
     if (registers.isPingResponsePending)
       ForciblyCloseTransport
     else {
@@ -150,8 +139,7 @@ trait Handlers {
         Sequence(Seq(
           SetPendingPingResponse(isPending = true),
           StartPingRespTimer(registers.keepAlive),
-          SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))
-        ))
+          SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))))
       else
         StartPingRespTimer(timeout)
     }

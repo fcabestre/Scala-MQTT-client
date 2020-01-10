@@ -21,13 +21,12 @@ sealed trait APICommand
 case class Will(retain: Boolean, qos: QualityOfService, topic: String, message: String)
 
 case class Connect(
-    clientId: String,
-    keepAlive: Int = DEFAULT_KEEP_ALIVE,
-    cleanSession: Boolean = true,
-    will: Option[Will] = None,
-    user: Option[String] = None,
-    password: Option[String] = None
-) extends APICommand {
+  clientId: String,
+  keepAlive: Int = DEFAULT_KEEP_ALIVE,
+  cleanSession: Boolean = true,
+  will: Option[Will] = None,
+  user: Option[String] = None,
+  password: Option[String] = None) extends APICommand {
   assert(keepAlive >= 0 && keepAlive < 65636, "Keep alive value should be in the range [0..65535]")
   assert(user.isDefined || !password.isDefined, "A password cannot be provided without user")
 }
@@ -37,12 +36,11 @@ case object Status extends APICommand
 case object Disconnect extends APICommand
 
 case class Publish(
-    topic: String,
-    payload: Vector[Byte],
-    qos: QualityOfService = AtMostOnce,
-    messageId: Option[MessageId] = None,
-    retain: Boolean = false
-) extends APICommand {
+  topic: String,
+  payload: Vector[Byte],
+  qos: QualityOfService = AtMostOnce,
+  messageId: Option[MessageId] = None,
+  retain: Boolean = false) extends APICommand {
   assert(qos == AtMostOnce || messageId.isDefined, "A message identifier must be provided when QoS is greater than 0")
 }
 
