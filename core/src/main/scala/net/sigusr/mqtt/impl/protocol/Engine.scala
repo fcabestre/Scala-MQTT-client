@@ -25,12 +25,12 @@ import akka.util.ByteString
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames.Frame
 import net.sigusr.mqtt.impl.protocol.Registers._
+import scalaz.State
 import scodec.Err.InsufficientBits
 import scodec.bits.BitVector
 import scodec.{ Codec, DecodeResult, Err }
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
-import scalaz.State
 
 private[protocol] case object TimerSignal
 

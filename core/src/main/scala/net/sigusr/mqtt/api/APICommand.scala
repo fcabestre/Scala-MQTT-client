@@ -16,6 +16,8 @@
 
 package net.sigusr.mqtt.api
 
+import net.sigusr.mqtt.api.QualityOfService.AtMostOnce
+
 sealed trait APICommand
 
 case class Will(retain: Boolean, qos: QualityOfService, topic: String, message: String)
@@ -28,7 +30,7 @@ case class Connect(
   user: Option[String] = None,
   password: Option[String] = None) extends APICommand {
   assert(keepAlive >= 0 && keepAlive < 65636, "Keep alive value should be in the range [0..65535]")
-  assert(user.isDefined || !password.isDefined, "A password cannot be provided without user")
+  assert(user.isDefined || password.isEmpty, "A password cannot be provided without user")
 }
 
 case object Status extends APICommand

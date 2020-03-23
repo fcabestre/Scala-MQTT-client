@@ -17,6 +17,8 @@
 package net.sigusr.mqtt.impl.protocol
 
 import net.sigusr.mqtt.SpecUtils._
+import net.sigusr.mqtt.api.ConnectionFailureReason.{ BadUserNameOrPassword, ServerNotResponding }
+import net.sigusr.mqtt.api.QualityOfService.{ AtLeastOnce, AtMostOnce, ExactlyOnce }
 import net.sigusr.mqtt.api._
 import net.sigusr.mqtt.impl.frames._
 import org.specs2.mutable.Specification
@@ -50,8 +52,8 @@ object HandlersSpec extends Specification with Handlers {
       val user = Some("user")
       val password = Some("password")
       val input = Connect(clientId, keepAlive, cleanSession, Some(will), user, password)
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = true, cleanSession, keepAlive)
+      val header = Header(dup = false, AtMostOnce.value)
+      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.value, willFlag = true, cleanSession, keepAlive)
       val publishFrame = PublishFrame(Header(), "topic", 42, ByteVector(0x01))
       val pubrecFrame = PubrecFrame(Header(), 19)
       val registers = Registers(inFlightSentFrame = TreeMap(42 -> publishFrame, 19 -> pubrecFrame))
@@ -72,11 +74,11 @@ object HandlersSpec extends Specification with Handlers {
       val password = Some("password")
       val input = Connect(clientId, keepAlive, cleanSession, Some(will), user, password)
 
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
-      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.enum, willFlag = true, cleanSession, keepAlive)
+      val header = Header(dup = false, AtMostOnce.value)
+      val variableHeader = ConnectVariableHeader(user.isDefined, password.isDefined, willRetain = false, AtLeastOnce.value, willFlag = true, cleanSession, keepAlive)
       val connectFrame = ConnectFrame(header, variableHeader, clientId, topic, message, user, password)
       val publishFrame = PublishFrame(Header(dup = true), "topic", 42, ByteVector(0x01))
-      val pubrelFrame = PubrelFrame(Header(dup = true, qos = AtMostOnce.enum), 19)
+      val pubrelFrame = PubrelFrame(Header(dup = true, qos = AtMostOnce.value), 19)
       val registers = Registers(inFlightSentFrame = TreeMap(42 -> publishFrame, 19 -> pubrelFrame))
 
       val expected = Sequence(Seq(
@@ -104,7 +106,7 @@ object HandlersSpec extends Specification with Handlers {
 
     "Define the action to perform to handle a Disconnect API message" in {
       val input = Disconnect
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val header = Header(dup = false, AtMostOnce.value)
       val expected = SendToNetwork(DisconnectFrame(header))
       handleApiCommand(input).eval(Registers()) should_== expected
     }
@@ -120,8 +122,8 @@ object HandlersSpec extends Specification with Handlers {
       val topicsInput = Vector(("topic0", AtMostOnce), ("topic1", ExactlyOnce), ("topic2", AtLeastOnce))
       val messageId = Random.nextInt(65536)
       val input = Subscribe(topicsInput, messageId)
-      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
-      val topicsResult = Vector(("topic0", AtMostOnce.enum), ("topic1", ExactlyOnce.enum), ("topic2", AtLeastOnce.enum))
+      val header = Header(dup = false, AtLeastOnce.value)
+      val topicsResult = Vector(("topic0", AtMostOnce.value), ("topic1", ExactlyOnce.value), ("topic2", AtLeastOnce.value))
       val expected = SendToNetwork(SubscribeFrame(header, messageId, topicsResult))
       handleApiCommand(input).eval(Registers()) should_== expected
     }
@@ -130,7 +132,7 @@ object HandlersSpec extends Specification with Handlers {
       val topicsInput = Vector("topic0")
       val messageId = Random.nextInt(65536)
       val input = Unsubscribe(topicsInput, messageId)
-      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val header = Header(dup = false, AtLeastOnce.value)
       val topicsResult = Vector("topic0")
       val expected = SendToNetwork(UnsubscribeFrame(header, messageId, topicsResult))
       handleApiCommand(input).eval(Registers()) should_== expected
@@ -143,7 +145,7 @@ object HandlersSpec extends Specification with Handlers {
       val payload = makeRandomByteVector(48)
       val messageId = Random.nextInt(65536)
       val input = Publish(topic, payload, qos, Some(messageId), retain)
-      val header = Header(dup = false, qos.enum, retain)
+      val header = Header(dup = false, qos.value, retain)
       val expected = SendToNetwork(PublishFrame(header, topic, messageId, ByteVector(payload)))
       handleApiCommand(input).eval(Registers()) should_== expected
     }
@@ -155,8 +157,8 @@ object HandlersSpec extends Specification with Handlers {
       val payload = makeRandomByteVector(32)
       val messageId = Random.nextInt(65536)
       val input = Publish(topic, payload, qos, Some(messageId), retain)
-      val inputHeader = Header(dup = false, qos.enum, retain)
-      val expectedHeader = Header(dup = true, qos.enum, retain)
+      val inputHeader = Header(dup = false, qos.value, retain)
+      val expectedHeader = Header(dup = true, qos.value, retain)
       val expected =
         Sequence(
           Seq(
@@ -168,17 +170,17 @@ object HandlersSpec extends Specification with Handlers {
 
   "The timerSignal() function" should {
     "Define the action to perform to handle a SendKeepAlive internal API message while not waiting for a ping response and messages were recently sent" in {
-      val state = Registers(keepAlive = 30000, lastSentMessageTimestamp = 120000000, isPingResponsePending = false)
+      val state = Registers(keepAlive = 30000, lastSentMessageTimestamp = 120000000)
       val expected = StartPingRespTimer(29500)
       timerSignal(120000500).eval(state) should_== expected
     }
 
     "Define the action to perform to handle a SendKeepAlive internal API message while not waiting for a ping response but no messages were recently sent" in {
-      val state = Registers(keepAlive = 30000, lastSentMessageTimestamp = 120000000, isPingResponsePending = false)
+      val state = Registers(keepAlive = 30000, lastSentMessageTimestamp = 120000000)
       val expected = Sequence(Seq(
         SetPendingPingResponse(isPending = true),
         StartPingRespTimer(30000),
-        SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.enum, retain = false)))))
+        SendToNetwork(PingReqFrame(Header(dup = false, AtMostOnce.value)))))
       timerSignal(120029001).eval(state) should_== expected
     }
 
@@ -192,7 +194,7 @@ object HandlersSpec extends Specification with Handlers {
   "The handleNetworkFrames() function" should {
 
     "Provide no actions when the frame should not be handled" in {
-      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val header = Header(dup = false, AtLeastOnce.value)
       val input = PingReqFrame(header)
       val state = Registers(keepAlive = 30000)
       val expected = ForciblyCloseTransport
@@ -200,7 +202,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a ConnackFrame on a successful connection with keep alive greater than 0" in {
-      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val header = Header(dup = false, AtLeastOnce.value)
       val input = ConnackFrame(header, 0)
       val state = Registers(keepAlive = 30000)
       val expected = Sequence(Seq(StartPingRespTimer(state.keepAlive), SendToClient(Connected)))
@@ -208,7 +210,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a ConnackFrame on a successful connection with keep alive equal to 0" in {
-      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val header = Header(dup = false, AtLeastOnce.value)
       val input = ConnackFrame(header, 0)
       val state = Registers(keepAlive = 0)
       val expected = SendToClient(Connected)
@@ -216,16 +218,16 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a ConnackFrame (failed connection)" in {
-      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val header = Header(dup = false, AtLeastOnce.value)
       val reason = BadUserNameOrPassword
-      val input = ConnackFrame(header, reason.enum)
+      val input = ConnackFrame(header, reason.value)
       val state = Registers(keepAlive = 30000)
       val expected = SendToClient(ConnectionFailure(reason))
       handleNetworkFrames(input).eval(state) should_== expected
     }
 
     "Define the actions to perform to handle a PingRespFrame" in {
-      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val header = Header(dup = false, AtLeastOnce.value)
       val input = PingRespFrame(header)
       val state = Registers(keepAlive = 30000)
       val expected = SetPendingPingResponse(isPending = false)
@@ -233,7 +235,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a PublishFrame with a QoS of at most once" in {
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val header = Header(dup = false, AtMostOnce.value)
       val topic = "topic"
       val payload = makeRandomByteVector(64)
       val input = PublishFrame(header, topic, Random.nextInt(65536), ByteVector(payload))
@@ -243,7 +245,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a PublishFrame with a QoS of at least once" in {
-      val header = Header(dup = false, AtLeastOnce.enum, retain = false)
+      val header = Header(dup = false, AtLeastOnce.value)
       val topic = "topic"
       val payload = makeRandomByteVector(64)
       val messageId = Random.nextInt(65536)
@@ -256,7 +258,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle an already received PublishFrame with a QoS of exactly once" in {
-      val header = Header(dup = false, ExactlyOnce.enum, retain = false)
+      val header = Header(dup = false, ExactlyOnce.value)
       val topic = "topic"
       val payload = makeRandomByteVector(64)
       val messageId = Random.nextInt(65536)
@@ -268,7 +270,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a new PublishFrame with a QoS of exactly once" in {
-      val header = Header(dup = false, ExactlyOnce.enum, retain = false)
+      val header = Header(dup = false, ExactlyOnce.value)
       val topic = "topic"
       val payload = makeRandomByteVector(64)
       val messageId = Random.nextInt(65536)
@@ -282,7 +284,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a PubackFrame" in {
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val header = Header(dup = false, AtMostOnce.value)
       val messageId = Random.nextInt(65536)
       val input = PubackFrame(header, messageId)
       val state = Registers(keepAlive = 30000)
@@ -291,7 +293,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a PubrecFrame" in {
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val header = Header(dup = false, AtMostOnce.value)
       val messageId = Random.nextInt(65536)
       val input = PubrecFrame(header, messageId)
       val state = Registers(keepAlive = 30000)
@@ -306,7 +308,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a PubrelFrame" in {
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val header = Header(dup = false, AtMostOnce.value)
       val messageId = Random.nextInt(65536)
       val input = PubrelFrame(header.copy(qos = 1), messageId)
       val state = Registers(keepAlive = 30000)
@@ -318,7 +320,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a PubcompFrame" in {
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val header = Header(dup = false, AtMostOnce.value)
       val messageId = Random.nextInt(65536)
       val input = PubcompFrame(header, messageId)
       val state = Registers(keepAlive = 30000)
@@ -327,9 +329,9 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle a SubackFrame" in {
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val header = Header(dup = false, AtMostOnce.value)
       val messageId = Random.nextInt(65536)
-      val qosInput = Vector(AtLeastOnce.enum, ExactlyOnce.enum)
+      val qosInput = Vector(AtLeastOnce.value, ExactlyOnce.value)
       val qosResult = Vector(AtLeastOnce, ExactlyOnce)
       val input = SubackFrame(header, messageId, qosInput)
       val state = Registers(keepAlive = 30000)
@@ -338,7 +340,7 @@ object HandlersSpec extends Specification with Handlers {
     }
 
     "Define the actions to perform to handle an UnsubackFrame" in {
-      val header = Header(dup = false, AtMostOnce.enum, retain = false)
+      val header = Header(dup = false, AtMostOnce.value)
       val messageId = Random.nextInt(65536)
       val input = UnsubackFrame(header, messageId)
       val state = Registers(keepAlive = 30000)

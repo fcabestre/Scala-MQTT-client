@@ -16,7 +16,7 @@
 
 package net.sigusr.mqtt
 
-import org.specs2.matcher.{ Expectable, Matcher }
+import org.specs2.matcher.{ Expectable, MatchResult, Matcher }
 import scodec.{ Attempt, Err }
 
 import scala.util.Random
@@ -24,7 +24,7 @@ import scala.util.Random
 object SpecUtils {
 
   class SuccessfulAttemptMatcher[T](v: T) extends Matcher[Attempt[T]] {
-    def apply[S <: Attempt[T]](e: Expectable[S]) = {
+    def apply[S <: Attempt[T]](e: Expectable[S]): MatchResult[S] = {
       result(
         e.value.fold(_ => false, _ == v),
         s"${e.description} equals to $v",
@@ -34,7 +34,7 @@ object SpecUtils {
   }
 
   class FailedAttemptMatcher[T](m: Err) extends Matcher[Attempt[T]] {
-    def apply[S <: Attempt[T]](e: Expectable[S]) = {
+    def apply[S <: Attempt[T]](e: Expectable[S]): MatchResult[S] = {
       result(
         e.value.fold(_ => true, _ != m),
         s"${e.description} equals to $m",
@@ -47,7 +47,7 @@ object SpecUtils {
 
   def failWith[T](t: Err) = new FailedAttemptMatcher[T](t)
 
-  def makeRandomByteVector(size: Int) = {
+  def makeRandomByteVector(size: Int): Vector[Byte] = {
     val bytes = new Array[Byte](size)
     Random.nextBytes(bytes)
     bytes.toVector

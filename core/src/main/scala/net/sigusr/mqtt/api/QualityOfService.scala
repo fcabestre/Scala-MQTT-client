@@ -16,20 +16,14 @@
 
 package net.sigusr.mqtt.api
 
-import scala.annotation.switch
+import enumeratum.values._
 
-sealed trait QualityOfService extends CaseEnum
+sealed abstract class QualityOfService(val value: Int) extends IntEnumEntry
 
-object AtMostOnce extends QualityOfService { val enum = 0 }
-object AtLeastOnce extends QualityOfService { val enum = 1 }
-object ExactlyOnce extends QualityOfService { val enum = 2 }
+object QualityOfService extends IntEnum[QualityOfService] {
+  object AtMostOnce extends QualityOfService(0)
+  object AtLeastOnce extends QualityOfService(1)
+  object ExactlyOnce extends QualityOfService(2)
 
-object QualityOfService {
-  def fromEnum(enum: Int): QualityOfService =
-    (enum: @switch) match {
-      case 0 => AtMostOnce
-      case 1 => AtLeastOnce
-      case 2 => ExactlyOnce
-      case _ => throw new IllegalArgumentException("Quality of service encoded value should be in the range [0..2]")
-    }
+  val values: IndexedSeq[QualityOfService] = findValues
 }

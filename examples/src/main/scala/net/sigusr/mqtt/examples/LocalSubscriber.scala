@@ -20,6 +20,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
 import com.typesafe.config.ConfigFactory
+import net.sigusr.mqtt.api.QualityOfService.AtMostOnce
 import net.sigusr.mqtt.api._
 
 class LocalSubscriber(topics: Vector[String]) extends Actor {
@@ -38,7 +39,7 @@ class LocalSubscriber(topics: Vector[String]) extends Actor {
   }
 
   def ready(mqttManager: ActorRef): Receive = {
-    case Subscribed(vQoS, MessageId(1)) =>
+    case Subscribed(_, MessageId(1)) =>
       println("Successfully subscribed to topics:")
       println(topics.mkString(" ", ",\n ", ""))
     case Message(`stopTopic`, _) =>
@@ -70,14 +71,14 @@ object LocalSubscriber {
          }
        }
     """
-  val system = ActorSystem(localSubscriber, ConfigFactory.parseString(config))
+  val system: ActorSystem = ActorSystem(localSubscriber, ConfigFactory.parseString(config))
 
   def shutdown(): Unit = {
     system.terminate()
     println(s"<$localSubscriber> stopped")
   }
 
-  def main(args: Array[String]) = {
+  def main(args: Array[String]): Unit = {
     system.actorOf(Props(classOf[LocalSubscriber], args.toVector))
     sys.addShutdownHook { shutdown() }
     println(s"<$localSubscriber> started")

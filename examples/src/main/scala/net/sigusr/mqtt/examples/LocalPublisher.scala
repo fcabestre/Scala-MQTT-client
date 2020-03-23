@@ -31,7 +31,7 @@ class LocalPublisher(toPublish: Vector[String]) extends Actor {
 
   context.actorOf(Manager.props(new InetSocketAddress(1883))) ! Connect(localSubscriber)
 
-  val length = toPublish.length
+  val length: Int = toPublish.length
 
   def scheduleRandomMessage(): Unit = {
     val message = toPublish(Random.nextInt(length))
@@ -72,14 +72,14 @@ object LocalPublisher {
        }
     """
 
-  val system = ActorSystem(localPublisher, ConfigFactory.parseString(config))
+  val system: ActorSystem = ActorSystem(localPublisher, ConfigFactory.parseString(config))
 
   def shutdown(): Unit = {
     system.terminate()
     println(s"<$localPublisher> stopped")
   }
 
-  def main(args: Array[String]) = {
+  def main(args: Array[String]): Unit = {
     system.actorOf(Props(classOf[LocalPublisher], args.toVector))
     sys.addShutdownHook { shutdown() }
     println(s"<$localPublisher> started")

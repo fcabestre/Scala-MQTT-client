@@ -23,6 +23,8 @@ import akka.io.Tcp.{ Abort => TCPAbort, Aborted => TCPAborted, Closed => TCPClos
 import akka.testkit.{ ImplicitSender, TestProbe }
 import akka.util.ByteString
 import net.sigusr.mqtt.SpecsTestKit
+import net.sigusr.mqtt.api.ConnectionFailureReason.ServerNotResponding
+import net.sigusr.mqtt.api.QualityOfService.{ AtLeastOnce, AtMostOnce, ExactlyOnce }
 import net.sigusr.mqtt.api.{ Status => MqttApiStatus, _ }
 import net.sigusr.mqtt.impl.frames.{ Frame, Header, PublishFrame }
 import org.specs2.matcher.MatchResult
@@ -46,30 +48,30 @@ object EngineSpec extends Specification {
 
     import net.sigusr.mqtt.SpecUtils._
 
-    val garbageFrame = ByteString(0xff)
-    val connackFrame = ByteString(0x20, 0x02, 0x00, 0x00)
-    val pingRespFrame = ByteString(0xd0, 0x00)
-    val pubrecFrame = ByteString(0x50, 0x02, 0x00, 0x2a)
-    val pubrelFrame = ByteString(0x62, 0x02, 0x00, 0x2a)
-    val pubcompFrame = ByteString(0x70, 0x02, 0x00, 0x2a)
+    val garbageFrame: ByteString = ByteString(0xff)
+    val connackFrame: ByteString = ByteString(0x20, 0x02, 0x00, 0x00)
+    val pingRespFrame: ByteString = ByteString(0xd0, 0x00)
+    val pubrecFrame: ByteString = ByteString(0x50, 0x02, 0x00, 0x2a)
+    val pubrelFrame: ByteString = ByteString(0x62, 0x02, 0x00, 0x2a)
+    val pubcompFrame: ByteString = ByteString(0x70, 0x02, 0x00, 0x2a)
 
     private val payload0 = "payload".getBytes.toVector
-    val frame0 = PublishFrame(Header(qos = ExactlyOnce.enum), "topic", 42, ByteVector(payload0))
-    val publishFrame0 = ByteString(Codec[Frame].encode(frame0).require.toByteArray)
+    val frame0: PublishFrame = PublishFrame(Header(qos = ExactlyOnce.value), "topic", 42, ByteVector(payload0))
+    val publishFrame0: ByteString = ByteString(Codec[Frame].encode(frame0).require.toByteArray)
 
     val payload1: Vector[Byte] = "payload of frame 1".getBytes.toVector
-    val frame1 = PublishFrame(Header(qos = AtMostOnce.enum), "topic", 42, ByteVector(payload1))
-    val publishFrame1 = ByteString(Codec[Frame].encode(frame1).require.toByteArray)
+    val frame1: PublishFrame = PublishFrame(Header(qos = AtMostOnce.value), "topic", 42, ByteVector(payload1))
+    val publishFrame1: ByteString = ByteString(Codec[Frame].encode(frame1).require.toByteArray)
 
     val payload2: Vector[Byte] = "payload of frame 2".getBytes.toVector
-    val frame2 = PublishFrame(Header(qos = AtMostOnce.enum), "topic", 42, ByteVector(payload2))
-    val publishFrame2 = ByteString(Codec[Frame].encode(frame2).require.toByteArray)
+    val frame2: PublishFrame = PublishFrame(Header(qos = AtMostOnce.value), "topic", 42, ByteVector(payload2))
+    val publishFrame2: ByteString = ByteString(Codec[Frame].encode(frame2).require.toByteArray)
 
-    val bigPayload = makeRandomByteVector(2500)
-    val bigFrame = PublishFrame(Header(qos = AtMostOnce.enum), "topic", 42, ByteVector(bigPayload))
-    val encodedBigFrame = ByteString(Codec[Frame].encode(bigFrame).require.toByteArray)
-    val encodedBigFramePart1 = encodedBigFrame.take(1500)
-    val encodedBigFramePart2 = encodedBigFrame.drop(1500)
+    val bigPayload: Vector[Byte] = makeRandomByteVector(2500)
+    val bigFrame: PublishFrame = PublishFrame(Header(qos = AtMostOnce.value), "topic", 42, ByteVector(bigPayload))
+    val encodedBigFrame: ByteString = ByteString(Codec[Frame].encode(bigFrame).require.toByteArray)
+    val encodedBigFramePart1: ByteString = encodedBigFrame.take(1500)
+    val encodedBigFramePart2: ByteString = encodedBigFrame.drop(1500)
 
     var pingReqCount = 0
     var mqttManager: Option[ActorRef] = None
@@ -167,8 +169,8 @@ object EngineSpec extends Specification {
   }
 
   class FakeMQTTManagerParent(testMQTTManagerName: String, fakeTCPManagerActor: ActorRef)(implicit testActor: ActorRef) extends Actor {
-    val child = context.actorOf(Props(new TestManager(fakeTCPManagerActor)), testMQTTManagerName)
-    def receive = {
+    val child: ActorRef = context.actorOf(Props(new TestManager(fakeTCPManagerActor)), testMQTTManagerName)
+    def receive: Receive = {
       case x if sender == child => testActor forward x
       case x => child forward x
     }
@@ -178,7 +180,7 @@ object EngineSpec extends Specification {
 
     "Manage successful connection" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -191,7 +193,7 @@ object EngineSpec extends Specification {
 
     "Manage unsuccessful connection" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -202,7 +204,7 @@ object EngineSpec extends Specification {
 
     "Provide the right connection status [0]" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -219,7 +221,7 @@ object EngineSpec extends Specification {
 
     "Provide the right connection status [1]" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! MqttApiStatus
 
@@ -228,7 +230,7 @@ object EngineSpec extends Specification {
 
     "Provide the right connection status [2]" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -239,7 +241,7 @@ object EngineSpec extends Specification {
 
     "Send back an error when sending an API command while not connected" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Disconnect
 
@@ -248,7 +250,7 @@ object EngineSpec extends Specification {
 
     "Send back an error when sending an API command during connection" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -259,7 +261,7 @@ object EngineSpec extends Specification {
 
     "Allow graceful disconnection" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -277,7 +279,7 @@ object EngineSpec extends Specification {
 
     "Send back an error when sending a Connect API message if already connected" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -299,7 +301,7 @@ object EngineSpec extends Specification {
 
     "Manage the connection actor's death" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 30, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -316,7 +318,7 @@ object EngineSpec extends Specification {
 
     "Keep an idle connection alive or disconnect" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -335,7 +337,7 @@ object EngineSpec extends Specification {
 
     "Disconnect when a wrong frame is received" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -352,7 +354,7 @@ object EngineSpec extends Specification {
 
     "Manage publishing a message with a QOS of exactly once" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -377,7 +379,7 @@ object EngineSpec extends Specification {
 
     "Manage receiving a message with a QOS of exactly once" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 1, cleanSession = false, Some(Will(retain = false, AtMostOnce, "test/topic", "test death")), None, None)
 
@@ -402,7 +404,7 @@ object EngineSpec extends Specification {
 
     "Manage receiving a message in multiple packets" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 1, cleanSession = true, Some(Will(retain = false, AtLeastOnce, "test/topic", "test death")), None, None)
 
@@ -425,7 +427,7 @@ object EngineSpec extends Specification {
 
     "Manage receiving two messages in one packet" in new SpecsTestKit {
       val fakeTCPManagerActor = new FakeTCPManagerActor
-      val mqttManagerActor = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
+      val mqttManagerActor: ActorRef = system.actorOf(Props(new FakeMQTTManagerParent("MQTTClient", fakeTCPManagerActor.ref)))
 
       mqttManagerActor ! Connect("test", 1, cleanSession = true, Some(Will(retain = false, AtLeastOnce, "test/topic", "test death")), None, None)
 

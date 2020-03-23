@@ -44,6 +44,7 @@ lazy val core = project
     resolvers += "Scalaz Bintray Repo" at "https://dl.bintray.com/scalaz/releases",
 
     libraryDependencies ++= Seq(
+      "com.beachape" %% "enumeratum" % "1.5.15",
       "org.specs2" %% "specs2-core" % "4.8.3" % "test",
       "com.typesafe.akka" %% "akka-actor" % "2.5.27",
       "com.typesafe.akka" %% "akka-testkit" % "2.5.27",

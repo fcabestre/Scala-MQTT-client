@@ -23,7 +23,6 @@ case class Registers(
 object Registers {
 
   import akka.io.Tcp.Command
-
   import scalaz.State
   import scalaz.State._
 

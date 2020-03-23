@@ -16,49 +16,51 @@
 
 package net.sigusr.mqtt.api
 
+import net.sigusr.mqtt.api.ConnectionFailureReason.{ BadProtocolVersion, BadUserNameOrPassword, IdentifierRejected, NotAuthorized, ServerNotResponding, ServerUnavailable }
+import net.sigusr.mqtt.api.QualityOfService.{ AtLeastOnce, AtMostOnce, ExactlyOnce }
 import org.specs2.mutable._
 
 object MessagesSpec extends Specification {
 
   "Quality of service" should {
     "Provide their «enum» value" in {
-      AtMostOnce.enum should be_==(0)
-      AtLeastOnce.enum should be_==(1)
-      ExactlyOnce.enum should be_==(2)
+      AtMostOnce.value should be_==(0)
+      AtLeastOnce.value should be_==(1)
+      ExactlyOnce.value should be_==(2)
     }
 
     "Be constructable from their corresponding «enum» value" in {
       import net.sigusr.mqtt.api.QualityOfService._
 
-      fromEnum(-1) should throwA[IllegalArgumentException]
-      fromEnum(0) should_=== AtMostOnce
-      fromEnum(1) should_=== AtLeastOnce
-      fromEnum(2) should_=== ExactlyOnce
-      fromEnum(3) should throwA[IllegalArgumentException]
+      withValue(-1) should throwA[IllegalArgumentException]
+      withValue(0) should_=== AtMostOnce
+      withValue(1) should_=== AtLeastOnce
+      withValue(2) should_=== ExactlyOnce
+      withValue(3) should throwA[IllegalArgumentException]
     }
   }
 
   "Connect failure reason" should {
     "Provide their «enum» value" in {
-      ServerNotResponding.enum should be_==(0)
-      BadProtocolVersion.enum should be_==(1)
-      IdentifierRejected.enum should be_==(2)
-      ServerUnavailable.enum should be_==(3)
-      BadUserNameOrPassword.enum should be_==(4)
-      NotAuthorized.enum should be_==(5)
+      ServerNotResponding.value should be_==(0)
+      BadProtocolVersion.value should be_==(1)
+      IdentifierRejected.value should be_==(2)
+      ServerUnavailable.value should be_==(3)
+      BadUserNameOrPassword.value should be_==(4)
+      NotAuthorized.value should be_==(5)
     }
 
     "Be constructable from their corresponding «enum» value" in {
       import net.sigusr.mqtt.api.ConnectionFailureReason._
 
-      fromEnum(-1) should throwA[IllegalArgumentException]
-      fromEnum(0) should_=== ServerNotResponding
-      fromEnum(1) should_=== BadProtocolVersion
-      fromEnum(2) should_=== IdentifierRejected
-      fromEnum(3) should_=== ServerUnavailable
-      fromEnum(4) should_=== BadUserNameOrPassword
-      fromEnum(5) should_=== NotAuthorized
-      fromEnum(6) should throwA[IllegalArgumentException]
+      withValue(-1) should throwA[IllegalArgumentException]
+      withValue(0) should_=== ServerNotResponding
+      withValue(1) should_=== BadProtocolVersion
+      withValue(2) should_=== IdentifierRejected
+      withValue(3) should_=== ServerUnavailable
+      withValue(4) should_=== BadUserNameOrPassword
+      withValue(5) should_=== NotAuthorized
+      withValue(6) should throwA[IllegalArgumentException]
     }
   }
 
